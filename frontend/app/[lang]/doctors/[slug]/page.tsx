@@ -260,12 +260,16 @@ export default async function DoctorProfilePage({
           <BackButton />
 
           <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
-            {/* Avatar with initials */}
+            {/* Avatar — real photo if available, else coloured initials */}
             <div
               className="profile-avatar"
-              style={{ background: av.bg, color: av.color }}
+              style={{ background: av.bg, color: av.color, overflow: 'hidden' }}
             >
-              {ins}
+              {d.photo_url
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={d.photo_url} alt={d.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                : ins
+              }
             </div>
 
             <div style={{ flex: 1 }}>

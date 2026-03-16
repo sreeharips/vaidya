@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.cache import cache_get, cache_set
 from db.database import get_db
-from db.models import ClinicFeatureStore, Doctor, Review, Treatment
+from db.models import ClinicFeatureStore, Doctor, DoctorTreatment, Review, Treatment
 
 router = APIRouter(prefix="/api/doctors", tags=["doctors"])
 
@@ -252,12 +252,13 @@ async def get_doctor(
 
     d, c = row
 
-    # ── Treatments ────────────────────────────────────────────────────────────
+    # ── Treatments (via DoctorTreatment junction) ─────────────────────────────
     treatment_rows = (
         await db.execute(
             select(Treatment)
-            .where(Treatment.doctor_id == d.id, Treatment.is_active.is_(True))
-            .order_by(Treatment.price_per_day.asc().nulls_last())
+            .join(DoctorTreatment, DoctorTreatment.treatment_id == Treatment.id)
+            .where(DoctorTreatment.doctor_id == d.id, Treatment.is_active.is_(True))
+            .order_by(DoctorTreatment.is_primary.desc(), Treatment.price_per_day.asc().nulls_last())
         )
     ).scalars().all()
 

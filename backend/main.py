@@ -5,6 +5,7 @@ from api.assessment import router as assessment_router
 from api.booking import router as booking_router
 from api.clinics import router as clinics_router
 from api.doctors import router as doctors_router
+from api.products import router as products_router
 from api.search import router as search_router
 
 app = FastAPI(
@@ -25,6 +26,7 @@ app.include_router(assessment_router)
 app.include_router(booking_router)
 app.include_router(clinics_router)
 app.include_router(doctors_router)
+app.include_router(products_router)
 app.include_router(search_router)
 
 

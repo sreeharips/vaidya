@@ -3,11 +3,16 @@ api/search.py — Search endpoints.
 
 GET  /api/search?q=&type=all|doctor|clinic&lang=en&limit=20&offset=0
 GET  /api/search/condition?q=back+pain&lang=en
+GET  /api/search/condition/{slug}
 GET  /api/search/suggestions?q=pan&lang=en
 """
 
 import uuid
+from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Literal
+
+import yaml
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -27,7 +32,15 @@ from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
-from db.models import ClinicFeatureStore, ConditionMap, Doctor, SearchEvent, Treatment
+from db.models import (
+    ClinicFeatureStore,
+    ConditionMap,
+    Doctor,
+    DoctorTreatment,
+    Product,
+    SearchEvent,
+    Treatment,
+)
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 
@@ -59,16 +72,31 @@ class SearchResponse(BaseModel):
     lang: str
 
 
+@lru_cache(maxsize=1)
+def _condition_explanations() -> dict[str, str]:
+    """Load explanation text from conditions.yaml, keyed by condition_slug."""
+    path = Path("/config/conditions.yaml")
+    if not path.exists():
+        # Try relative path for local dev
+        path = Path("config/conditions.yaml")
+    if not path.exists():
+        return {}
+    data = yaml.safe_load(path.read_text())
+    return {c["condition_slug"]: c.get("explanation", "") for c in data.get("conditions", [])}
+
+
 class ConditionOut(BaseModel):
     slug: str
     name: str
     treatment_slugs: list[str]
+    explanation: str | None = None
 
 
 class TreatmentBrief(BaseModel):
     id: str
     slug: str
     name: str
+    description: str | None
     clinic_id: str | None
     clinic_slug: str | None
     clinic_name: str | None
@@ -89,6 +117,7 @@ class DoctorBrief(BaseModel):
     review_count: int
     prakriti_affinities: list[str]
     languages: list[str]
+    specialisations: list[str]
 
 
 class ClinicBrief(BaseModel):
@@ -103,11 +132,25 @@ class ClinicBrief(BaseModel):
     specialisations: list[str]
 
 
+class ProductBrief(BaseModel):
+    id: str
+    slug: str
+    name: str
+    description: str | None
+    category: str | None
+    base_price: float | None
+    currency: str
+    is_gmp_certified: bool
+    clinic_name: str | None
+    clinic_slug: str | None
+
+
 class ConditionSearchResponse(BaseModel):
     condition: ConditionOut
     treatments: list[TreatmentBrief]
     doctors: list[DoctorBrief]
     clinics: list[ClinicBrief]
+    products: list[ProductBrief]
 
 
 class SuggestionItem(BaseModel):
@@ -154,6 +197,152 @@ def _headline(text_expr, tsquery):
     return func.ts_headline(_TS_LANG, text_expr, tsquery, _HEADLINE_OPTS)
 
 
+async def _resolve_condition_results(
+    treatment_slugs: list[str],
+    db: AsyncSession,
+) -> tuple[list[TreatmentBrief], list[DoctorBrief], list[ClinicBrief], list[ProductBrief]]:
+    """Shared query logic for both condition endpoints.
+
+    Given a list of therapy slugs from conditions_map, returns:
+    - treatments that include any of those therapies
+    - doctors who deliver any of those treatments (via DoctorTreatment junction)
+    - clinics that host those treatments
+    - products sold by those clinics (up to 8, GMP-certified first)
+    """
+    treatments: list[TreatmentBrief] = []
+    doctors: list[DoctorBrief] = []
+    clinics: list[ClinicBrief] = []
+    products: list[ProductBrief] = []
+
+    if not treatment_slugs:
+        return treatments, doctors, clinics, products
+
+    therapy_array = cast(treatment_slugs, PG_ARRAY(String))
+
+    treatment_rows = (
+        await db.execute(
+            select(Treatment, ClinicFeatureStore)
+            .join(ClinicFeatureStore, Treatment.clinic_id == ClinicFeatureStore.id, isouter=True)
+            .where(
+                Treatment.is_active.is_(True),
+                Treatment.included_therapies.op("&&")(therapy_array),
+            )
+            .order_by(
+                ClinicFeatureStore.tier.desc().nulls_last(),
+                ClinicFeatureStore.rating.desc().nulls_last(),
+            )
+        )
+    ).all()
+
+    seen_clinics: set[str] = set()
+    seen_doctors: set[str] = set()
+    clinic_uuids: list[uuid.UUID] = []
+
+    for t, c in treatment_rows:
+        treatments.append(
+            TreatmentBrief(
+                id=str(t.id),
+                slug=t.slug,
+                name=t.name,
+                description=t.description,
+                clinic_id=str(t.clinic_id) if t.clinic_id else None,
+                clinic_slug=c.slug if c else None,
+                clinic_name=c.name if c else None,
+                duration_min_days=t.duration_min_days,
+                duration_max_days=t.duration_max_days,
+                price_per_day=float(t.price_per_day) if t.price_per_day else None,
+                included_therapies=t.included_therapies or [],
+            )
+        )
+        if c and str(c.id) not in seen_clinics:
+            seen_clinics.add(str(c.id))
+            clinic_uuids.append(c.id)
+            clinics.append(
+                ClinicBrief(
+                    id=str(c.id),
+                    slug=c.slug,
+                    name=c.name,
+                    tier=c.tier,
+                    district=c.district,
+                    rating=float(c.rating) if c.rating else None,
+                    pricing_min=float(c.pricing_min) if c.pricing_min else None,
+                    pricing_max=float(c.pricing_max) if c.pricing_max else None,
+                    specialisations=c.specialisations or [],
+                )
+            )
+
+    # ── Doctors via DoctorTreatment junction ──────────────────────────────────
+    treatment_ids = [t.id for t, _ in treatment_rows]
+    if treatment_ids:
+        doctor_rows = (
+            await db.execute(
+                select(Doctor)
+                .join(DoctorTreatment, Doctor.id == DoctorTreatment.doctor_id)
+                .where(
+                    DoctorTreatment.treatment_id.in_(treatment_ids),
+                    Doctor.is_active.is_(True),
+                )
+                .order_by(Doctor.tier.desc(), Doctor.rating.desc().nulls_last())
+                .distinct()
+            )
+        ).scalars().all()
+
+        for d in doctor_rows:
+            if str(d.id) not in seen_doctors:
+                seen_doctors.add(str(d.id))
+                doctors.append(
+                    DoctorBrief(
+                        id=str(d.id),
+                        slug=d.slug,
+                        name=d.name,
+                        qualification=d.qualification,
+                        years_exp=d.years_exp,
+                        tier=d.tier,
+                        rating=float(d.rating) if d.rating else None,
+                        review_count=d.review_count,
+                        prakriti_affinities=d.prakriti_affinities or [],
+                        languages=d.languages or [],
+                        specialisations=d.specialisations or [],
+                    )
+                )
+
+    # ── Products from matching clinics ────────────────────────────────────────
+    if clinic_uuids:
+        product_rows = (
+            await db.execute(
+                select(Product, ClinicFeatureStore)
+                .join(ClinicFeatureStore, Product.clinic_id == ClinicFeatureStore.id)
+                .where(
+                    Product.clinic_id.in_(clinic_uuids),
+                    Product.is_active.is_(True),
+                )
+                .order_by(
+                    Product.is_gmp_certified.desc(),
+                    Product.base_price.asc().nulls_last(),
+                )
+                .limit(8)
+            )
+        ).all()
+
+        for p, c in product_rows:
+            products.append(
+                ProductBrief(
+                    id=str(p.id),
+                    slug=p.slug,
+                    name=p.name,
+                    description=p.description,
+                    category=p.category,
+                    base_price=float(p.base_price) if p.base_price else None,
+                    currency=p.currency,
+                    is_gmp_certified=p.is_gmp_certified,
+                    clinic_name=c.name if c else None,
+                    clinic_slug=c.slug if c else None,
+                )
+            )
+
+    return treatments, doctors, clinics, products
+
+
 # ── GET /api/search ───────────────────────────────────────────────────────────
 
 
@@ -186,7 +375,7 @@ async def full_text_search(
             Doctor.name.label("name"),
             cast(Doctor.tier, Integer).label("tier"),
             cast(Doctor.rating, Float).label("rating"),
-            cast(null(), String).label("district"),  # doctors inherit clinic district
+            cast(null(), String).label("district"),
             Doctor.specialisations.label("specialisations"),
             _headline(_doctor_text(), tsquery).label("snippet"),
             func.ts_rank(doc_tv, tsquery).label("rank"),
@@ -226,7 +415,6 @@ async def full_text_search(
     else:
         base = clinic_q.subquery()
 
-    # Window count gives total before LIMIT without a second query
     count_col = func.count().over().label("_total")
     stmt = (
         select(base, count_col)
@@ -257,7 +445,6 @@ async def full_text_search(
         for r in rows
     ]
 
-    # ── Log search event ──────────────────────────────────────────────────────
     db.add(
         SearchEvent(
             id=uuid.uuid4(),
@@ -267,7 +454,6 @@ async def full_text_search(
             lang=lang,
         )
     )
-    # committed by get_db on request completion
 
     return SearchResponse(results=results, total=total, query=q, type=type, lang=lang)
 
@@ -281,18 +467,14 @@ async def condition_search(
     lang: str = Query(default="en", pattern="^(en|ar|de|fr|ml|hi)$"),
     db: AsyncSession = Depends(get_db),
 ):
-    """Map a plain-language health condition to Ayurvedic treatments, doctors, and clinics.
+    """Map a plain-language health condition to Ayurvedic treatments, doctors, clinics, and medicines.
 
     - Matches `condition_name` (all languages) using case-insensitive fuzzy LIKE.
-    - Arabic queries additionally match `condition_name_ar`; Malayalam matches `condition_name_ml`.
-    - Returns the best-matching condition, its treatment slugs, then doctors and clinics
-      that offer any of those treatments (via `included_therapies` overlap).
     - No LLM — purely static YAML-seeded lookup table.
     """
     q = q.strip()
     pattern = f"%{q}%"
 
-    # ── Find condition ────────────────────────────────────────────────────────
     name_filter = [ConditionMap.condition_name.ilike(pattern)]
     if lang == "ar":
         name_filter.append(ConditionMap.condition_name_ar.ilike(pattern))
@@ -303,10 +485,7 @@ async def condition_search(
         await db.execute(
             select(ConditionMap)
             .where(or_(*name_filter))
-            .order_by(
-                # Prefer shorter names (closer match) when multiple hit
-                func.length(ConditionMap.condition_name).asc()
-            )
+            .order_by(func.length(ConditionMap.condition_name).asc())
             .limit(1)
         )
     ).scalar_one_or_none()
@@ -317,116 +496,67 @@ async def condition_search(
             detail=f"No condition found matching '{q}'. Try a different spelling or browse conditions.",
         )
 
-    treatment_slugs: list[str] = cond_row.treatment_slugs or []
-
-    # ── Find treatments that include any of those therapy slugs ───────────────
-    # conditions_map.treatment_slugs  ≡  canonical therapy names (e.g. "kati-basti")
-    # Treatment.included_therapies    ≡  same canonical names inside a programme
-    # Match: treatment.included_therapies && ARRAY[...treatment_slugs...]
-    treatments: list[TreatmentBrief] = []
-    doctors: list[DoctorBrief] = []
-    clinics: list[ClinicBrief] = []
-
-    if treatment_slugs:
-        therapy_array = cast(treatment_slugs, PG_ARRAY(String))
-
-        treatment_rows = (
-            await db.execute(
-                select(Treatment, ClinicFeatureStore)
-                .join(
-                    ClinicFeatureStore,
-                    Treatment.clinic_id == ClinicFeatureStore.id,
-                    isouter=True,
-                )
-                .where(
-                    Treatment.is_active.is_(True),
-                    Treatment.included_therapies.op("&&")(therapy_array),
-                )
-                .order_by(
-                    ClinicFeatureStore.tier.desc().nulls_last(),
-                    ClinicFeatureStore.rating.desc().nulls_last(),
-                )
-            )
-        ).all()
-
-        seen_clinics: set[str] = set()
-        seen_doctors: set[str] = set()
-
-        for t, c in treatment_rows:
-            treatments.append(
-                TreatmentBrief(
-                    id=str(t.id),
-                    slug=t.slug,
-                    name=t.name,
-                    clinic_id=str(t.clinic_id) if t.clinic_id else None,
-                    clinic_slug=c.slug if c else None,
-                    clinic_name=c.name if c else None,
-                    duration_min_days=t.duration_min_days,
-                    duration_max_days=t.duration_max_days,
-                    price_per_day=float(t.price_per_day) if t.price_per_day else None,
-                    included_therapies=t.included_therapies or [],
-                )
-            )
-
-            # Collect unique clinics
-            if c and str(c.id) not in seen_clinics:
-                seen_clinics.add(str(c.id))
-                clinics.append(
-                    ClinicBrief(
-                        id=str(c.id),
-                        slug=c.slug,
-                        name=c.name,
-                        tier=c.tier,
-                        district=c.district,
-                        rating=float(c.rating) if c.rating else None,
-                        pricing_min=float(c.pricing_min) if c.pricing_min else None,
-                        pricing_max=float(c.pricing_max) if c.pricing_max else None,
-                        specialisations=c.specialisations or [],
-                    )
-                )
-
-        # Fetch doctors linked to the matching treatments
-        doctor_ids = [
-            t.doctor_id
-            for t, _ in treatment_rows
-            if t.doctor_id is not None
-        ]
-        if doctor_ids:
-            doctor_rows = (
-                await db.execute(
-                    select(Doctor)
-                    .where(Doctor.id.in_(doctor_ids), Doctor.is_active.is_(True))
-                    .order_by(Doctor.tier.desc(), Doctor.rating.desc().nulls_last())
-                )
-            ).scalars().all()
-
-            for d in doctor_rows:
-                if str(d.id) not in seen_doctors:
-                    seen_doctors.add(str(d.id))
-                    doctors.append(
-                        DoctorBrief(
-                            id=str(d.id),
-                            slug=d.slug,
-                            name=d.name,
-                            qualification=d.qualification,
-                            years_exp=d.years_exp,
-                            tier=d.tier,
-                            rating=float(d.rating) if d.rating else None,
-                            review_count=d.review_count,
-                            prakriti_affinities=d.prakriti_affinities or [],
-                            languages=d.languages or [],
-                        )
-                    )
+    treatments, doctors, clinics, products = await _resolve_condition_results(
+        cond_row.treatment_slugs or [], db
+    )
+    explanation = _condition_explanations().get(cond_row.condition_slug)
 
     return ConditionSearchResponse(
         condition=ConditionOut(
             slug=cond_row.condition_slug,
             name=cond_row.condition_name,
-            treatment_slugs=treatment_slugs,
+            treatment_slugs=cond_row.treatment_slugs or [],
+            explanation=explanation,
         ),
         treatments=treatments,
         doctors=doctors,
         clinics=clinics,
+        products=products,
+    )
+
+
+# ── GET /api/search/condition/{slug} ─────────────────────────────────────────
+
+
+@router.get("/condition/{slug}", response_model=ConditionSearchResponse)
+async def get_condition_by_slug(
+    slug: str,
+    lang: str = Query(default="en", pattern="^(en|ar|de|fr|ml|hi)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Look up a condition page directly by its slug (e.g. 'stress-anxiety').
+
+    Used by the /[lang]/conditions/[slug] frontend route.
+    Identical response shape to /condition?q= but matches on condition_slug exactly.
+    """
+    cond_row = (
+        await db.execute(
+            select(ConditionMap).where(ConditionMap.condition_slug == slug)
+        )
+    ).scalar_one_or_none()
+
+    if cond_row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Condition '{slug}' not found.",
+        )
+
+    treatments, doctors, clinics, products = await _resolve_condition_results(
+        cond_row.treatment_slugs or [], db
+    )
+    explanation = _condition_explanations().get(slug)
+
+    return ConditionSearchResponse(
+        condition=ConditionOut(
+            slug=cond_row.condition_slug,
+            name=cond_row.condition_name,
+            treatment_slugs=cond_row.treatment_slugs or [],
+            explanation=explanation,
+        ),
+        treatments=treatments,
+        doctors=doctors,
+        clinics=clinics,
+        products=products,
     )
 
 
@@ -449,7 +579,6 @@ async def autocomplete_suggestions(
     prefix = f"{q}%"
     limit = 8
 
-    # ── Doctors ───────────────────────────────────────────────────────────────
     doc_q = select(
         cast(Doctor.id, String).label("id"),
         literal("doctor").label("type"),
@@ -462,7 +591,6 @@ async def autocomplete_suggestions(
         Doctor.name.ilike(prefix),
     )
 
-    # ── Clinics ───────────────────────────────────────────────────────────────
     clinic_q = select(
         cast(ClinicFeatureStore.id, String).label("id"),
         literal("clinic").label("type"),
@@ -475,7 +603,6 @@ async def autocomplete_suggestions(
         ClinicFeatureStore.name.ilike(prefix),
     )
 
-    # ── Treatments ────────────────────────────────────────────────────────────
     treatment_q = select(
         cast(Treatment.id, String).label("id"),
         literal("treatment").label("type"),
@@ -491,8 +618,6 @@ async def autocomplete_suggestions(
         Treatment.name.ilike(prefix),
     )
 
-    # ── Conditions ────────────────────────────────────────────────────────────
-    # Match English name or the localised name for Arabic / Malayalam
     cond_name_col = ConditionMap.condition_name
     if lang == "ar":
         cond_name_col = func.coalesce(ConditionMap.condition_name_ar, ConditionMap.condition_name)
@@ -517,7 +642,6 @@ async def autocomplete_suggestions(
         )
     )
 
-    # ── UNION ALL and rank ────────────────────────────────────────────────────
     combined = union_all(doc_q, clinic_q, treatment_q, cond_q).subquery()
     stmt = (
         select(combined)

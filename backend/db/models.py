@@ -1,7 +1,12 @@
 """
 Vaidya database models — SQLAlchemy 2.0 async (asyncpg).
 
-All tables from CLAUDE.md + additional fields from vaidya_design.html.
+Entity ownership rules (enforced here):
+  - Treatment  is owned by Clinic (clinic_id NOT NULL). Doctors are linked via
+    DoctorTreatment junction — a doctor leaving a clinic does not delete treatments.
+  - Product    is owned by Clinic (clinic_id NOT NULL). Clinics sell herbal products;
+    doctors do not have independent product catalogues.
+  - Shipping   is clinic-direct — the clinic fulfils and dispatches product orders.
 """
 
 import uuid
@@ -11,7 +16,6 @@ from sqlalchemy import (
     ARRAY,
     Boolean,
     CheckConstraint,
-    Column,
     Date,
     DateTime,
     Float,
@@ -48,10 +52,15 @@ class PatientProfile(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
     bookings: Mapped[list["Booking"]] = relationship(back_populates="patient", foreign_keys="Booking.patient_pseudo_id")
+    product_orders: Mapped[list["ProductOrder"]] = relationship(back_populates="patient", foreign_keys="ProductOrder.patient_pseudo_id")
 
 
 # ---------------------------------------------------------------------------
 # Doctors
+#
+# A doctor belongs to a Clinic (clinic_id nullable — some vaidyas are itinerant).
+# Treatments offered by a doctor are recorded in DoctorTreatment junction, NOT
+# via a direct FK on treatments. This means treatments survive doctor reassignment.
 # ---------------------------------------------------------------------------
 class Doctor(Base):
     __tablename__ = "doctors"
@@ -61,7 +70,9 @@ class Doctor(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     qualification: Mapped[str] = mapped_column(String(255), nullable=False)
     years_exp: Mapped[int] = mapped_column(Integer, default=0)
-    clinic_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True)
+    clinic_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True
+    )
     specialisations = mapped_column(ARRAY(String), default=list)
     prakriti_affinities = mapped_column(ARRAY(String), default=list)
     languages = mapped_column(ARRAY(String), default=list)
@@ -80,7 +91,8 @@ class Doctor(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
 
     clinic: Mapped["ClinicFeatureStore | None"] = relationship(back_populates="doctors")
-    treatments: Mapped[list["Treatment"]] = relationship(back_populates="doctor", foreign_keys="Treatment.doctor_id")
+    # Treatments this doctor delivers — via junction (many-to-many)
+    doctor_treatments: Mapped[list["DoctorTreatment"]] = relationship(back_populates="doctor")
     treatment_kb_entries: Mapped[list["TreatmentKB"]] = relationship(back_populates="doctor")
     reviews: Mapped[list["Review"]] = relationship(back_populates="doctor")
 
@@ -92,6 +104,12 @@ class Doctor(Base):
 
 # ---------------------------------------------------------------------------
 # Clinic Feature Store
+#
+# The Clinic is the top-level supply-side entity. It owns:
+#   - Doctors      (doctor.clinic_id FK)
+#   - Treatments   (treatment.clinic_id FK — NOT NULL)
+#   - Products     (product.clinic_id FK — NOT NULL)
+#   - ProductOrders (fulfilled and shipped by the clinic directly)
 # ---------------------------------------------------------------------------
 class ClinicFeatureStore(Base):
     __tablename__ = "clinic_feature_store"
@@ -122,7 +140,9 @@ class ClinicFeatureStore(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
 
     doctors: Mapped[list["Doctor"]] = relationship(back_populates="clinic")
-    treatments: Mapped[list["Treatment"]] = relationship(back_populates="clinic", foreign_keys="Treatment.clinic_id")
+    treatments: Mapped[list["Treatment"]] = relationship(back_populates="clinic")
+    products: Mapped[list["Product"]] = relationship(back_populates="clinic")
+    product_orders: Mapped[list["ProductOrder"]] = relationship(back_populates="clinic")
     reviews: Mapped[list["Review"]] = relationship(back_populates="clinic")
 
     __table_args__ = (
@@ -133,6 +153,11 @@ class ClinicFeatureStore(Base):
 
 # ---------------------------------------------------------------------------
 # Treatments
+#
+# Owned by Clinic (clinic_id NOT NULL). Which doctors deliver a treatment is
+# recorded in DoctorTreatment. This means:
+#   - A doctor leaving doesn't orphan treatments.
+#   - Multiple doctors at the same clinic can deliver the same treatment.
 # ---------------------------------------------------------------------------
 class Treatment(Base):
     __tablename__ = "treatments"
@@ -146,13 +171,192 @@ class Treatment(Base):
     duration_max_days: Mapped[int | None] = mapped_column(Integer)
     price_per_day: Mapped[float | None] = mapped_column(Numeric(10, 2))
     included_therapies = mapped_column(ARRAY(String), default=list)
-    clinic_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True)
-    doctor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("doctors.id"), index=True)
+    # Clinic is the owner — NOT NULL
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
-    clinic: Mapped["ClinicFeatureStore | None"] = relationship(back_populates="treatments", foreign_keys=[clinic_id])
-    doctor: Mapped["Doctor | None"] = relationship(back_populates="treatments", foreign_keys=[doctor_id])
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="treatments")
+    # Doctors who deliver this treatment (many-to-many via junction)
+    doctor_treatments: Mapped[list["DoctorTreatment"]] = relationship(back_populates="treatment")
+
+
+# ---------------------------------------------------------------------------
+# DoctorTreatment  (junction: Doctor ↔ Treatment)
+#
+# Records which doctors at a clinic deliver which treatments.
+# is_primary flags the lead doctor for a treatment programme (used on clinic page).
+# ---------------------------------------------------------------------------
+class DoctorTreatment(Base):
+    __tablename__ = "doctor_treatments"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    doctor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False, index=True
+    )
+    treatment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("treatments.id"), nullable=False, index=True
+    )
+    # True = this doctor leads / is the primary practitioner for this treatment
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    doctor: Mapped["Doctor"] = relationship(back_populates="doctor_treatments")
+    treatment: Mapped["Treatment"] = relationship(back_populates="doctor_treatments")
+
+    __table_args__ = (
+        UniqueConstraint("doctor_id", "treatment_id", name="uq_doctor_treatment"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Products  (herbal products sold by the clinic — Phase 2 e-commerce)
+#
+# Owned by Clinic (clinic_id NOT NULL). Doctors do not own products.
+# A product can have multiple variants (e.g. 100g / 250g / 500g).
+# ---------------------------------------------------------------------------
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    # e.g. "oils", "churnas", "lehyas", "capsules", "external", "decoctions"
+    category: Mapped[str | None] = mapped_column(String(100))
+    prakriti_tags = mapped_column(ARRAY(String), default=list)   # for personalised recommendation
+    # Base price (INR). Variants override this with their own price.
+    base_price: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="INR")
+    photos = mapped_column(ARRAY(String), default=list)
+    is_gmp_certified: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="products")
+    variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product", cascade="all, delete-orphan")
+    order_items: Mapped[list["OrderItem"]] = relationship(back_populates="product")
+
+
+# ---------------------------------------------------------------------------
+# ProductVariant  (size / form variants of a product)
+#
+# Examples: "100g", "250g", "500g" for an oil; "30 caps", "60 caps" for a tablet.
+# Each variant has its own SKU, price, and stock.
+# If a product has no variants, a single default variant should be created.
+# ---------------------------------------------------------------------------
+class ProductVariant(Base):
+    __tablename__ = "product_variants"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("products.id"), nullable=False, index=True
+    )
+    # Human-readable label shown in the UI, e.g. "100g", "250ml", "30 capsules"
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    sku: Mapped[str | None] = mapped_column(String(100), unique=True)
+    price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    stock_qty: Mapped[int] = mapped_column(Integer, default=0)
+    weight_grams: Mapped[int | None] = mapped_column(Integer)   # for shipping cost calc
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    product: Mapped["Product"] = relationship(back_populates="variants")
+    order_items: Mapped[list["OrderItem"]] = relationship(back_populates="variant")
+
+    __table_args__ = (
+        UniqueConstraint("product_id", "label", name="uq_product_variant_label"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# ProductOrder  (a patient's medicine order — fulfilled by the clinic directly)
+#
+# booking_id is nullable: patients can reorder medicine after their retreat
+# without creating a new booking.
+# ---------------------------------------------------------------------------
+class ProductOrder(Base):
+    __tablename__ = "product_orders"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_pseudo_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("patient_profiles.pseudo_id"), nullable=False, index=True
+    )
+    # Clinic that will fulfil and ship this order
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    # Optional link to the retreat booking that prompted this medicine order
+    booking_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("bookings.id"), index=True
+    )
+    # pending → paid → dispatched → delivered | cancelled | refunded
+    status: Mapped[str] = mapped_column(String(30), default="pending")
+    total_amount: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    currency: Mapped[str] = mapped_column(String(3), default="INR")
+    payment_ref: Mapped[str | None] = mapped_column(String(255))
+    stripe_session_id: Mapped[str | None] = mapped_column(String(255))
+    razorpay_order_id: Mapped[str | None] = mapped_column(String(255))
+    # Shipping address snapshot at time of order (JSONB — format may vary by country)
+    shipping_address: Mapped[dict | None] = mapped_column(JSONB)
+    tracking_number: Mapped[str | None] = mapped_column(String(255))
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    patient: Mapped["PatientProfile"] = relationship(back_populates="product_orders")
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="product_orders")
+    booking: Mapped["Booking | None"] = relationship()
+    items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','paid','dispatched','delivered','cancelled','refunded')",
+            name="ck_product_order_status",
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# OrderItem  (line items within a ProductOrder)
+#
+# product_id is denormalised here for fast querying without joining through variant.
+# unit_price and subtotal are snapshots — they must not change if the variant
+# price is updated later.
+# ---------------------------------------------------------------------------
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("product_orders.id"), nullable=False, index=True
+    )
+    product_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("products.id"), nullable=False, index=True
+    )
+    # Specific variant selected (nullable: null = base product, no variant chosen)
+    variant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("product_variants.id"), index=True
+    )
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Price snapshot at time of order — never update these
+    unit_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    subtotal: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+
+    order: Mapped["ProductOrder"] = relationship(back_populates="items")
+    product: Mapped["Product"] = relationship(back_populates="order_items")
+    variant: Mapped["ProductVariant | None"] = relationship(back_populates="order_items")
+
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_order_item_quantity_positive"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +507,5 @@ class OutcomesLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
     __table_args__ = (
-        # Database-level guard: prevent updates and deletes via a naming convention.
-        # Actual enforcement is via a PostgreSQL trigger (see migration).
         CheckConstraint("event_type IS NOT NULL", name="ck_outcomes_log_append_only_marker"),
     )

@@ -5,6 +5,7 @@ GET /api/clinics?tier=&specialisation=&language=&prakriti=&district=&budget_max=
 GET /api/clinics/{slug}
 """
 
+from collections import defaultdict
 from datetime import datetime
 from typing import Annotated
 
@@ -15,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.cache import cache_get, cache_set
 from db.database import get_db
-from db.models import ClinicFeatureStore, Doctor, Review, Treatment
+from db.models import ClinicFeatureStore, Doctor, DoctorTreatment, Product, ProductVariant, Review, Treatment
 
 router = APIRouter(prefix="/api/clinics", tags=["clinics"])
 
@@ -34,8 +35,8 @@ class TreatmentInline(BaseModel):
     price_per_day: float | None
     included_therapies: list[str]
     prakriti_tags: list[str]
-    doctor_id: str | None
-    doctor_name: str | None
+    # Names of doctors who deliver this treatment (via DoctorTreatment junction)
+    doctors: list[str]
 
 
 class DoctorAtClinic(BaseModel):
@@ -61,6 +62,28 @@ class ReviewOut(BaseModel):
     treatment_slug: str | None
     verified: bool
     created_at: datetime
+
+
+class ProductVariantOut(BaseModel):
+    id: str
+    label: str
+    sku: str | None
+    price: float
+    stock_qty: int
+
+
+class ProductOut(BaseModel):
+    id: str
+    slug: str
+    name: str
+    description: str | None
+    category: str | None
+    prakriti_tags: list[str]
+    base_price: float | None
+    currency: str
+    photos: list[str]
+    is_gmp_certified: bool
+    variants: list[ProductVariantOut]
 
 
 class ClinicSummary(BaseModel):
@@ -105,6 +128,7 @@ class ClinicDetail(BaseModel):
     lng: float | None
     doctors: list[DoctorAtClinic]
     treatments: list[TreatmentInline]
+    products: list[ProductOut]
     reviews: list[ReviewOut]
 
 
@@ -233,7 +257,8 @@ async def get_clinic(
     lang: str = Query(default="en", pattern="^(en|ar|de|fr|ml|hi)$"),
     db: Annotated[AsyncSession, Depends(get_db)] = None,
 ):
-    """Full clinic profile: all fields, doctor roster, treatment programmes, last 5 reviews.
+    """Full clinic profile: all fields, doctor roster, treatments with delivering doctors,
+    herbal products with variants, and last 5 verified reviews.
 
     Response is cached in Redis for 60 seconds (key: `clinic:{slug}:{lang}`).
     Cache is bypassed gracefully if Redis is unavailable.
@@ -283,15 +308,30 @@ async def get_clinic(
     ]
 
     # ── Treatments at this clinic ─────────────────────────────────────────────
-    # Join with doctor to surface the doctor name on each treatment
+    # Treatments are clinic-owned (clinic_id NOT NULL).
+    # Which doctors deliver each treatment is stored in doctor_treatments junction.
     treatment_rows = (
         await db.execute(
-            select(Treatment, Doctor)
-            .join(Doctor, Treatment.doctor_id == Doctor.id, isouter=True)
+            select(Treatment)
             .where(Treatment.clinic_id == clinic.id, Treatment.is_active.is_(True))
             .order_by(Treatment.price_per_day.asc().nulls_last())
         )
-    ).all()
+    ).scalars().all()
+
+    # Build a map of treatment_id → [doctor names] from the junction table
+    treatment_ids = [t.id for t in treatment_rows]
+    treatment_doctors: dict[str, list[str]] = defaultdict(list)
+    if treatment_ids:
+        junction_rows = (
+            await db.execute(
+                select(DoctorTreatment, Doctor)
+                .join(Doctor, DoctorTreatment.doctor_id == Doctor.id)
+                .where(DoctorTreatment.treatment_id.in_(treatment_ids))
+                .order_by(DoctorTreatment.is_primary.desc())
+            )
+        ).all()
+        for dt, doc in junction_rows:
+            treatment_doctors[str(dt.treatment_id)].append(doc.name)
 
     treatments = [
         TreatmentInline(
@@ -303,10 +343,57 @@ async def get_clinic(
             price_per_day=float(t.price_per_day) if t.price_per_day is not None else None,
             included_therapies=t.included_therapies or [],
             prakriti_tags=t.prakriti_tags or [],
-            doctor_id=str(t.doctor_id) if t.doctor_id else None,
-            doctor_name=doc.name if doc else None,
+            doctors=treatment_doctors.get(str(t.id), []),
         )
-        for t, doc in treatment_rows
+        for t in treatment_rows
+    ]
+
+    # ── Products (herbal shop) ────────────────────────────────────────────────
+    product_rows = (
+        await db.execute(
+            select(Product)
+            .where(Product.clinic_id == clinic.id, Product.is_active.is_(True))
+            .order_by(Product.category.asc().nulls_last(), Product.name.asc())
+        )
+    ).scalars().all()
+
+    # Fetch all variants for these products in one query
+    product_ids = [p.id for p in product_rows]
+    variants_by_product: dict[str, list[ProductVariantOut]] = defaultdict(list)
+    if product_ids:
+        variant_rows = (
+            await db.execute(
+                select(ProductVariant)
+                .where(ProductVariant.product_id.in_(product_ids), ProductVariant.is_active.is_(True))
+                .order_by(ProductVariant.price.asc())
+            )
+        ).scalars().all()
+        for v in variant_rows:
+            variants_by_product[str(v.product_id)].append(
+                ProductVariantOut(
+                    id=str(v.id),
+                    label=v.label,
+                    sku=v.sku,
+                    price=float(v.price),
+                    stock_qty=v.stock_qty,
+                )
+            )
+
+    products = [
+        ProductOut(
+            id=str(p.id),
+            slug=p.slug,
+            name=p.name,
+            description=p.description,
+            category=p.category,
+            prakriti_tags=p.prakriti_tags or [],
+            base_price=float(p.base_price) if p.base_price is not None else None,
+            currency=p.currency,
+            photos=p.photos or [],
+            is_gmp_certified=p.is_gmp_certified,
+            variants=variants_by_product.get(str(p.id), []),
+        )
+        for p in product_rows
     ]
 
     # ── Reviews (latest 5, verified only) ─────────────────────────────────────
@@ -355,6 +442,7 @@ async def get_clinic(
         lng=clinic.lng,
         doctors=doctors,
         treatments=treatments,
+        products=products,
         reviews=reviews,
     )
 
