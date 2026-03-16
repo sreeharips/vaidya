@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaidya — Authentic Ayurveda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ─── TOKENS ─────────────────────────────────────────── */
+:root {
+  --cream:    #F7F3ED;
+  --cream2:   #EDE7DC;
+  --gold:     #B8862C;
+  --gold-lt:  #F5E9D0;
+  --forest:   #1E3D2F;
+  --forest2:  #2D5440;
+  --forest-lt:#E4EDE8;
+  --bark:     #6B4F3A;
+  --bark-lt:  #F0E8E0;
+  --slate:    #3D3530;
+  --muted:    #8A7F76;
+  --border:   rgba(107,79,58,0.15);
+  --border2:  rgba(107,79,58,0.25);
+  --white:    #FFFFFF;
+  --shadow:   0 2px 24px rgba(30,61,47,0.08);
+  --shadow2:  0 8px 48px rgba(30,61,47,0.12);
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 32px;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans:  'DM Sans', system-ui, sans-serif;
+  --transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─── RESET ──────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--sans);background:var(--cream);color:var(--slate);min-height:100vh;overflow-x:hidden}
+
+/* ─── SCREENS ────────────────────────────────────────── */
+.screen{display:none;min-height:100vh;animation:fadeUp .4s ease both}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── NAV ────────────────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:68px;
+  background:rgba(247,243,237,0.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{
+  font-family:var(--serif);font-size:26px;font-weight:600;
+  color:var(--forest);letter-spacing:-0.02em;cursor:pointer;
+  display:flex;align-items:center;gap:8px
+}
+.nav-logo span{color:var(--gold)}
+.nav-links{display:flex;align-items:center;gap:32px}
+.nav-links a{
+  font-size:14px;font-weight:400;color:var(--muted);
+  text-decoration:none;letter-spacing:0.01em;
+  transition:color var(--transition);cursor:pointer
+}
+.nav-links a:hover{color:var(--forest)}
+.nav-cta{
+  background:var(--forest);color:var(--cream);
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:9px 20px;border-radius:var(--r-xl);border:none;
+  cursor:pointer;transition:background var(--transition),transform var(--transition);
+  letter-spacing:0.02em
+}
+.nav-cta:hover{background:var(--forest2);transform:translateY(-1px)}
+
+/* ─── HERO ────────────────────────────────────────────── */
+.hero{
+  min-height:calc(100vh - 68px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 48px 120px;
+  position:relative;overflow:hidden;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184,134,44,0.07) 0%, transparent 70%);
+}
+
+/* mandala bg */
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    radial-gradient(circle at 15% 85%, rgba(30,61,47,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 85% 15%, rgba(184,134,44,0.05) 0%, transparent 50%);
+  pointer-events:none
+}
+.hero-eyebrow{
+  font-size:11px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:24px;
+  display:flex;align-items:center;gap:10px
+}
+.hero-eyebrow::before,.hero-eyebrow::after{content:'';width:32px;height:1px;background:var(--gold);opacity:.5}
+.hero-h1{
+  font-family:var(--serif);font-size:clamp(44px,6vw,80px);font-weight:300;
+  color:var(--forest);text-align:center;line-height:1.1;letter-spacing:-0.02em;
+  margin-bottom:20px;max-width:860px
+}
+.hero-h1 em{font-style:italic;color:var(--gold);font-weight:300}
+.hero-sub{
+  font-size:17px;font-weight:300;color:var(--muted);text-align:center;
+  max-width:520px;line-height:1.7;margin-bottom:56px
+}
+
+/* ─── SEARCH BOX ─────────────────────────────────────── */
+.search-hero{
+  width:100%;max-width:680px;
+  background:var(--white);border-radius:var(--r-xl);
+  box-shadow:var(--shadow2),0 0 0 1px var(--border);
+  padding:6px 6px 6px 24px;
+  display:flex;align-items:center;gap:12px;
+  transition:box-shadow var(--transition);
+  margin-bottom:20px
+}
+.search-hero:focus-within{
+  box-shadow:0 12px 48px rgba(30,61,47,0.16),0 0 0 2px var(--forest);
+}
+.search-hero svg{width:20px;height:20px;color:var(--muted);flex-shrink:0}
+.search-hero input{
+  flex:1;border:none;outline:none;background:transparent;
+  font-family:var(--sans);font-size:16px;font-weight:300;color:var(--slate);
+  min-width:0
+}
+.search-hero input::placeholder{color:var(--muted)}
+.search-btn{
+  background:var(--forest);color:var(--white);
+  font-family:var(--sans);font-size:14px;font-weight:500;
+  padding:13px 28px;border-radius:var(--r-xl);border:none;
+  cursor:pointer;white-space:nowrap;
+  transition:background var(--transition),transform var(--transition)
+}
+.search-btn:hover{background:var(--forest2);transform:translateY(-1px)}
+
+.search-tags{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.search-tag{
+  font-size:12px;font-weight:400;color:var(--muted);
+  background:var(--cream2);border:1px solid var(--border);
+  padding:6px 14px;border-radius:var(--r-xl);cursor:pointer;
+  transition:all var(--transition)
+}
+.search-tag:hover{background:var(--forest-lt);color:var(--forest);border-color:var(--forest2)}
+
+/* condition pills */
+.condition-grid{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  max-width:640px;margin-top:12px
+}
+.cond-pill{
+  font-size:12px;font-weight:500;
+  padding:7px 16px;border-radius:var(--r-xl);cursor:pointer;
+  background:var(--gold-lt);color:var(--bark);border:1px solid rgba(184,134,44,.2);
+  transition:all var(--transition)
+}
+.cond-pill:hover{background:var(--gold);color:var(--white)}
+
+/* ─── TRUST ROW ──────────────────────────────────────── */
+.trust-row{
+  display:flex;gap:40px;justify-content:center;align-items:center;
+  padding:32px 48px;border-top:1px solid var(--border);
+  margin-top:auto
+}
+.trust-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.trust-num{font-family:var(--serif);font-size:28px;font-weight:600;color:var(--forest)}
+.trust-label{font-size:12px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase}
+
+/* ─── RESULTS SCREEN ─────────────────────────────────── */
+.results-layout{display:flex;gap:0;min-height:calc(100vh - 68px)}
+
+/* sidebar */
+.filter-sidebar{
+  width:280px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  padding:32px 24px;
+  background:var(--white);
+  position:sticky;top:68px;height:calc(100vh - 68px);overflow-y:auto
+}
+.filter-title{
+  font-family:var(--serif);font-size:18px;font-weight:500;color:var(--forest);
+  margin-bottom:24px;display:flex;align-items:center;justify-content:space-between
+}
+.filter-clear{font-family:var(--sans);font-size:12px;color:var(--gold);cursor:pointer;font-weight:400;font-style:normal}
+.filter-group{margin-bottom:28px}
+.filter-group-title{
+  font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px
+}
+.filter-option{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 0;cursor:pointer;
+  font-size:14px;color:var(--slate);
+  transition:color var(--transition)
+}
+.filter-option:hover{color:var(--forest)}
+.filter-checkbox{
+  width:16px;height:16px;border-radius:4px;
+  border:1.5px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all var(--transition);background:var(--white)
+}
+.filter-checkbox.checked{background:var(--forest);border-color:var(--forest)}
+.filter-checkbox.checked::after{content:'✓';font-size:10px;color:var(--white)}
+.filter-badge{
+  margin-left:auto;font-size:11px;color:var(--muted);
+  background:var(--cream2);padding:2px 7px;border-radius:10px
+}
+.tier-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:500;padding:3px 10px;border-radius:10px;margin-left:auto
+}
+.tier-1{background:var(--forest-lt);color:var(--forest2)}
+.tier-2{background:var(--gold-lt);color:var(--bark)}
+
+/* range slider */
+.range-wrap{padding:4px 0}
+input[type=range]{
+  width:100%;accent-color:var(--forest);height:3px;
+  cursor:pointer;margin:8px 0
+}
+.range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+
+/* main results */
+.results-main{flex:1;padding:32px 40px;min-width:0}
+.results-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;padding-bottom:20px;
+  border-bottom:1px solid var(--border)
+}
+.results-count{
+  font-family:var(--serif);font-size:22px;font-weight:400;color:var(--forest)
+}
+.results-count span{color:var(--muted);font-size:15px;font-family:var(--sans);font-weight:300}
+.sort-select{
+  font-family:var(--sans);font-size:13px;color:var(--slate);
+  border:1px solid var(--border2);border-radius:var(--r-sm);
+  padding:8px 14px;background:var(--white);outline:none;cursor:pointer
+}
+
+/* search bar inline */
+.search-inline{
+  display:flex;align-items:center;gap:10px;
+  background:var(--white);border:1px solid var(--border2);
+  border-radius:var(--r-xl);padding:8px 16px;
+  margin-bottom:24px;transition:border-color var(--transition)
+}
+.search-inline:focus-within{border-color:var(--forest)}
+.search-inline svg{width:16px;height:16px;color:var(--muted);flex-shrink:0}
+.search-inline input{
+  flex:1;border:none;outline:none;background:transparent;
+  font-family:var(--sans);font-size:14px;color:var(--slate)
+}
+
+/* tabs */
+.result-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--border)}
+.result-tab{
+  font-size:14px;font-weight:400;color:var(--muted);
+  padding:10px 20px;cursor:pointer;border-bottom:2px solid transparent;
+  transition:all var(--transition);margin-bottom:-1px
+}
+.result-tab.active{color:var(--forest);border-bottom-color:var(--forest);font-weight:500}
+.result-tab:hover:not(.active){color:var(--slate)}
+
+/* ─── DOCTOR CARD ────────────────────────────────────── */
+.cards-grid{display:flex;flex-direction:column;gap:16px}
+.doctor-card{
+  background:var(--white);border-radius:var(--r-lg);
+  border:1px solid var(--border);
+  padding:24px;display:flex;gap:20px;
+  transition:box-shadow var(--transition),transform var(--transition);
+  cursor:pointer
+}
+.doctor-card:hover{box-shadow:var(--shadow2);transform:translateY(-2px)}
+
+.doc-avatar{
+  width:80px;height:80px;border-radius:var(--r-md);flex-shrink:0;
+  background:var(--forest-lt);display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:28px;font-weight:600;color:var(--forest2);
+  position:relative;overflow:hidden
+}
+.doc-avatar.gold{background:var(--gold-lt);color:var(--bark)}
+.doc-avatar.bark{background:var(--bark-lt);color:var(--bark)}
+
+.doc-body{flex:1;min-width:0}
+.doc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.doc-name{
+  font-family:var(--serif);font-size:20px;font-weight:500;color:var(--forest);
+  letter-spacing:-0.01em;line-height:1.2
+}
+.doc-qual{font-size:12px;color:var(--muted);margin-top:2px}
+.doc-tier{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:500;padding:4px 10px;border-radius:10px;
+  white-space:nowrap;flex-shrink:0;margin-left:12px
+}
+.doc-tier.t1{background:var(--forest-lt);color:var(--forest2)}
+.doc-tier.t2{background:var(--gold-lt);color:var(--bark)}
+.doc-tier .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+.doc-meta{display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap}
+.doc-meta-item{
+  display:flex;align-items:center;gap:5px;
+  font-size:13px;color:var(--muted)
+}
+.doc-meta-item svg{width:13px;height:13px}
+
+.doc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.doc-tag{
+  font-size:11px;font-weight:500;padding:4px 10px;border-radius:10px;
+  background:var(--cream2);color:var(--slate)
+}
+.doc-tag.dosha-v{background:rgba(107,79,58,.1);color:var(--bark)}
+.doc-tag.dosha-p{background:rgba(30,61,47,.08);color:var(--forest2)}
+.doc-tag.dosha-k{background:rgba(184,134,44,.1);color:var(--gold)}
+
+.doc-footer{display:flex;align-items:center;justify-content:space-between}
+.doc-price{
+  font-family:var(--serif);font-size:18px;font-weight:500;color:var(--forest)
+}
+.doc-price span{font-family:var(--sans);font-size:12px;font-weight:300;color:var(--muted)}
+.doc-rating{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--slate)}
+.stars{color:var(--gold);letter-spacing:-1px}
+.doc-btns{display:flex;gap:8px}
+.btn-outline{
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:8px 18px;border-radius:var(--r-xl);
+  border:1.5px solid var(--border2);color:var(--slate);background:transparent;
+  cursor:pointer;transition:all var(--transition)
+}
+.btn-outline:hover{border-color:var(--forest);color:var(--forest)}
+.btn-primary{
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:8px 18px;border-radius:var(--r-xl);
+  border:none;color:var(--white);background:var(--forest);
+  cursor:pointer;transition:all var(--transition)
+}
+.btn-primary:hover{background:var(--forest2);transform:translateY(-1px)}
+
+/* ─── CLINIC CARD ────────────────────────────────────── */
+.clinic-card{
+  background:var(--white);border-radius:var(--r-lg);
+  border:1px solid var(--border);
+  overflow:hidden;
+  transition:box-shadow var(--transition),transform var(--transition);
+  cursor:pointer;display:flex
+}
+.clinic-card:hover{box-shadow:var(--shadow2);transform:translateY(-2px)}
+.clinic-img{
+  width:200px;flex-shrink:0;
+  background:linear-gradient(135deg, var(--forest-lt) 0%, var(--cream2) 100%);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden
+}
+.clinic-img-placeholder{
+  font-family:var(--serif);font-size:40px;color:var(--forest2);opacity:.3
+}
+.clinic-img-badge{
+  position:absolute;top:12px;left:12px;
+  background:rgba(30,61,47,0.9);color:var(--cream);
+  font-size:10px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;
+  padding:4px 10px;border-radius:10px
+}
+.clinic-body{flex:1;padding:22px 24px;min-width:0}
+.clinic-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.clinic-name{
+  font-family:var(--serif);font-size:21px;font-weight:500;color:var(--forest);
+  letter-spacing:-0.01em;line-height:1.2
+}
+.clinic-meta{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.clinic-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.clinic-footer{display:flex;align-items:center;justify-content:space-between}
+.clinic-price{font-family:var(--serif);font-size:17px;color:var(--forest)}
+.clinic-price span{font-family:var(--sans);font-size:12px;font-weight:300;color:var(--muted)}
+
+/* ─── DOCTOR PROFILE ─────────────────────────────────── */
+.profile-screen{background:var(--cream)}
+.profile-hero{
+  background:var(--white);border-bottom:1px solid var(--border);
+  padding:48px 80px 40px
+}
+.back-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:32px;
+  transition:color var(--transition)
+}
+.back-btn:hover{color:var(--forest)}
+.back-btn svg{width:16px;height:16px}
+.profile-top{display:flex;gap:32px;align-items:flex-start}
+.profile-avatar{
+  width:120px;height:120px;border-radius:var(--r-lg);flex-shrink:0;
+  background:var(--forest-lt);display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:44px;font-weight:600;color:var(--forest2)
+}
+.profile-info{flex:1}
+.profile-name{
+  font-family:var(--serif);font-size:36px;font-weight:400;color:var(--forest);
+  letter-spacing:-0.02em;margin-bottom:4px
+}
+.profile-qual{font-size:15px;color:var(--muted);margin-bottom:16px}
+.profile-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.profile-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--r-xl)
+}
+.badge-tier2{background:var(--gold-lt);color:var(--bark)}
+.badge-lang{background:var(--forest-lt);color:var(--forest2)}
+.badge-spec{background:var(--bark-lt);color:var(--bark)}
+.profile-stats{display:flex;gap:32px}
+.stat-item{display:flex;flex-direction:column;gap:2px}
+.stat-val{font-family:var(--serif);font-size:24px;font-weight:500;color:var(--forest)}
+.stat-label{font-size:12px;color:var(--muted)}
+
+.profile-body{display:grid;grid-template-columns:1fr 320px;gap:32px;padding:40px 80px}
+.profile-section{margin-bottom:32px}
+.profile-section-title{
+  font-family:var(--serif);font-size:22px;font-weight:500;color:var(--forest);
+  margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)
+}
+.treatment-list{display:flex;flex-direction:column;gap:10px}
+.treatment-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;background:var(--white);border-radius:var(--r-md);
+  border:1px solid var(--border);transition:border-color var(--transition)
+}
+.treatment-row:hover{border-color:var(--forest)}
+.treatment-name{font-size:14px;font-weight:500;color:var(--slate)}
+.treatment-dur{font-size:12px;color:var(--muted)}
+.treatment-price{font-family:var(--serif);font-size:16px;color:var(--forest)}
+.review-list{display:flex;flex-direction:column;gap:12px}
+.review-item{
+  padding:16px;background:var(--white);border-radius:var(--r-md);
+  border:1px solid var(--border)
+}
+.review-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.review-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--forest-lt);display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:14px;font-weight:600;color:var(--forest2)
+}
+.review-name{font-size:14px;font-weight:500;color:var(--slate)}
+.review-date{font-size:12px;color:var(--muted)}
+.review-text{font-size:14px;color:var(--muted);line-height:1.65}
+.review-treatment{
+  display:inline-block;font-size:11px;color:var(--forest2);
+  background:var(--forest-lt);padding:3px 9px;border-radius:8px;margin-top:8px
+}
+
+/* booking card (sticky sidebar) */
+.booking-card{
+  background:var(--white);border-radius:var(--r-lg);
+  border:1px solid var(--border);padding:24px;
+  position:sticky;top:100px;box-shadow:var(--shadow)
+}
+.booking-price-row{
+  display:flex;align-items:baseline;gap:6px;margin-bottom:20px;
+  padding-bottom:16px;border-bottom:1px solid var(--border)
+}
+.booking-price{font-family:var(--serif);font-size:28px;font-weight:500;color:var(--forest)}
+.booking-price-note{font-size:13px;color:var(--muted)}
+.booking-field{margin-bottom:14px}
+.booking-label{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.04em;text-transform:uppercase}
+.booking-select,.booking-input{
+  width:100%;font-family:var(--sans);font-size:14px;color:var(--slate);
+  border:1px solid var(--border2);border-radius:var(--r-sm);
+  padding:10px 14px;background:var(--white);outline:none;
+  transition:border-color var(--transition)
+}
+.booking-select:focus,.booking-input:focus{border-color:var(--forest)}
+.booking-availability{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px
+}
+.avail-slot{
+  font-size:12px;padding:5px 11px;border-radius:var(--r-sm);
+  border:1px solid var(--border2);color:var(--slate);cursor:pointer;
+  transition:all var(--transition)
+}
+.avail-slot:hover,.avail-slot.selected{
+  background:var(--forest);color:var(--white);border-color:var(--forest)
+}
+.btn-book{
+  width:100%;font-family:var(--sans);font-size:15px;font-weight:500;
+  padding:14px;border-radius:var(--r-xl);border:none;
+  background:var(--forest);color:var(--white);
+  cursor:pointer;transition:all var(--transition);margin-bottom:10px
+}
+.btn-book:hover{background:var(--forest2);transform:translateY(-1px)}
+.btn-voice{
+  width:100%;font-family:var(--sans);font-size:14px;font-weight:400;
+  padding:12px;border-radius:var(--r-xl);
+  border:1.5px solid var(--border2);background:transparent;color:var(--slate);
+  cursor:pointer;transition:all var(--transition);
+  display:flex;align-items:center;justify-content:center;gap:8px
+}
+.btn-voice:hover{border-color:var(--forest);color:var(--forest)}
+.booking-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+.prakriti-nudge{
+  margin-top:20px;padding:14px;border-radius:var(--r-md);
+  background:var(--gold-lt);border:1px solid rgba(184,134,44,.2)
+}
+.prakriti-nudge p{font-size:12px;color:var(--bark);line-height:1.5;margin-bottom:8px}
+.nudge-btn{
+  font-size:12px;font-weight:500;color:var(--bark);
+  background:transparent;border:1px solid rgba(184,134,44,.3);
+  padding:6px 14px;border-radius:var(--r-xl);cursor:pointer;
+  transition:all var(--transition);width:100%
+}
+.nudge-btn:hover{background:var(--gold);color:var(--white);border-color:var(--gold)}
+
+/* ─── UTILS ──────────────────────────────────────────── */
+.divider{border:none;border-top:1px solid var(--border)}
+.text-muted{color:var(--muted)}
+.text-forest{color:var(--forest)}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:500;padding:3px 9px;border-radius:10px;
+  background:var(--cream2);color:var(--muted)
+}
+
+/* map placeholder */
+.map-placeholder{
+  height:200px;border-radius:var(--r-md);border:1px solid var(--border);
+  background:var(--forest-lt);display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;color:var(--forest2);font-size:13px;gap:8px
+}
+
+/* assessment CTA bar */
+.assessment-bar{
+  background:var(--forest);padding:14px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px
+}
+.assessment-bar p{font-size:14px;color:rgba(255,255,255,.8);max-width:500px}
+.assessment-bar strong{color:var(--white)}
+.assessment-bar-btn{
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  padding:9px 22px;border-radius:var(--r-xl);
+  background:var(--gold);color:var(--white);border:none;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:all var(--transition)
+}
+.assessment-bar-btn:hover{background:#c9962d;transform:translateY(-1px)}
+
+/* tag dosha */
+.prakriti-bar{
+  display:flex;gap:8px;align-items:center;
+  font-size:12px;color:var(--muted)
+}
+.prakriti-dot{
+  width:8px;height:8px;border-radius:50%;display:inline-block
+}
+.vata-dot{background:#8B6E5A}
+.pitta-dot{background:#1E3D2F}
+.kapha-dot{background:#B8862C}
+
+/* ─── RESPONSIVE NAV ─────────────────────────────────── */
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  .hero{padding:48px 20px 80px}
+  .results-layout{flex-direction:column}
+  .filter-sidebar{width:100%;position:static;height:auto}
+  .results-main{padding:20px}
+  .doctor-card{flex-direction:column}
+  .clinic-card{flex-direction:column}
+  .clinic-img{width:100%;height:160px}
+  .profile-body{grid-template-columns:1fr;padding:24px}
+  .profile-hero{padding:24px}
+  .profile-top{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- ─── NAV ────────────────────────────────────────────── -->
+<nav id="main-nav">
+  <div class="nav-logo" onclick="showScreen('home')">
+    <span>✦</span> Vaidya
+  </div>
+  <div class="nav-links">
+    <a onclick="showScreen('results')">Find a Doctor</a>
+    <a onclick="showScreen('results')">Treatments</a>
+    <a>About Ayurveda</a>
+    <a>For Clinics</a>
+  </div>
+  <button class="nav-cta" onclick="showScreen('home')">Take Prakriti Assessment</button>
+</nav>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!-- SCREEN 1: HOME / SEARCH                             -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="screen-home" class="screen active">
+
+  <section class="hero">
+    <p class="hero-eyebrow">Authentic Ayurveda · Kerala · Est. 2026</p>
+    <h1 class="hero-h1">Find your <em>vaidya.</em><br>Heal at the source.</h1>
+    <p class="hero-sub">Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution.</p>
+
+    <div class="search-hero">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="hero-search" placeholder="Search by doctor, hospital, or condition…" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="search-btn" onclick="doSearch()">Search</button>
+    </div>
+
+    <div class="search-tags">
+      <span class="search-tag" onclick="doSearch('Panchakarma')">Panchakarma</span>
+      <span class="search-tag" onclick="doSearch('Shirodhara')">Shirodhara</span>
+      <span class="search-tag" onclick="doSearch('Abhyanga')">Abhyanga</span>
+      <span class="search-tag" onclick="doSearch('Virechana')">Virechana</span>
+      <span class="search-tag" onclick="doSearch('Basti')">Basti</span>
+    </div>
+
+    <p style="font-size:12px;color:var(--muted);margin-top:24px;letter-spacing:0.06em;text-transform:uppercase">Search by condition</p>
+    <div class="condition-grid">
+      <span class="cond-pill" onclick="doSearch('Back pain')">Back pain</span>
+      <span class="cond-pill" onclick="doSearch('Stress & anxiety')">Stress & anxiety</span>
+      <span class="cond-pill" onclick="doSearch('Diabetes')">Diabetes</span>
+      <span class="cond-pill" onclick="doSearch('Arthritis')">Arthritis</span>
+      <span class="cond-pill" onclick="doSearch('Digestive issues')">Digestive issues</span>
+      <span class="cond-pill" onclick="doSearch('Weight management')">Weight management</span>
+      <span class="cond-pill" onclick="doSearch('Skin conditions')">Skin conditions</span>
+      <span class="cond-pill" onclick="doSearch('Insomnia')">Insomnia</span>
+    </div>
+  </section>
+
+  <div class="trust-row">
+    <div class="trust-item">
+      <span class="trust-num">50+</span>
+      <span class="trust-label">Credentialed clinics</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-num">120+</span>
+      <span class="trust-label">Verified doctors</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-num">6</span>
+      <span class="trust-label">Languages supported</span>
+    </div>
+    <div class="trust-item">
+      <span class="trust-num">15</span>
+      <span class="trust-label">Tier 2 certified clinics</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!-- SCREEN 2: RESULTS                                   -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+
+  <!-- assessment nudge bar -->
+  <div class="assessment-bar">
+    <p><strong>Get personalised matches.</strong> Take the 8-minute Prakriti assessment to see which doctors and treatments best match your constitution.</p>
+    <button class="assessment-bar-btn">Take assessment →</button>
+  </div>
+
+  <div class="results-layout">
+
+    <!-- SIDEBAR FILTERS -->
+    <aside class="filter-sidebar">
+      <div class="filter-title">
+        <span style="font-style:italic">Filters</span>
+        <span class="filter-clear" onclick="clearFilters()">Clear all</span>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Credentialing tier</p>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox checked"></div>
+          <span>Certified Authentic</span>
+          <span class="tier-badge tier-2">Tier 2</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox checked"></div>
+          <span>Verified</span>
+          <span class="tier-badge tier-1">Tier 1</span>
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Treatment type</p>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>Panchakarma</span>
+          <span class="filter-badge">32</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox checked"></div>
+          <span>Shirodhara</span>
+          <span class="filter-badge">28</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>Abhyanga</span>
+          <span class="filter-badge">44</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>Basti</span>
+          <span class="filter-badge">19</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>Kati Basti</span>
+          <span class="filter-badge">15</span>
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Prakriti affinity</p>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span class="prakriti-dot vata-dot"></span> Vata
+          </span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span class="prakriti-dot pitta-dot"></span> Pitta
+          </span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span class="prakriti-dot kapha-dot"></span> Kapha
+          </span>
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Budget (per day)</p>
+        <div class="range-wrap">
+          <input type="range" min="50" max="500" value="300" oninput="updateRange(this)">
+          <div class="range-labels"><span>$50</span><span id="range-val">Up to $300</span></div>
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Duration</p>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>3–5 days</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox checked"></div>
+          <span>7–10 days</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>14–21 days</span>
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Doctor language</p>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox checked"></div>
+          <span>English</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>Arabic</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>German</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>Malayalam</span>
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <p class="filter-group-title">Rating</p>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox checked"></div>
+          <span>4.5+ ★</span>
+        </label>
+        <label class="filter-option" onclick="toggleFilter(this)">
+          <div class="filter-checkbox"></div>
+          <span>4.0+ ★</span>
+        </label>
+      </div>
+    </aside>
+
+    <!-- MAIN RESULTS -->
+    <main class="results-main">
+
+      <div class="search-inline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="results-search" placeholder="Refine your search…">
+      </div>
+
+      <div class="results-header">
+        <div class="results-count">
+          24 results <span>for "Panchakarma Kerala"</span>
+        </div>
+        <select class="sort-select">
+          <option>Best match</option>
+          <option>Highest rated</option>
+          <option>Price: low to high</option>
+          <option>Price: high to low</option>
+          <option>Most reviewed</option>
+        </select>
+      </div>
+
+      <div class="result-tabs">
+        <div class="result-tab active" onclick="switchTab(this,'doctors')">Doctors (14)</div>
+        <div class="result-tab" onclick="switchTab(this,'clinics')">Clinics (10)</div>
+        <div class="result-tab" onclick="switchTab(this,'treatments')">Treatments</div>
+      </div>
+
+      <!-- DOCTOR CARDS -->
+      <div class="cards-grid" id="tab-doctors">
+
+        <!-- Card 1 -->
+        <div class="doctor-card" onclick="showScreen('profile')">
+          <div class="doc-avatar">SK</div>
+          <div class="doc-body">
+            <div class="doc-top">
+              <div>
+                <div class="doc-name">Dr. Suresh Krishnan</div>
+                <div class="doc-qual">BAMS, MD (Ayurveda) · 24 years experience</div>
+              </div>
+              <div class="doc-tier t2"><span class="dot"></span>Certified Authentic</div>
+            </div>
+            <div class="doc-meta">
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Thrissur, Kerala
+              </span>
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Next slot: 14 Apr
+              </span>
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                EN · AR · ML
+              </span>
+            </div>
+            <div class="doc-tags">
+              <span class="doc-tag">Panchakarma</span>
+              <span class="doc-tag">Shirodhara</span>
+              <span class="doc-tag">Chronic pain</span>
+              <span class="doc-tag dosha-v">Vata specialist</span>
+              <span class="doc-tag dosha-p">Pitta</span>
+            </div>
+            <div class="doc-footer">
+              <div>
+                <div class="doc-price">$85 <span>/ day · 7-day min</span></div>
+                <div class="doc-rating mt-8">
+                  <span class="stars">★★★★★</span>
+                  <strong>4.9</strong> <span class="text-muted">(142 reviews)</span>
+                </div>
+              </div>
+              <div class="doc-btns">
+                <button class="btn-outline">View profile</button>
+                <button class="btn-primary" onclick="event.stopPropagation();showScreen('profile')">Book now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="doctor-card" onclick="showScreen('profile')">
+          <div class="doc-avatar gold">MN</div>
+          <div class="doc-body">
+            <div class="doc-top">
+              <div>
+                <div class="doc-name">Dr. Meera Nambiar</div>
+                <div class="doc-qual">BAMS, MD (Panchakarma) · 18 years experience</div>
+              </div>
+              <div class="doc-tier t2"><span class="dot"></span>Certified Authentic</div>
+            </div>
+            <div class="doc-meta">
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Kottakkal, Kerala
+              </span>
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Next slot: 18 Apr
+              </span>
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                EN · DE · ML
+              </span>
+            </div>
+            <div class="doc-tags">
+              <span class="doc-tag">Panchakarma</span>
+              <span class="doc-tag">Women's health</span>
+              <span class="doc-tag">Fertility</span>
+              <span class="doc-tag dosha-k">Kapha specialist</span>
+            </div>
+            <div class="doc-footer">
+              <div>
+                <div class="doc-price">$110 <span>/ day · 7-day min</span></div>
+                <div class="doc-rating mt-8">
+                  <span class="stars">★★★★★</span>
+                  <strong>4.8</strong> <span class="text-muted">(98 reviews)</span>
+                </div>
+              </div>
+              <div class="doc-btns">
+                <button class="btn-outline">View profile</button>
+                <button class="btn-primary" onclick="event.stopPropagation()">Book now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="doctor-card" onclick="showScreen('profile')">
+          <div class="doc-avatar bark">RV</div>
+          <div class="doc-body">
+            <div class="doc-top">
+              <div>
+                <div class="doc-name">Dr. Rajeev Varma</div>
+                <div class="doc-qual">BAMS · 11 years experience</div>
+              </div>
+              <div class="doc-tier t1"><span class="dot"></span>Verified</div>
+            </div>
+            <div class="doc-meta">
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Thiruvananthapuram
+              </span>
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Next slot: 10 Apr
+              </span>
+              <span class="doc-meta-item">EN · ML · HI</span>
+            </div>
+            <div class="doc-tags">
+              <span class="doc-tag">Abhyanga</span>
+              <span class="doc-tag">Stress management</span>
+              <span class="doc-tag">Digestive health</span>
+              <span class="doc-tag dosha-p">Pitta specialist</span>
+            </div>
+            <div class="doc-footer">
+              <div>
+                <div class="doc-price">$65 <span>/ day · 5-day min</span></div>
+                <div class="doc-rating mt-8">
+                  <span class="stars">★★★★</span>
+                  <strong>4.6</strong> <span class="text-muted">(54 reviews)</span>
+                </div>
+              </div>
+              <div class="doc-btns">
+                <button class="btn-outline">View profile</button>
+                <button class="btn-primary" onclick="event.stopPropagation()">Book now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CLINIC CARDS (hidden by default) -->
+      <div class="cards-grid" id="tab-clinics" style="display:none">
+
+        <div class="clinic-card" onclick="showScreen('profile')">
+          <div class="clinic-img">
+            <div class="clinic-img-placeholder">☽</div>
+            <span class="clinic-img-badge">Certified Authentic</span>
+          </div>
+          <div class="clinic-body">
+            <div class="clinic-top">
+              <div class="clinic-name">Somatheeram Ayurveda Village</div>
+              <div class="doc-tier t2"><span class="dot"></span>Tier 2</div>
+            </div>
+            <div class="clinic-meta">
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Kovalam, Kerala
+              </span>
+              <span class="doc-meta-item">4 doctors on staff</span>
+              <span class="doc-meta-item">EN · AR · DE · FR</span>
+            </div>
+            <div class="clinic-tags">
+              <span class="doc-tag">Panchakarma</span>
+              <span class="doc-tag">Shirodhara</span>
+              <span class="doc-tag">Pizhichil</span>
+              <span class="doc-tag dosha-v">Vata</span>
+              <span class="doc-tag dosha-p">Pitta</span>
+            </div>
+            <div class="clinic-footer">
+              <div>
+                <div class="clinic-price">$95–$180 <span>/ day · all inclusive</span></div>
+                <div class="doc-rating mt-8">
+                  <span class="stars">★★★★★</span>
+                  <strong>4.9</strong> <span class="text-muted">(312 reviews)</span>
+                </div>
+              </div>
+              <div class="doc-btns">
+                <button class="btn-outline">View clinic</button>
+                <button class="btn-primary" onclick="event.stopPropagation()">Book stay</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="clinic-card" onclick="showScreen('profile')">
+          <div class="clinic-img" style="background:linear-gradient(135deg,var(--gold-lt) 0%,var(--cream2) 100%)">
+            <div class="clinic-img-placeholder">✦</div>
+            <span class="clinic-img-badge">Verified</span>
+          </div>
+          <div class="clinic-body">
+            <div class="clinic-top">
+              <div class="clinic-name">Arya Vaidya Sala, Kottakkal</div>
+              <div class="doc-tier t2"><span class="dot"></span>Tier 2</div>
+            </div>
+            <div class="clinic-meta">
+              <span class="doc-meta-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Kottakkal, Kerala
+              </span>
+              <span class="doc-meta-item">12 doctors on staff</span>
+              <span class="doc-meta-item">EN · AR · ML · HI</span>
+            </div>
+            <div class="clinic-tags">
+              <span class="doc-tag">Classical Ayurveda</span>
+              <span class="doc-tag">Panchakarma</span>
+              <span class="doc-tag">Research-backed</span>
+              <span class="doc-tag dosha-v">All doshas</span>
+            </div>
+            <div class="clinic-footer">
+              <div>
+                <div class="clinic-price">$70–$140 <span>/ day</span></div>
+                <div class="doc-rating mt-8">
+                  <span class="stars">★★★★★</span>
+                  <strong>4.8</strong> <span class="text-muted">(547 reviews)</span>
+                </div>
+              </div>
+              <div class="doc-btns">
+                <button class="btn-outline">View clinic</button>
+                <button class="btn-primary" onclick="event.stopPropagation()">Book stay</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!-- SCREEN 3: DOCTOR PROFILE                            -->
+<!-- ════════════════════════════════════════════════════ -->
+<div id="screen-profile" class="screen profile-screen">
+
+  <div class="profile-hero">
+    <div class="back-btn" onclick="showScreen('results')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to results
+    </div>
+
+    <div class="profile-top">
+      <div class="profile-avatar">SK</div>
+      <div class="profile-info">
+        <div class="profile-name">Dr. Suresh Krishnan</div>
+        <div class="profile-qual">BAMS, MD (Ayurveda) · 24 years of practice</div>
+
+        <div class="profile-badges">
+          <span class="profile-badge badge-tier2">✦ Certified Authentic · Tier 2</span>
+          <span class="profile-badge badge-lang">EN · AR · ML</span>
+          <span class="profile-badge badge-spec">Panchakarma specialist</span>
+          <span class="profile-badge badge-spec">Vata & Pitta expert</span>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat-item">
+            <span class="stat-val">24</span>
+            <span class="stat-label">Years experience</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val">4.9 ★</span>
+            <span class="stat-label">142 reviews</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val">680+</span>
+            <span class="stat-label">Patients treated</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val">Thrissur</span>
+            <span class="stat-label">Location, Kerala</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-body">
+    <div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">About</div>
+        <p style="font-size:15px;line-height:1.8;color:var(--muted)">
+          Dr. Suresh Krishnan is a classically trained Ayurvedic physician with 24 years of experience, specialising in Panchakarma detoxification protocols for chronic musculoskeletal and stress-related conditions. He trained under senior vaidyas at Arya Vaidya Sala, Kottakkal and has treated patients from over 30 countries.
+        </p>
+        <p style="font-size:15px;line-height:1.8;color:var(--muted);margin-top:12px">
+          His practice emphasises classical Panchakarma protocols based on seasonal needs and individual Prakriti — not standardised packages. He conducts initial consultations via Nadi Pariksha (pulse diagnosis) and constructs personalised treatment plans for each patient.
+        </p>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Treatment programmes</div>
+        <div class="treatment-list">
+          <div class="treatment-row">
+            <div>
+              <div class="treatment-name">Panchakarma Detoxification</div>
+              <div class="treatment-dur">14–21 days · includes Vamana, Virechana, Basti</div>
+            </div>
+            <div class="treatment-price">$85/day</div>
+          </div>
+          <div class="treatment-row">
+            <div>
+              <div class="treatment-name">Stress & Anxiety Protocol</div>
+              <div class="treatment-dur">7–10 days · Shirodhara + Abhyanga + Nasya</div>
+            </div>
+            <div class="treatment-price">$90/day</div>
+          </div>
+          <div class="treatment-row">
+            <div>
+              <div class="treatment-name">Musculoskeletal Repair</div>
+              <div class="treatment-dur">10–14 days · Kati Basti + Pizhichil + Kizhi</div>
+            </div>
+            <div class="treatment-price">$95/day</div>
+          </div>
+          <div class="treatment-row">
+            <div>
+              <div class="treatment-name">Rasayana Rejuvenation</div>
+              <div class="treatment-dur">21 days · classical rejuvenation protocol</div>
+            </div>
+            <div class="treatment-price">$110/day</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Prakriti specialisation</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px;padding:16px;background:var(--bark-lt);border-radius:var(--r-md);border:1px solid rgba(107,79,58,.15)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="prakriti-dot vata-dot" style="width:10px;height:10px"></span>
+              <strong style="font-size:14px;color:var(--bark)">Vata</strong>
+              <span style="font-size:11px;color:var(--muted);margin-left:auto">Primary</span>
+            </div>
+            <p style="font-size:12px;color:var(--muted);line-height:1.5">Anxiety, dryness, joint pain, irregular digestion, sleep issues</p>
+          </div>
+          <div style="flex:1;min-width:140px;padding:16px;background:var(--forest-lt);border-radius:var(--r-md);border:1px solid rgba(30,61,47,.1)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span class="prakriti-dot pitta-dot" style="width:10px;height:10px"></span>
+              <strong style="font-size:14px;color:var(--forest2)">Pitta</strong>
+              <span style="font-size:11px;color:var(--muted);margin-left:auto">Secondary</span>
+            </div>
+            <p style="font-size:12px;color:var(--muted);line-height:1.5">Inflammation, acidity, skin conditions, stress-driven burnout</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">Patient reviews</div>
+        <div class="review-list">
+          <div class="review-item">
+            <div class="review-header">
+              <div class="review-avatar">FA</div>
+              <div>
+                <div class="review-name">Fatima A. · Dubai, UAE</div>
+                <div class="review-date">March 2026 · <span class="stars" style="font-size:12px">★★★★★</span></div>
+              </div>
+            </div>
+            <p class="review-text">Dr. Krishnan's approach was completely different from what I expected. The first two days were just consultation and pulse reading — he took his time to understand my constitution before prescribing anything. The 14-day Panchakarma cleared chronic digestive issues I'd had for 6 years.</p>
+            <span class="review-treatment">Panchakarma Detoxification · 14 days</span>
+          </div>
+          <div class="review-item">
+            <div class="review-header">
+              <div class="review-avatar" style="background:var(--gold-lt);color:var(--bark)">LH</div>
+              <div>
+                <div class="review-name">Lars H. · Munich, Germany</div>
+                <div class="review-date">February 2026 · <span class="stars" style="font-size:12px">★★★★★</span></div>
+              </div>
+            </div>
+            <p class="review-text">I came with chronic lower back pain that three physiotherapists couldn't fix. After 10 days of Kati Basti and Pizhichil, my pain reduced by 70%. Dr. Krishnan explained everything in English and sent me home with a 60-day protocol. Remarkable.</p>
+            <span class="review-treatment">Musculoskeletal Repair · 10 days</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOOKING SIDEBAR -->
+    <div>
+      <div class="booking-card">
+        <div class="booking-price-row">
+          <div class="booking-price">from $85</div>
+          <div class="booking-price-note">per day · minimum 7 days</div>
+        </div>
+
+        <div class="booking-field">
+          <div class="booking-label">Treatment programme</div>
+          <select class="booking-select">
+            <option>Panchakarma Detoxification</option>
+            <option>Stress & Anxiety Protocol</option>
+            <option>Musculoskeletal Repair</option>
+            <option>Rasayana Rejuvenation</option>
+          </select>
+        </div>
+
+        <div class="booking-field">
+          <div class="booking-label">Duration</div>
+          <select class="booking-select">
+            <option>7 days ($595)</option>
+            <option>10 days ($850)</option>
+            <option selected>14 days ($1,190)</option>
+            <option>21 days ($1,785)</option>
+          </select>
+        </div>
+
+        <div class="booking-field">
+          <div class="booking-label">Available dates — April 2026</div>
+          <div class="booking-availability">
+            <span class="avail-slot">Apr 7</span>
+            <span class="avail-slot">Apr 10</span>
+            <span class="avail-slot selected">Apr 14</span>
+            <span class="avail-slot">Apr 18</span>
+            <span class="avail-slot">Apr 21</span>
+            <span class="avail-slot">Apr 28</span>
+          </div>
+        </div>
+
+        <button class="btn-book">Request booking</button>
+        <button class="btn-voice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          Speak with Dr. Krishnan
+        </button>
+        <p class="booking-note">No payment until clinic confirms · Free cancellation up to 72 hours before</p>
+
+        <div class="prakriti-nudge">
+          <p>Don't know which treatment is right for you? Take the Prakriti assessment to get a personalised recommendation from Dr. Krishnan.</p>
+          <button class="nudge-btn">Take 8-min Prakriti assessment</button>
+        </div>
+      </div>
+
+      <!-- clinic info -->
+      <div style="margin-top:16px;padding:16px;background:var(--white);border-radius:var(--r-lg);border:1px solid var(--border)">
+        <p style="font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Clinic</p>
+        <p style="font-family:var(--serif);font-size:17px;color:var(--forest);margin-bottom:4px">Krishnan Ayurveda Center</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Poothole Road, Thrissur, Kerala 680 004</p>
+        <div class="map-placeholder">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Map — Thrissur, Kerala
+        </div>
+        <p style="font-size:12px;color:var(--muted)">Accommodation available · pickup from Thrissur Railway Station</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SCRIPT ─────────────────────────────────────────── -->
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function doSearch(query) {
+  const q = query || document.getElementById('hero-search').value;
+  if (q) document.querySelector('.results-count').innerHTML =
+    `24 results <span>for "${q}"</span>`;
+  showScreen('results');
+}
+
+function toggleFilter(el) {
+  const cb = el.querySelector('.filter-checkbox');
+  cb.classList.toggle('checked');
+}
+
+function clearFilters() {
+  document.querySelectorAll('.filter-checkbox').forEach(cb => cb.classList.remove('checked'));
+}
+
+function updateRange(input) {
+  document.getElementById('range-val').textContent = 'Up to $' + input.value;
+}
+
+function switchTab(el, tabId) {
+  document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-doctors').style.display = tabId === 'doctors' ? 'flex' : 'none';
+  document.getElementById('tab-clinics').style.display = tabId === 'clinics' ? 'flex' : 'none';
+}
+
+// availability slot selection
+document.querySelectorAll('.avail-slot').forEach(slot => {
+  slot.addEventListener('click', () => {
+    document.querySelectorAll('.avail-slot').forEach(s => s.classList.remove('selected'));
+    slot.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>

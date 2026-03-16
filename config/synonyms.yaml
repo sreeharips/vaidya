@@ -1,0 +1,41 @@
+# synonyms.yaml — voice intent keyword matching
+# Used by the keyword intent matcher (backend/core/intent.py)
+# Maps spoken/typed variations to canonical answer IDs
+# Only call Claude Haiku when confidence < 0.6 (covers ~15% of answers)
+
+# Format: question_id → answer_id → [synonyms...]
+
+q01:  # Body frame
+  a: [thin, slim, lean, light, skinny, underweight, small, slight, wiry]
+  b: [medium, average, moderate, normal, balanced, athletic, middle]
+  c: [large, heavy, big, solid, stocky, overweight, broad, wide, gain weight]
+
+q02:  # Skin
+  a: [dry, rough, flaky, cracked, thin, dehydrated, scaly]
+  b: [oily, warm, hot, rash, acne, sensitive, red, flush]
+  c: [smooth, thick, soft, moist, supple]
+
+q03:  # Hair
+  a: [dry, frizzy, thin, brittle, rough, coarse]
+  b: [fine, oily, greasy, thin, grey, premature grey, early grey]
+  c: [thick, wavy, curly, lustrous, shiny, strong, healthy]
+
+q09:  # Appetite
+  a: [variable, irregular, forget, skip, no appetite, fluctuate, sometimes hungry]
+  b: [strong, hungry, starving, irritable, hangry, always hungry, ravenous]
+  c: [steady, consistent, moderate, not very hungry, can skip]
+
+q10:  # Digestion
+  a: [bloating, gas, irregular, constipated, bloated, gassy, uncomfortable]
+  b: [strong, good, fast, excellent, digest anything, no problems]
+  c: [slow, heavy, sluggish, full, takes time]
+
+q14:  # Learning
+  a: [quick, fast, forget, learn fast but forget, short memory]
+  b: [analytical, focused, remember, sharp, good memory, detailed]
+  c: [slow, takes time, retain, remember everything, thorough]
+
+q15:  # Stress
+  a: [anxious, worried, fearful, overwhelmed, panic, nervous, scared]
+  b: [irritable, angry, intense, frustrated, critical, angry]
+  c: [withdraw, quiet, shut down, stubborn, retreat, close off]

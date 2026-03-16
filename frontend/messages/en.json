@@ -1,0 +1,51 @@
+{
+  "home": {
+    "meta": {
+      "title": "Vaidya — Authentic Ayurveda Retreats in Kerala",
+      "description": "Find credentialed Ayurvedic doctors and authentic treatment programmes in Kerala, India. AI-matched to your Prakriti constitution. Book online.",
+      "ogTitle": "Vaidya — Find Your Vaidya. Heal at the Source.",
+      "ogDescription": "Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution. Kerala's trusted Ayurveda marketplace."
+    },
+    "nav": {
+      "findDoctor": "Find a Doctor",
+      "treatments": "Treatments",
+      "aboutAyurveda": "About Ayurveda",
+      "forClinics": "For Clinics",
+      "cta": "Take Prakriti Assessment"
+    },
+    "hero": {
+      "eyebrow": "Authentic Ayurveda · Kerala · Est. 2026",
+      "h1Part1": "Find your",
+      "h1Italic": "vaidya.",
+      "h1Part2": "Heal at the source.",
+      "subtitle": "Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution.",
+      "searchPlaceholder": "Search by doctor, hospital, or condition…",
+      "searchButton": "Search"
+    },
+    "quickTags": {
+      "label": "",
+      "tags": ["Panchakarma", "Shirodhara", "Abhyanga", "Virechana", "Basti"]
+    },
+    "conditions": {
+      "sectionLabel": "Search by condition",
+      "items": [
+        { "slug": "back-pain",         "label": "Back pain" },
+        { "slug": "stress-anxiety",    "label": "Stress & anxiety" },
+        { "slug": "diabetes",          "label": "Diabetes" },
+        { "slug": "arthritis",         "label": "Arthritis" },
+        { "slug": "digestive-issues",  "label": "Digestive issues" },
+        { "slug": "weight-management", "label": "Weight management" },
+        { "slug": "skin-conditions",   "label": "Skin conditions" },
+        { "slug": "insomnia",          "label": "Insomnia" }
+      ]
+    },
+    "trust": {
+      "items": [
+        { "number": "50+",  "label": "Credentialed clinics" },
+        { "number": "120+", "label": "Verified doctors" },
+        { "number": "6",    "label": "Languages supported" },
+        { "number": "15",   "label": "Tier 2 certified clinics" }
+      ]
+    }
+  }
+}

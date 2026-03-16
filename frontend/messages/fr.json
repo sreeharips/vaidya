@@ -1,0 +1,51 @@
+{
+  "home": {
+    "meta": {
+      "title": "Vaidya — Ayurveda Authentique au Kerala",
+      "description": "Trouvez des médecins ayurvédiques certifiés et des programmes de traitement authentiques au Kerala, Inde.",
+      "ogTitle": "Vaidya — Trouvez votre Vaidya. Guérissez à la source.",
+      "ogDescription": "Médecins ayurvédiques certifiés et programmes de traitement authentiques — adaptés à votre constitution unique."
+    },
+    "nav": {
+      "findDoctor": "Trouver un médecin",
+      "treatments": "Traitements",
+      "aboutAyurveda": "À propos de l'Ayurveda",
+      "forClinics": "Pour les cliniques",
+      "cta": "Test Prakriti"
+    },
+    "hero": {
+      "eyebrow": "Ayurveda Authentique · Kerala · Fondé en 2026",
+      "h1Part1": "Trouvez votre",
+      "h1Italic": "vaidya.",
+      "h1Part2": "Guérissez à la source.",
+      "subtitle": "Médecins ayurvédiques certifiés et programmes de traitement authentiques — adaptés à votre constitution unique.",
+      "searchPlaceholder": "Rechercher par médecin, hôpital ou condition…",
+      "searchButton": "Rechercher"
+    },
+    "quickTags": {
+      "label": "",
+      "tags": ["Panchakarma", "Shirodhara", "Abhyanga", "Virechana", "Basti"]
+    },
+    "conditions": {
+      "sectionLabel": "Rechercher par condition",
+      "items": [
+        { "slug": "back-pain",         "label": "Douleurs dorsales" },
+        { "slug": "stress-anxiety",    "label": "Stress & anxiété" },
+        { "slug": "diabetes",          "label": "Diabète" },
+        { "slug": "arthritis",         "label": "Arthrite" },
+        { "slug": "digestive-issues",  "label": "Troubles digestifs" },
+        { "slug": "weight-management", "label": "Gestion du poids" },
+        { "slug": "skin-conditions",   "label": "Maladies de peau" },
+        { "slug": "insomnia",          "label": "Insomnie" }
+      ]
+    },
+    "trust": {
+      "items": [
+        { "number": "50+",  "label": "Cliniques certifiées" },
+        { "number": "120+", "label": "Médecins vérifiés" },
+        { "number": "6",    "label": "Langues supportées" },
+        { "number": "15",   "label": "Cliniques certifiées Tier 2" }
+      ]
+    }
+  }
+}

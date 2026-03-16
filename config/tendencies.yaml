@@ -1,0 +1,101 @@
+# tendencies.yaml — dosha type → health tendencies + treatment affinities
+# Used to personalise clinic matching and the results display
+# NOT a diagnostic tool — educational guidance only
+
+dosha_types:
+  vata:
+    primary_label: "Vata"
+    description:
+      en: "Vata types are creative, energetic and quick-thinking. When balanced, they are enthusiastic and vital. When imbalanced, they may experience anxiety, dry skin, and digestive irregularity."
+    tendencies:
+      - Dry skin and hair
+      - Variable digestion, bloating, gas
+      - Irregular sleep patterns
+      - Anxiety and restlessness
+      - Cold hands and feet
+      - Joint discomfort
+    recommended_treatments:
+      - abhyanga
+      - shirodhara
+      - pizhichil
+      - kati-basti
+      - njavara-kizhi
+    avoid:
+      - Excessive cold, dry, or raw foods
+      - Irregular meal times
+      - Overwork and overstimulation
+    ideal_retreat_focus: "Warm, nourishing, grounding therapies"
+
+  pitta:
+    primary_label: "Pitta"
+    description:
+      en: "Pitta types are focused, driven and analytical. When balanced, they are confident leaders. When imbalanced, they may experience inflammation, skin irritation, and irritability."
+    tendencies:
+      - Sensitive skin prone to rashes
+      - Strong digestion but prone to acidity
+      - Light but quality sleep
+      - Tendency toward perfectionism and irritability
+      - Heat sensitivity
+      - Eye strain
+    recommended_treatments:
+      - shirodhara
+      - takradhara
+      - nasya
+      - pizhichil
+      - lepa
+    avoid:
+      - Excess heat, spicy foods, alcohol
+      - Skipping meals
+      - Competitive stress
+    ideal_retreat_focus: "Cooling, calming, anti-inflammatory therapies"
+
+  kapha:
+    primary_label: "Kapha"
+    description:
+      en: "Kapha types are steady, compassionate and resilient. When balanced, they are calm and nurturing. When imbalanced, they may experience sluggishness, weight gain, and congestion."
+    tendencies:
+      - Tendency to gain weight
+      - Slow digestion, feeling heavy after meals
+      - Deep but excessive sleep
+      - Congestion and mucus
+      - Slow metabolism
+      - Emotional attachment
+    recommended_treatments:
+      - udwarthanam
+      - udvartana
+      - nasya
+      - virechana
+      - panchakarma
+    avoid:
+      - Heavy, oily, sweet foods
+      - Daytime napping
+      - Sedentary lifestyle
+    ideal_retreat_focus: "Stimulating, detoxifying, energising therapies"
+
+  vata-pitta:
+    primary_label: "Vata-Pitta"
+    description:
+      en: "Dual type combining Vata creativity with Pitta focus. Needs grounding and cooling."
+    recommended_treatments: [abhyanga, shirodhara, pizhichil, nasya]
+    ideal_retreat_focus: "Balancing warmth and calm"
+
+  vata-kapha:
+    primary_label: "Vata-Kapha"
+    description:
+      en: "Dual type with Vata lightness and Kapha steadiness. Needs warming and stimulating."
+    recommended_treatments: [abhyanga, kizhi, udwarthanam, basti]
+    ideal_retreat_focus: "Warming and invigorating therapies"
+
+  pitta-kapha:
+    primary_label: "Pitta-Kapha"
+    description:
+      en: "Dual type with Pitta intensity and Kapha endurance. Needs cooling and detoxifying."
+    recommended_treatments: [takradhara, virechana, lepa, pizhichil]
+    ideal_retreat_focus: "Cooling detox therapies"
+
+  tridosha:
+    primary_label: "Tridoshic (Balanced)"
+    description:
+      en: "Rare balanced constitution. Maintain balance with seasonal Panchakarma and general wellness."
+    recommended_treatments: [panchakarma, abhyanga, rasayana]
+    ideal_retreat_focus: "General wellness and prevention"

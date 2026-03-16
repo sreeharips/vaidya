@@ -1,0 +1,51 @@
+{
+  "home": {
+    "meta": {
+      "title": "Vaidya — Authentisches Ayurveda in Kerala",
+      "description": "Finden Sie zertifizierte Ayurveda-Ärzte und authentische Behandlungsprogramme in Kerala, Indien.",
+      "ogTitle": "Vaidya — Finden Sie Ihren Vaidya. Heilen an der Quelle.",
+      "ogDescription": "Zertifizierte Ayurveda-Ärzte und authentische Behandlungsprogramme — abgestimmt auf Ihre einzigartige Konstitution."
+    },
+    "nav": {
+      "findDoctor": "Arzt finden",
+      "treatments": "Behandlungen",
+      "aboutAyurveda": "Über Ayurveda",
+      "forClinics": "Für Kliniken",
+      "cta": "Prakriti-Test starten"
+    },
+    "hero": {
+      "eyebrow": "Authentisches Ayurveda · Kerala · Seit 2026",
+      "h1Part1": "Finden Sie Ihren",
+      "h1Italic": "Vaidya.",
+      "h1Part2": "Heilen an der Quelle.",
+      "subtitle": "Zertifizierte Ayurveda-Ärzte und authentische Behandlungsprogramme — abgestimmt auf Ihre einzigartige Konstitution.",
+      "searchPlaceholder": "Suche nach Arzt, Klinik oder Beschwerde…",
+      "searchButton": "Suchen"
+    },
+    "quickTags": {
+      "label": "",
+      "tags": ["Panchakarma", "Shirodhara", "Abhyanga", "Virechana", "Basti"]
+    },
+    "conditions": {
+      "sectionLabel": "Nach Beschwerde suchen",
+      "items": [
+        { "slug": "back-pain",         "label": "Rückenschmerzen" },
+        { "slug": "stress-anxiety",    "label": "Stress & Angst" },
+        { "slug": "diabetes",          "label": "Diabetes" },
+        { "slug": "arthritis",         "label": "Arthritis" },
+        { "slug": "digestive-issues",  "label": "Verdauungsstörungen" },
+        { "slug": "weight-management", "label": "Gewichtsmanagement" },
+        { "slug": "skin-conditions",   "label": "Hauterkrankungen" },
+        { "slug": "insomnia",          "label": "Schlaflosigkeit" }
+      ]
+    },
+    "trust": {
+      "items": [
+        { "number": "50+",  "label": "Zertifizierte Kliniken" },
+        { "number": "120+", "label": "Verifizierte Ärzte" },
+        { "number": "6",    "label": "Unterstützte Sprachen" },
+        { "number": "15",   "label": "Tier-2-zertifizierte Kliniken" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,439 @@
+# questions.yaml — 22-question Prakriti assessment
+# Format: id, category, text, spoken_prompt, reask_prompt, options (vata/pitta/kapha 0–3)
+# DO NOT edit scores without sign-off from Medical Advisor
+# spoken_prompt: used by voice TTS — conversational phrasing
+# reask_prompt: used when voice confidence < 0.6 — rephrased clarification
+
+category_weights:
+  physical: 1.4
+  digestion: 1.2
+  mind: 1.1
+  lifestyle: 1.0
+
+questions:
+
+  # ── PHYSICAL (8 questions) ────────────────────────────────────────────────
+
+  - id: q01
+    category: physical
+    text: "How would you describe your natural body frame?"
+    spoken_prompt: "Let's start with your body. How would you describe your natural build — the way you've been most of your life?"
+    reask_prompt: "Just to clarify — would you say you're naturally slim and light, medium and athletic, or larger and solid?"
+    options:
+      - text: "Thin and light — I find it hard to gain weight"
+        vata: 3
+        pitta: 1
+        kapha: 0
+      - text: "Medium and well-proportioned — moderate, muscular build"
+        vata: 1
+        pitta: 3
+        kapha: 1
+      - text: "Large and solid — I gain weight easily"
+        vata: 0
+        pitta: 1
+        kapha: 3
+
+  - id: q02
+    category: physical
+    text: "How is your skin most of the time?"
+    spoken_prompt: "Now let's talk about your skin. Not on a bad day, but in general — how would you describe it?"
+    reask_prompt: "Would you say your skin tends to be dry and rough, or warm and oily, or smooth and thick?"
+    options:
+      - text: "Dry, rough, and thin — especially in winter"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Warm, oily, or prone to redness and rashes"
+        vata: 0
+        pitta: 3
+        kapha: 1
+      - text: "Smooth, thick, and moist — rarely dry or irritated"
+        vata: 0
+        pitta: 1
+        kapha: 3
+
+  - id: q03
+    category: physical
+    text: "What is your hair naturally like, without styling?"
+    spoken_prompt: "What about your hair — what is it naturally like when you leave it as it is?"
+    reask_prompt: "Is your hair naturally dry and frizzy, or fine and oily, or thick and lustrous?"
+    options:
+      - text: "Dry, frizzy, thin, or brittle"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Fine, straight, oily, or greying early"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Thick, wavy, lustrous, and strong"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q04
+    category: physical
+    text: "How would you describe your eyes?"
+    spoken_prompt: "Let's talk about your eyes. How would you describe them?"
+    reask_prompt: "Would you say your eyes are small and active, sharp and light-sensitive, or large and calm?"
+    options:
+      - text: "Small, quick-moving, and tend to feel dry"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Sharp, penetrating, medium-sized — often light-sensitive"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Large, calm, moist, and attractive"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q05
+    category: physical
+    text: "How do you handle extreme temperatures — cold or heat?"
+    spoken_prompt: "When it comes to hot or cold weather — what bothers you more?"
+    reask_prompt: "Do you dislike cold weather and get cold hands, or do you feel uncomfortable in heat, or do you manage both well but dislike damp?"
+    options:
+      - text: "Cold really bothers me — hands and feet are often cold"
+        vata: 3
+        pitta: 0
+        kapha: 1
+      - text: "I dislike heat — I feel much better in cool weather"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "I handle cold well — it's damp or humid weather I dislike"
+        vata: 0
+        pitta: 1
+        kapha: 3
+
+  - id: q06
+    category: physical
+    text: "How is your energy level across the day?"
+    spoken_prompt: "How would you describe your energy during the day — is it steady, or does it come and go?"
+    reask_prompt: "Do you get bursts of energy that fade quickly, sustained energy all day, or slow and steady energy that builds over time?"
+    options:
+      - text: "Bursts of energy followed by sudden fatigue"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Strong, driven energy — I push through the whole day"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Slow to start, but once going I have steady endurance"
+        vata: 0
+        pitta: 1
+        kapha: 3
+
+  - id: q07
+    category: physical
+    text: "How do you typically sleep?"
+    spoken_prompt: "Tell me about your sleep. What's it like on a typical night?"
+    reask_prompt: "Is your sleep usually light and broken, moderate with occasional waking, or deep and long?"
+    options:
+      - text: "Light — I wake often and sometimes struggle to fall asleep"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Moderate — I sleep well but wake if I am stressed"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Deep and long — I could sleep for ten hours and feel groggy waking up"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q08
+    category: physical
+    text: "How would you describe your natural physical movement or activity?"
+    spoken_prompt: "In terms of how you naturally move and stay active — what feels most like you?"
+    reask_prompt: "Are you naturally restless and always moving, purposeful and disciplined about exercise, or do you prefer gentle and slow activity?"
+    options:
+      - text: "Restless and always on the move — I find it hard to sit still"
+        vata: 3
+        pitta: 1
+        kapha: 0
+      - text: "Purposeful and disciplined — I like competitive or goal-oriented exercise"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "I prefer slow, steady, and gentle movement like walking or swimming"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  # ── DIGESTION (5 questions) ───────────────────────────────────────────────
+
+  - id: q09
+    category: digestion
+    text: "How is your appetite throughout the day?"
+    spoken_prompt: "Now let's talk about food. How is your appetite throughout the day?"
+    reask_prompt: "Do you have a variable appetite where you sometimes forget to eat, a strong appetite where you get irritable if you miss a meal, or a steady appetite where you can skip meals without a problem?"
+    options:
+      - text: "Variable — I sometimes forget to eat and my hunger comes and goes"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Strong — I get irritable or shaky if I miss a meal"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Steady — I can easily skip meals without feeling it much"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q10
+    category: digestion
+    text: "How is your digestion in general?"
+    spoken_prompt: "How would you describe your digestion? Does it cause you any issues?"
+    reask_prompt: "Would you say your digestion is irregular with bloating and gas, strong and able to handle anything, or slow and heavy?"
+    options:
+      - text: "Irregular — I often get bloating, gas, or constipation"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Strong — I can digest almost anything without issues"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Slow and heavy — food takes a long time to digest and I feel full"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q11
+    category: digestion
+    text: "What types of food do you naturally tend to crave?"
+    spoken_prompt: "What kinds of food do you find yourself craving or feeling drawn to?"
+    reask_prompt: "Do you tend to crave warm, oily, or comfort foods — or cool and fresh foods like salads — or light, dry, and spicy foods?"
+    options:
+      - text: "Warm, oily, and comforting — soups, stews, sweet and salty foods"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Cool and refreshing — salads, fruit, cold drinks"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Light, dry, and pungent — spicy, bitter, or astringent foods"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q12
+    category: digestion
+    text: "How are your bowel movements in general?"
+    spoken_prompt: "This one is a bit personal, but it tells us a lot about your constitution. How regular are your bowel movements?"
+    reask_prompt: "Would you say they are irregular or constipated, regular but sometimes loose, or regular and well-formed but slow?"
+    options:
+      - text: "Irregular — I often deal with constipation or dryness"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Regular, but they can become loose when I am under stress"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Regular, slow, and well-formed — rarely any issues"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q13
+    category: digestion
+    text: "How do you generally feel right after eating a meal?"
+    spoken_prompt: "After finishing a meal, how do you usually feel?"
+    reask_prompt: "Do you feel energised but sometimes anxious, feel energised and ready to act, or feel heavy and want to rest?"
+    options:
+      - text: "Sometimes energised, sometimes anxious — it varies and is unpredictable"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Energised and ready to get things done"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Heavy and comfortable — I often feel like resting after eating"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  # ── MIND (5 questions) ────────────────────────────────────────────────────
+
+  - id: q14
+    category: mind
+    text: "How do you learn and retain new information?"
+    spoken_prompt: "Let's talk about how your mind works. When you learn something new, how does it go for you?"
+    reask_prompt: "Do you pick things up quickly but forget them easily, learn in a focused and analytical way with good memory, or learn slowly but remember things very well?"
+    options:
+      - text: "I pick things up quickly but tend to forget them just as fast"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "I am analytical and focused — I learn well and remember details"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "It takes me longer to learn, but once I know something I never forget it"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q15
+    category: mind
+    text: "When you are under stress, what is your typical reaction?"
+    spoken_prompt: "When life gets stressful or overwhelming — what does that look like for you?"
+    reask_prompt: "Do you tend to feel anxious or fearful, become irritable or intense, or do you withdraw and go quiet?"
+    options:
+      - text: "I become anxious, fearful, or overwhelmed"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "I become irritable, intense, or critical"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "I withdraw, become stubborn, or shut down emotionally"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q16
+    category: mind
+    text: "How would you describe your thinking style?"
+    spoken_prompt: "How would you describe the way your mind naturally works?"
+    reask_prompt: "Are you a creative, fast-thinking, idea-jumping type — a sharp and precise, goal-focused type — or a methodical and steady thinker?"
+    options:
+      - text: "Creative and fast — lots of ideas, but I jump between topics and can be scattered"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Sharp and precise — I think in a focused, goal-oriented way"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Methodical and steady — I think things through slowly and carefully"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q17
+    category: mind
+    text: "How do you typically make decisions?"
+    spoken_prompt: "When you need to make a decision — how does that usually go for you?"
+    reask_prompt: "Do you tend to be indecisive and change your mind often, decisive and sometimes impulsive, or slow but fully committed once you decide?"
+    options:
+      - text: "Indecisive — I change my mind often and find decisions hard"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Decisive and confident — sometimes I act before thinking it through"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "I take my time, but once I have decided I am fully committed"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q18
+    category: mind
+    text: "How would you describe your communication style?"
+    spoken_prompt: "How would you describe the way you naturally communicate with people?"
+    reask_prompt: "Are you talkative and quick, jumping between topics — or clear and direct, getting to the point — or quiet and deliberate with few words?"
+    options:
+      - text: "Talkative and quick — I jump between topics and love conversation"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Clear, direct, and to the point — I say what I mean"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Slow and deliberate — I choose my words carefully and speak less"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  # ── LIFESTYLE (4 questions) ───────────────────────────────────────────────
+
+  - id: q19
+    category: lifestyle
+    text: "How would you describe your daily routine?"
+    spoken_prompt: "Last few questions now. How would you describe your daily routine — do you have a fixed schedule?"
+    reask_prompt: "Is your daily routine irregular and hard to pin down, scheduled and disciplined, or consistent but slow to change?"
+    options:
+      - text: "Irregular — my schedule changes constantly and is hard to stick to"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Scheduled and disciplined — I like structure and planning"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Consistent — I have settled habits and I am slow to change them"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q20
+    category: lifestyle
+    text: "How do you relate to money and spending?"
+    spoken_prompt: "How would you describe your relationship with money and spending?"
+    reask_prompt: "Do you tend to spend freely and make impulsive purchases, spend purposefully on goals, or save carefully and prefer security?"
+    options:
+      - text: "I spend freely — I make impulsive purchases and money flows easily"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "I spend purposefully — on goals, quality, or things that matter to me"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "I save carefully — financial security and stability matter a lot to me"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q21
+    category: lifestyle
+    text: "How do you relate to people in your life?"
+    spoken_prompt: "What about relationships — how do you tend to relate to people?"
+    reask_prompt: "Are you enthusiastic and friendly but inconsistent, selective and loyal with strong leadership, or deeply caring with long-lasting relationships?"
+    options:
+      - text: "Enthusiastic and friendly — I make friends quickly but can be inconsistent"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Selective and loyal — I take charge in groups and value quality over quantity"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Deeply caring — I invest in long-term relationships and am very nurturing"
+        vata: 0
+        pitta: 0
+        kapha: 3
+
+  - id: q22
+    category: lifestyle
+    text: "What type of exercise or physical activity do you enjoy most?"
+    spoken_prompt: "And finally — what kind of physical activity do you enjoy or feel drawn to?"
+    reask_prompt: "Do you prefer yoga, dance, or light movement — competitive sports or intense training — or steady endurance activities like walking or swimming?"
+    options:
+      - text: "Yoga, dance, or light aerobics — I like variety and creative movement"
+        vata: 3
+        pitta: 0
+        kapha: 0
+      - text: "Competitive sports, running, or challenging high-intensity training"
+        vata: 0
+        pitta: 3
+        kapha: 0
+      - text: "Walking, swimming, or any steady, gentle, endurance-based activity"
+        vata: 0
+        pitta: 0
+        kapha: 3
