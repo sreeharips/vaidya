@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
+import { showToast } from '@/lib/toast'
+import SoftAuthNudge from '@/components/SoftAuthNudge'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -66,6 +69,8 @@ export default function AssessmentPage() {
   const params = useParams<{ lang: string }>()
   const lang = params?.lang ?? 'en'
 
+  const { isAuthenticated, updatePreferences } = useAuth()
+
   const [phase, setPhase] = useState<Phase>('intro')
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -74,6 +79,7 @@ export default function AssessmentPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadingQuestions, setLoadingQuestions] = useState(false)
+  const [showPrakritiNudge, setShowPrakritiNudge] = useState(false)
 
   async function startAssessment() {
     setLoadingQuestions(true)
@@ -132,6 +138,20 @@ export default function AssessmentPage() {
       setResult(r)
       setPhase('results')
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Save to preferences (works for both guests via session cookie and authenticated users)
+      updatePreferences({
+        vata_pct: r.vata_pct,
+        pitta_pct: r.pitta_pct,
+        kapha_pct: r.kapha_pct,
+        primary_type: r.primary_type,
+        secondary_type: r.secondary_type ?? undefined,
+      }).then(() => {
+        if (isAuthenticated) {
+          showToast('Prakriti profile saved to your account')
+        } else {
+          setShowPrakritiNudge(true)
+        }
+      }).catch(() => null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
       setPhase('questions')
@@ -530,6 +550,14 @@ export default function AssessmentPage() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* ── Guest nudge ──────────────────────────────────────── */}
+        {showPrakritiNudge && (
+          <SoftAuthNudge
+            message="Your Prakriti profile is saved for this session. Sign in to keep it permanently across devices."
+            lang={lang}
+          />
         )}
 
         {/* ── CTAs ─────────────────────────────────────────────── */}

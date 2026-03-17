@@ -360,6 +360,312 @@ class OrderItem(Base):
 
 
 # ---------------------------------------------------------------------------
+# Users
+#
+# Login is optional. Guests use a session_id (GuestSession).
+# When a guest logs in, their session data is claimed to their user_id.
+# ---------------------------------------------------------------------------
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[str | None] = mapped_column(String(255))
+    phone: Mapped[str | None] = mapped_column(String(30))
+    preferred_language: Mapped[str] = mapped_column(String(5), default="en")
+    role: Mapped[str] = mapped_column(String(20), default="patient")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_verification_token: Mapped[str | None] = mapped_column(String(255))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sso_provider: Mapped[str | None] = mapped_column(String(20))
+    sso_id: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    guest_sessions: Mapped[list["GuestSession"]] = relationship(back_populates="claimed_by_user")
+    preferences: Mapped["UserPreferences | None"] = relationship(back_populates="user", uselist=False)
+    watchlist_items: Mapped[list["UserWatchlist"]] = relationship(back_populates="user")
+    booking_history: Mapped[list["BookingHistory"]] = relationship(back_populates="user")
+    consultations: Mapped[list["ConsultationHistory"]] = relationship(back_populates="user")
+    prescriptions: Mapped[list["Prescription"]] = relationship(back_populates="user")
+    product_purchases: Mapped[list["ProductPurchaseHistory"]] = relationship(back_populates="user")
+
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('patient','doctor','clinic_admin','platform_admin')",
+            name="ck_users_role",
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Guest Sessions
+#
+# The session_id (= primary key) is stored in a browser cookie.
+# When a guest logs in, claimed_by_user_id is set.
+# ---------------------------------------------------------------------------
+class GuestSession(Base):
+    __tablename__ = "guest_sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    claimed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    preferred_language: Mapped[str] = mapped_column(String(5), default="en")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("now() + interval '90 days'")
+    )
+
+    claimed_by_user: Mapped["User | None"] = relationship(back_populates="guest_sessions")
+    preferences: Mapped["UserPreferences | None"] = relationship(back_populates="session", uselist=False)
+    watchlist_items: Mapped[list["UserWatchlist"]] = relationship(back_populates="session")
+    booking_history_items: Mapped[list["BookingHistory"]] = relationship(back_populates="session")
+    consultations: Mapped[list["ConsultationHistory"]] = relationship(back_populates="session")
+    prescriptions: Mapped[list["Prescription"]] = relationship(back_populates="session")
+    product_purchases: Mapped[list["ProductPurchaseHistory"]] = relationship(back_populates="session")
+
+    __table_args__ = (
+        Index("ix_guest_sessions_claimed_user", "claimed_by_user_id", postgresql_where=text("claimed_by_user_id IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# User Preferences (one row per user OR per guest session)
+# ---------------------------------------------------------------------------
+class UserPreferences(Base):
+    __tablename__ = "user_preferences"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    prakriti_vata_pct: Mapped[int | None] = mapped_column(Integer)
+    prakriti_pitta_pct: Mapped[int | None] = mapped_column(Integer)
+    prakriti_kapha_pct: Mapped[int | None] = mapped_column(Integer)
+    prakriti_primary_type: Mapped[str | None] = mapped_column(String(32))
+    prakriti_secondary_type: Mapped[str | None] = mapped_column(String(32))
+    prakriti_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    prakriti_assessment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("outcomes_log.id")
+    )
+    preferred_treatment_types = mapped_column(ARRAY(String), default=list)
+    preferred_doctor_languages = mapped_column(ARRAY(String), default=list)
+    preferred_budget_max: Mapped[int | None] = mapped_column(Integer)
+    preferred_districts = mapped_column(ARRAY(String), default=list)
+    content_personalisation_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    user: Mapped["User | None"] = relationship(back_populates="preferences")
+    session: Mapped["GuestSession | None"] = relationship(back_populates="preferences")
+
+    __table_args__ = (
+        CheckConstraint(
+            "user_id IS NOT NULL OR session_id IS NOT NULL",
+            name="ck_user_prefs_owner",
+        ),
+        Index("ix_user_preferences_user_id", "user_id", unique=True, postgresql_where=text("user_id IS NOT NULL")),
+        Index("ix_user_preferences_session_id", "session_id", unique=True, postgresql_where=text("session_id IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# User Watchlist (clinics and doctors saved by user or guest)
+# ---------------------------------------------------------------------------
+class UserWatchlist(Base):
+    __tablename__ = "user_watchlist"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    entity_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    user: Mapped["User | None"] = relationship(back_populates="watchlist_items")
+    session: Mapped["GuestSession | None"] = relationship(back_populates="watchlist_items")
+
+    __table_args__ = (
+        CheckConstraint(
+            "user_id IS NOT NULL OR session_id IS NOT NULL",
+            name="ck_watchlist_owner",
+        ),
+        CheckConstraint("entity_type IN ('clinic','doctor')", name="ck_watchlist_entity_type"),
+        Index("ix_user_watchlist_user", "user_id", "entity_type", postgresql_where=text("user_id IS NOT NULL")),
+        Index("ix_user_watchlist_session", "session_id", "entity_type", postgresql_where=text("session_id IS NOT NULL")),
+        UniqueConstraint("user_id", "entity_type", "entity_id", name="uq_watchlist_user"),
+        UniqueConstraint("session_id", "entity_type", "entity_id", name="uq_watchlist_session"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Booking History (user-facing view — user_id nullable for guest bookings)
+# ---------------------------------------------------------------------------
+class BookingHistory(Base):
+    __tablename__ = "booking_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    booking_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("bookings.id"), nullable=False, index=True
+    )
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False
+    )
+    doctor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False
+    )
+    treatment_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    total_paid: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    user: Mapped["User | None"] = relationship(back_populates="booking_history")
+    session: Mapped["GuestSession | None"] = relationship(back_populates="booking_history_items")
+
+    __table_args__ = (
+        Index("ix_booking_history_user", "user_id", postgresql_where=text("user_id IS NOT NULL")),
+        Index("ix_booking_history_session", "session_id", postgresql_where=text("session_id IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Consultation History
+# ---------------------------------------------------------------------------
+class ConsultationHistory(Base):
+    __tablename__ = "consultation_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    doctor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False
+    )
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False
+    )
+    consultation_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    chief_complaint_en: Mapped[str | None] = mapped_column(Text)
+    chief_complaint_original: Mapped[str | None] = mapped_column(Text)
+    prakriti_at_consultation: Mapped[str | None] = mapped_column(String(32))
+    notes_en: Mapped[str | None] = mapped_column(Text)
+    booking_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("bookings.id")
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    user: Mapped["User | None"] = relationship(back_populates="consultations")
+    session: Mapped["GuestSession | None"] = relationship(back_populates="consultations")
+
+    __table_args__ = (
+        Index("ix_consultation_history_user", "user_id", postgresql_where=text("user_id IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Prescriptions
+# ---------------------------------------------------------------------------
+class Prescription(Base):
+    __tablename__ = "prescriptions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    consultation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("consultation_history.id"), nullable=False, index=True
+    )
+    doctor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=False
+    )
+    prescription_date: Mapped[date] = mapped_column(Date, nullable=False)
+    structured_data: Mapped[dict | None] = mapped_column(JSONB)
+    medicines: Mapped[dict | None] = mapped_column(JSONB)
+    treatments_prescribed: Mapped[dict | None] = mapped_column(JSONB)
+    diet_instructions_en: Mapped[str | None] = mapped_column(Text)
+    follow_up_date: Mapped[date | None] = mapped_column(Date)
+    raw_transcript_original: Mapped[str | None] = mapped_column(Text)
+    raw_transcript_en: Mapped[str | None] = mapped_column(Text)
+    pdf_url: Mapped[str | None] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    user: Mapped["User | None"] = relationship(back_populates="prescriptions")
+    session: Mapped["GuestSession | None"] = relationship(back_populates="prescriptions")
+
+    __table_args__ = (
+        Index("ix_prescriptions_user", "user_id", postgresql_where=text("user_id IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Product Purchase History
+# ---------------------------------------------------------------------------
+class ProductPurchaseHistory(Base):
+    __tablename__ = "product_purchase_history"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    prescription_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("prescriptions.id")
+    )
+    product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    product_slug: Mapped[str] = mapped_column(String(255), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    total_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), default="USD")
+    payment_ref: Mapped[str] = mapped_column(String(255), nullable=False)
+    stripe_session_id: Mapped[str | None] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    shipping_address: Mapped[dict | None] = mapped_column(JSONB)
+    ordered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    user: Mapped["User | None"] = relationship(back_populates="product_purchases")
+    session: Mapped["GuestSession | None"] = relationship(back_populates="product_purchases")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending','paid','shipped','delivered','cancelled')",
+            name="ck_product_purchase_status",
+        ),
+        CheckConstraint("quantity > 0", name="ck_product_purchase_quantity_positive"),
+        Index("ix_product_purchase_user", "user_id", postgresql_where=text("user_id IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Conditions Map
 # ---------------------------------------------------------------------------
 class ConditionMap(Base):
@@ -403,6 +709,10 @@ class Booking(Base):
     clinic_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True)
     doctor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("doctors.id"), index=True)
     treatment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("treatments.id"), index=True)
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("guest_sessions.id")
+    )
+    guest_email: Mapped[str | None] = mapped_column(String(320))
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="pending")
