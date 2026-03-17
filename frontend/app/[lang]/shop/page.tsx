@@ -2,6 +2,7 @@ import type React from 'react'
 import { Metadata } from 'next'
 import HomeProductCard, { type ProductItem } from '@/components/cards/HomeProductCard'
 import ShopFilterBar from '@/components/shop/ShopFilterBar'
+import SearchBar from '@/components/search/SearchBar'
 
 export const revalidate = 120
 
@@ -88,7 +89,10 @@ export default async function ShopPage({ params: { lang }, searchParams }: PageP
             )}
           </div>
 
-          {/* Filter bar */}
+          {/* Search + Filter bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
+            <SearchBar variant="compact" type="product" placeholder="Search oils, capsules, powders…" />
+          </div>
           <ShopFilterBar lang={lang} category={category} prakriti={prakriti} gmpOnly={gmpOnly} />
         </div>
       </div>

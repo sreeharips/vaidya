@@ -2,6 +2,7 @@ import type React from 'react'
 import { Metadata } from 'next'
 import HomeClinicCard, { type ClinicSummary } from '@/components/cards/HomeClinicCard'
 import ListingFilterBar from '@/components/clinics/ListingFilterBar'
+import SearchBar from '@/components/search/SearchBar'
 
 export const revalidate = 120
 
@@ -95,11 +96,12 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.15, marginBottom: 8 }}>
             Ayurveda Clinics
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 540 }}>
+          <p style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 540, marginBottom: 20 }}>
             {total > 0
               ? `${total} credentialed clinic${total !== 1 ? 's' : ''} — all verified by Vaidya`
               : 'Credentialed clinics — all verified by Vaidya'}
           </p>
+          <SearchBar variant="compact" type="clinic" placeholder="Search clinics, treatments, districts…" />
         </div>
       </div>
 

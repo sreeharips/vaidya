@@ -144,10 +144,36 @@ class ClinicFeatureStore(Base):
     products: Mapped[list["Product"]] = relationship(back_populates="clinic")
     product_orders: Mapped[list["ProductOrder"]] = relationship(back_populates="clinic")
     reviews: Mapped[list["Review"]] = relationship(back_populates="clinic")
+    blocked_dates: Mapped[list["ClinicBlockedDate"]] = relationship(back_populates="clinic")
 
     __table_args__ = (
         CheckConstraint("tier IN (1, 2)", name="ck_clinic_tier"),
         Index("ix_clinic_search_vector", "search_vector", postgresql_using="gin"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Clinic Blocked Dates
+#
+# Clinics block date ranges for monsoon closures, festivals, full occupancy.
+# The booking engine rejects patient requests that overlap blocked dates.
+# ---------------------------------------------------------------------------
+class ClinicBlockedDate(Base):
+    __tablename__ = "clinic_blocked_dates"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    blocked_date: Mapped[date] = mapped_column(Date, nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="blocked_dates")
+
+    __table_args__ = (
+        UniqueConstraint("clinic_id", "blocked_date", name="uq_clinic_blocked_date"),
+        Index("ix_clinic_blocked_dates_clinic_date", "clinic_id", "blocked_date"),
     )
 
 
@@ -383,6 +409,10 @@ class User(Base):
     sso_id: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    clinic_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=True, index=True
+    )
 
     guest_sessions: Mapped[list["GuestSession"]] = relationship(back_populates="claimed_by_user")
     preferences: Mapped["UserPreferences | None"] = relationship(back_populates="user", uselist=False)

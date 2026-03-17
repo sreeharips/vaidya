@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import ConditionsGrid from './_components/ConditionsGrid'
 
 export const metadata: Metadata = {
   title: 'Conditions Treated with Ayurveda in Kerala | Vaidya',
@@ -210,75 +211,7 @@ export default function ConditionsPage({ params }: { params: { lang: string } })
         </div>
       </section>
 
-      {/* Conditions grid */}
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '1rem',
-          }}
-        >
-          {CONDITIONS.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/${params.lang}/conditions/${c.slug}`}
-              style={{
-                display: 'block',
-                background: '#fff',
-                border: '1px solid var(--border)',
-                borderRadius: 12,
-                padding: '1.25rem 1.25rem 1rem',
-                textDecoration: 'none',
-                transition: 'box-shadow 0.15s, border-color 0.15s',
-              }}
-            >
-              <div style={{ fontSize: '1.75rem', marginBottom: '0.6rem' }}>{c.icon}</div>
-              <div
-                style={{
-                  fontWeight: 700,
-                  color: 'var(--forest)',
-                  fontSize: '1rem',
-                  marginBottom: '0.5rem',
-                  lineHeight: 1.3,
-                }}
-              >
-                {c.name}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                {c.treatments.map((t) => (
-                  <span
-                    key={t}
-                    style={{
-                      background: 'var(--cream)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
-                      padding: '0.15rem 0.6rem',
-                      fontSize: '0.72rem',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <p
-          style={{
-            marginTop: '2.5rem',
-            fontSize: '0.8rem',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            lineHeight: 1.6,
-          }}
-        >
-          All condition–treatment mappings are verified by qualified BAMS physicians.
-          No LLM-generated content. Evidence-based classical Ayurveda only.
-        </p>
-      </div>
+      <ConditionsGrid conditions={CONDITIONS} lang={params.lang} />
     </main>
   )
 }

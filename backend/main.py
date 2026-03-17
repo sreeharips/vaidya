@@ -8,6 +8,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from api.assessment import router as assessment_router
 from api.auth import router as auth_router
 from api.booking import router as booking_router
+from api.clinic_portal import router as clinic_portal_router
 from api.clinics import router as clinics_router
 from api.doctors import router as doctors_router
 from api.products import router as products_router
@@ -85,7 +86,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,6 +97,7 @@ app.add_middleware(
 app.add_middleware(GuestSessionMiddleware)
 
 app.include_router(auth_router)
+app.include_router(clinic_portal_router)
 app.include_router(users_router)
 app.include_router(assessment_router)
 app.include_router(booking_router)

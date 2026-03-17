@@ -2,6 +2,7 @@ import type React from 'react'
 import { Metadata } from 'next'
 import HomeDoctorCard, { type DoctorSummary } from '@/components/cards/HomeDoctorCard'
 import ListingFilterBar from '@/components/clinics/ListingFilterBar'
+import SearchBar from '@/components/search/SearchBar'
 
 export const revalidate = 120
 
@@ -97,11 +98,12 @@ export default async function DoctorsPage({ params: { lang }, searchParams }: Pa
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.15, marginBottom: 8 }}>
             Ayurvedic Doctors
           </h1>
-          <p style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 540 }}>
+          <p style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 540, marginBottom: 20 }}>
             {total > 0
               ? `${total} credentialed doctor${total !== 1 ? 's' : ''} — all BAMS/MD qualified`
               : 'Credentialed BAMS/MD qualified doctors'}
           </p>
+          <SearchBar variant="compact" type="doctor" placeholder="Search by doctor name, specialisation…" />
         </div>
       </div>
 

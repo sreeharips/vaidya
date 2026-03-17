@@ -4,9 +4,10 @@ import { useState, FormEvent } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 interface SearchBarProps {
-  variant?: 'hero' | 'inline'
+  variant?: 'hero' | 'inline' | 'compact'
   initialValue?: string
   placeholder?: string
+  type?: 'all' | 'doctor' | 'clinic' | 'product' | 'condition'
   onSearch?: (query: string) => void
 }
 
@@ -14,6 +15,7 @@ export default function SearchBar({
   variant = 'hero',
   initialValue = '',
   placeholder = 'Search by doctor, hospital, or condition…',
+  type,
   onSearch,
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialValue)
@@ -28,7 +30,8 @@ export default function SearchBar({
     if (onSearch) {
       onSearch(q)
     } else {
-      router.push(`/${lang}/search?q=${encodeURIComponent(q)}`)
+      const typeParam = type && type !== 'all' ? `&type=${type}` : ''
+      router.push(`/${lang}/search?q=${encodeURIComponent(q)}${typeParam}`)
     }
   }
 
@@ -63,6 +66,64 @@ export default function SearchBar({
             color: 'var(--slate)',
           }}
         />
+      </form>
+    )
+  }
+
+  if (variant === 'compact') {
+    return (
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'var(--cream)',
+          border: '1px solid var(--border2)',
+          borderRadius: 'var(--r-xl)',
+          padding: '8px 8px 8px 16px',
+          maxWidth: '460px',
+          width: '100%',
+          transition: 'border-color var(--transition)',
+        }}
+        onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--forest)')}
+        onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border2)')}
+      >
+        <SearchIcon size={15} />
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder={placeholder}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            fontFamily: 'var(--sans)',
+            fontSize: '14px',
+            color: 'var(--slate)',
+            minWidth: 0,
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            background: 'var(--forest)',
+            color: '#fff',
+            fontFamily: 'var(--sans)',
+            fontSize: '13px',
+            fontWeight: 500,
+            padding: '8px 18px',
+            borderRadius: 'var(--r-xl)',
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          Search
+        </button>
       </form>
     )
   }
