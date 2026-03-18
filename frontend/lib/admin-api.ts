@@ -369,6 +369,57 @@ export function updateOrderStatus(id: string, status: string) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Users (platform admin)                                             */
+/* ------------------------------------------------------------------ */
+
+export function getUsers(params?: { role?: string; search?: string; is_active?: boolean; limit?: number; offset?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.role) qs.set("role", params.role);
+  if (params?.search) qs.set("search", params.search);
+  if (params?.is_active !== undefined) qs.set("is_active", String(params.is_active));
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  return adminFetch<{ items: ManagedUser[]; total: number }>(`/api/admin/users?${qs}`);
+}
+
+export function getUser(id: string) {
+  return adminFetch<ManagedUser>(`/api/admin/users/${id}`);
+}
+
+export function createUser(data: { email: string; password: string; full_name?: string; phone?: string; role?: string; clinic_id?: string }) {
+  return adminFetch<ManagedUser>("/api/admin/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateUser(id: string, data: { full_name?: string; phone?: string; email?: string; clinic_id?: string }) {
+  return adminFetch<ManagedUser>(`/api/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function changeUserRole(id: string, role: string, clinic_id?: string) {
+  return adminFetch<ManagedUser>(`/api/admin/users/${id}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role, clinic_id }),
+  });
+}
+
+export function toggleUserActive(id: string) {
+  return adminFetch<ManagedUser>(`/api/admin/users/${id}/toggle`, {
+    method: "PATCH",
+  });
+}
+
+export function deleteUser(id: string) {
+  return adminFetch<{ id: string; is_active: boolean; detail: string }>(`/api/admin/users/${id}`, {
+    method: "DELETE",
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /*  Platform admin                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -548,6 +599,21 @@ export interface PlatformClinic {
   bookings_count: number;
   revenue: number;
   is_active: boolean;
+}
+
+export interface ManagedUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  preferred_language: string;
+  role: string;
+  is_active: boolean;
+  is_email_verified: boolean;
+  clinic_id: string | null;
+  clinic_name: string | null;
+  last_login_at: string | null;
+  created_at: string;
 }
 
 export interface PlatformStats {

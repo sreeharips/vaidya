@@ -11,6 +11,7 @@ from api.admin.bookings import router as bookings_router
 from api.admin.ecommerce import router as ecommerce_router
 from api.admin.tags import router as tags_router
 from api.admin.platform import router as platform_router
+from api.admin.users import router as users_router
 
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -23,3 +24,4 @@ admin_router.include_router(bookings_router)
 admin_router.include_router(ecommerce_router)
 admin_router.include_router(tags_router)
 admin_router.include_router(platform_router)
+admin_router.include_router(users_router)

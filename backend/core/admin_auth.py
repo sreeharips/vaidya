@@ -45,6 +45,15 @@ async def require_platform_admin(
     return user
 
 
+async def require_any_admin(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Raises 403 if user is not clinic_admin or platform_admin."""
+    if user.role not in ("clinic_admin", "platform_admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
 async def get_admin_clinic(
     user: User = Depends(require_clinic_admin),
     db: AsyncSession = Depends(get_db),
