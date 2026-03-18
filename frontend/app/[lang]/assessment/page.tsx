@@ -6,11 +6,19 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { showToast } from '@/lib/toast'
 import SoftAuthNudge from '@/components/SoftAuthNudge'
+import VoiceAssessment, { type VoiceQuestion } from '@/components/assessment/VoiceAssessment'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface QuestionOption { index: number; text: string }
-interface Question { id: string; category: string; text: string; options: QuestionOption[] }
+interface Question {
+  id: string
+  category: string
+  text: string
+  spoken_prompt: string
+  reask_prompt: string
+  options: QuestionOption[]
+}
 
 interface ClinicMatch {
   id: string; slug: string; name: string; tier: number
@@ -80,6 +88,10 @@ export default function AssessmentPage() {
   const [error, setError] = useState<string | null>(null)
   const [loadingQuestions, setLoadingQuestions] = useState(false)
   const [showPrakritiNudge, setShowPrakritiNudge] = useState(false)
+  const [voiceMode, setVoiceMode] = useState(false)
+
+  // Voice is only available for Indian languages via Sarvam AI
+  const voiceSupported = lang === 'ml' || lang === 'hi' || lang === 'en'
 
   async function startAssessment() {
     setLoadingQuestions(true)
@@ -250,12 +262,41 @@ export default function AssessmentPage() {
           </p>
         )}
 
+        {/* Mode toggle — voice only for supported Indian languages */}
+        {voiceSupported && (
+          <div style={{
+            display: 'flex', gap: 8, marginBottom: 20,
+            background: 'var(--white)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r-xl)', padding: 4,
+          }}>
+            {[
+              { mode: false, label: '⌨ Text form', sub: 'Click options' },
+              { mode: true,  label: '🎙 Voice',    sub: `${lang === 'ml' ? 'Malayalam' : lang === 'hi' ? 'Hindi' : 'English'} — powered by Sarvam AI` },
+            ].map(({ mode, label, sub }) => (
+              <button
+                key={String(mode)}
+                onClick={() => setVoiceMode(mode)}
+                style={{
+                  flex: 1, padding: '10px 8px', border: 'none', cursor: 'pointer',
+                  borderRadius: 'var(--r-xl)', fontFamily: 'var(--sans)',
+                  background: voiceMode === mode ? 'var(--forest)' : 'transparent',
+                  color: voiceMode === mode ? '#fff' : 'var(--muted)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 500 }}>{label}</div>
+                <div style={{ fontSize: 11, opacity: 0.75, marginTop: 2 }}>{sub}</div>
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           className="assessment-cta-btn"
           onClick={startAssessment}
           disabled={loadingQuestions}
         >
-          {loadingQuestions ? 'Loading…' : 'Begin Prakriti Assessment →'}
+          {loadingQuestions ? 'Loading…' : voiceMode ? 'Start Voice Assessment →' : 'Begin Prakriti Assessment →'}
         </button>
 
         <p style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', marginTop: '16px', lineHeight: 1.6 }}>
@@ -266,6 +307,19 @@ export default function AssessmentPage() {
   }
 
   // ── QUESTIONS ──────────────────────────────────────────────────────────────
+
+  if (phase === 'questions' && voiceMode) {
+    return (
+      <div className="assessment-wrap">
+        <VoiceAssessment
+          questions={questions as VoiceQuestion[]}
+          lang={lang}
+          onComplete={(finalAnswers) => submitAnswers(finalAnswers)}
+          onBack={() => setPhase('intro')}
+        />
+      </div>
+    )
+  }
 
   if (phase === 'questions') {
     const q = questions[currentIdx]

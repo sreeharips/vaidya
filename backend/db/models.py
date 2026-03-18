@@ -77,6 +77,13 @@ class Doctor(Base):
     prakriti_affinities = mapped_column(ARRAY(String), default=list)
     languages = mapped_column(ARRAY(String), default=list)
     bio: Mapped[str | None] = mapped_column(Text)
+    bio_ml: Mapped[str | None] = mapped_column(Text)
+    bio_ar: Mapped[str | None] = mapped_column(Text)
+    name_ml: Mapped[str | None] = mapped_column(String(255))
+    name_ar: Mapped[str | None] = mapped_column(String(255))
+    gender: Mapped[str | None] = mapped_column(String(10))
+    consultation_fee_usd: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    doctor_certifications: Mapped[dict | None] = mapped_column(JSONB)
     photo_url: Mapped[str | None] = mapped_column(String(512))
     tier: Mapped[int] = mapped_column(Integer, default=1)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -136,6 +143,27 @@ class ClinicFeatureStore(Base):
     review_count: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     search_vector = mapped_column(TSVECTOR)
+    # Admin portal fields
+    admin_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    description_en: Mapped[str | None] = mapped_column(Text)
+    description_ml: Mapped[str | None] = mapped_column(Text)
+    description_ar: Mapped[str | None] = mapped_column(Text)
+    address_line1: Mapped[str | None] = mapped_column(String(255))
+    address_line2: Mapped[str | None] = mapped_column(String(255))
+    state: Mapped[str | None] = mapped_column(String(100))
+    pincode: Mapped[str | None] = mapped_column(String(10))
+    phone: Mapped[str | None] = mapped_column(String(30))
+    email: Mapped[str | None] = mapped_column(String(320))
+    website_url: Mapped[str | None] = mapped_column(String(512))
+    operating_hours: Mapped[dict | None] = mapped_column(JSONB)
+    social_links: Mapped[dict | None] = mapped_column(JSONB)
+    pickup_available: Mapped[bool] = mapped_column(Boolean, default=False)
+    pickup_locations = mapped_column(ARRAY(String), default=list)
+    ecommerce_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    shipping_policy: Mapped[str | None] = mapped_column(Text)
+    return_policy: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
 
@@ -145,6 +173,10 @@ class ClinicFeatureStore(Base):
     product_orders: Mapped[list["ProductOrder"]] = relationship(back_populates="clinic")
     reviews: Mapped[list["Review"]] = relationship(back_populates="clinic")
     blocked_dates: Mapped[list["ClinicBlockedDate"]] = relationship(back_populates="clinic")
+    availability_slots: Mapped[list["ClinicAvailabilitySlot"]] = relationship(back_populates="clinic")
+    images: Mapped[list["ClinicImage"]] = relationship(back_populates="clinic")
+    clinic_products: Mapped[list["ClinicProduct"]] = relationship(back_populates="clinic")
+    booking_slots: Mapped[list["BookingSlot"]] = relationship(back_populates="clinic")
 
     __table_args__ = (
         CheckConstraint("tier IN (1, 2)", name="ck_clinic_tier"),
@@ -174,6 +206,38 @@ class ClinicBlockedDate(Base):
     __table_args__ = (
         UniqueConstraint("clinic_id", "blocked_date", name="uq_clinic_blocked_date"),
         Index("ix_clinic_blocked_dates_clinic_date", "clinic_id", "blocked_date"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Clinic Availability Slots
+#
+# Per-day slot configuration: total slots, which treatments are offered,
+# and whether the day is closed. Booked count is computed from bookings.
+# Shared between the clinic portal (admin) and patient-facing pages.
+# ---------------------------------------------------------------------------
+class ClinicAvailabilitySlot(Base):
+    __tablename__ = "clinic_availability_slots"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    slot_date: Mapped[date] = mapped_column(Date, nullable=False)
+    total_slots: Mapped[int] = mapped_column(Integer, default=5)
+    is_closed: Mapped[bool] = mapped_column(Boolean, default=False)
+    close_reason: Mapped[str | None] = mapped_column(String(255))
+    # UUIDs of Treatment rows available on this day (empty = all clinic treatments)
+    treatment_ids = mapped_column(ARRAY(String), default=list)
+    notes: Mapped[str | None] = mapped_column(String(512))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="availability_slots")
+
+    __table_args__ = (
+        UniqueConstraint("clinic_id", "slot_date", name="uq_clinic_slot_date"),
+        Index("ix_clinic_availability_clinic_date", "clinic_id", "slot_date"),
     )
 
 
@@ -824,6 +888,118 @@ class SearchEvent(Base):
     patient_pseudo_id: Mapped[str | None] = mapped_column(String(64))
     lang: Mapped[str] = mapped_column(String(5), default="en")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+
+# ---------------------------------------------------------------------------
+# Clinic Images
+# ---------------------------------------------------------------------------
+class ClinicImage(Base):
+    __tablename__ = "clinic_images"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    doctor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=True, index=True
+    )
+    image_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    s3_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    s3_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    alt_text: Mapped[str | None] = mapped_column(String(500))
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="images")
+
+    __table_args__ = (
+        CheckConstraint(
+            "image_type IN ('clinic_hero','clinic_gallery','clinic_logo','doctor_profile','doctor_gallery','treatment','certificate','room')",
+            name="ck_clinic_image_type",
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Booking Slots
+# ---------------------------------------------------------------------------
+class BookingSlot(Base):
+    __tablename__ = "booking_slots"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    doctor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=True, index=True
+    )
+    treatment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("treatments.id"), nullable=True
+    )
+    slot_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    recurrence: Mapped[dict | None] = mapped_column(JSONB)
+    date: Mapped[date | None] = mapped_column(Date)
+    start_time: Mapped[str] = mapped_column(String(5), nullable=False)
+    end_time: Mapped[str] = mapped_column(String(5), nullable=False)
+    max_bookings: Mapped[int] = mapped_column(Integer, default=1)
+    current_bookings: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    notes: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="booking_slots")
+
+    __table_args__ = (
+        CheckConstraint(
+            "slot_type IN ('recurring','single','blocked')",
+            name="ck_booking_slot_type",
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Clinic Products (admin-managed product catalogue)
+# ---------------------------------------------------------------------------
+class ClinicProduct(Base):
+    __tablename__ = "clinic_products"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_display_en: Mapped[str | None] = mapped_column(String(255))
+    name_display_ml: Mapped[str | None] = mapped_column(String(255))
+    name_display_ar: Mapped[str | None] = mapped_column(String(255))
+    description_en: Mapped[str | None] = mapped_column(Text)
+    description_ml: Mapped[str | None] = mapped_column(Text)
+    product_type: Mapped[str] = mapped_column(String(30), default="other")
+    sku: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    price_usd: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    price_inr: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    stock_quantity: Mapped[int] = mapped_column(Integer, default=0)
+    is_prescription_only: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    ships_internationally: Mapped[bool] = mapped_column(Boolean, default=False)
+    weight_grams: Mapped[int | None] = mapped_column(Integer)
+    image_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_images.id"), nullable=True
+    )
+    prakriti_tags = mapped_column(ARRAY(String), default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="clinic_products")
+
+    __table_args__ = (
+        CheckConstraint(
+            "product_type IN ('kashayam','arishtam','ghritam','tailam','churnam','lehyam','bhasma','tablet','capsule','other')",
+            name="ck_clinic_product_type",
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------

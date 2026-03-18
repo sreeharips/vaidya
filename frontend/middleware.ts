@@ -8,5 +8,5 @@ export default createMiddleware({
 
 export const config = {
   // Match all paths except Next.js internals, static files, and the clinic portal
-  matcher: ['/((?!api|_next|_vercel|clinic|.*\\..*).*)'],
+  matcher: ['/((?!api|_next|_vercel|admin|.*\\..*).*)'],
 }

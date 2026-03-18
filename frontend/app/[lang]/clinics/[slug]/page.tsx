@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import ClinicDoctorCard from '@/components/cards/ClinicDoctorCard'
+import AvailabilityStrip from '@/components/clinics/AvailabilityStrip'
 
 export const revalidate = 3600
 
@@ -569,6 +570,15 @@ export default async function ClinicPage({
             </div>
           </section>
         )}
+
+        {/* ── Availability ─────────────────────────────────────────────────── */}
+        <section style={{ marginBottom: 56 }}>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 8 }}>
+            Availability
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Next 3 weeks — live slot availability</p>
+          <AvailabilityStrip slug={clinic.slug} />
+        </section>
 
         {/* ── CTA bar ──────────────────────────────────────────────────────── */}
         <section

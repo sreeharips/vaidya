@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
 
+    # Voice — STT + TTS (Indian languages)
+    SARVAM_API_KEY: str = ""
+
     # Voice — STT
     DEEPGRAM_API_KEY: str = ""
     AZURE_SPEECH_KEY: str = ""
@@ -32,6 +35,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_S3_BUCKET: str = ""
     AWS_REGION: str = "ap-south-1"
+    AWS_CLOUDFRONT_URL: str = ""
 
     # Auth
     JWT_SECRET: str = "dev-secret-change-me"

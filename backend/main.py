@@ -5,15 +5,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from api.admin import admin_router
 from api.assessment import router as assessment_router
 from api.auth import router as auth_router
 from api.booking import router as booking_router
-from api.clinic_portal import router as clinic_portal_router
 from api.clinics import router as clinics_router
 from api.doctors import router as doctors_router
 from api.products import router as products_router
 from api.search import router as search_router
 from api.users import router as users_router
+from api.voice import router as voice_router
 from db.database import async_session
 from db.models import GuestSession
 
@@ -96,8 +97,8 @@ app.add_middleware(
 # are set even if the session middleware short-circuits.
 app.add_middleware(GuestSessionMiddleware)
 
+app.include_router(admin_router)
 app.include_router(auth_router)
-app.include_router(clinic_portal_router)
 app.include_router(users_router)
 app.include_router(assessment_router)
 app.include_router(booking_router)
@@ -105,6 +106,7 @@ app.include_router(clinics_router)
 app.include_router(doctors_router)
 app.include_router(products_router)
 app.include_router(search_router)
+app.include_router(voice_router)
 
 
 @app.get("/health")

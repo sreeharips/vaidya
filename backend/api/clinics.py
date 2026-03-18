@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.cache import cache_get, cache_set
 from db.database import get_db
-from db.models import ClinicFeatureStore, Doctor, DoctorTreatment, Product, ProductVariant, Review, Treatment
+from db.models import Booking, ClinicAvailabilitySlot, ClinicFeatureStore, Doctor, DoctorTreatment, Product, ProductVariant, Review, Treatment
 
 router = APIRouter(prefix="/api/clinics", tags=["clinics"])
 
@@ -448,3 +448,78 @@ async def get_clinic(
 
     await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)
     return result
+
+
+# ── GET /api/clinics/{slug}/availability ─────────────────────────────────────
+
+
+@router.get("/{slug}/availability")
+async def get_clinic_availability(
+    slug: str,
+    days: int = Query(default=30, ge=7, le=90),
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
+):
+    """
+    Public availability endpoint — used by the patient-facing booking flow.
+    Returns slot availability for the next `days` days (default 30).
+    Does NOT expose admin-only fields (notes, booked_count breakdown).
+    """
+    import calendar as _cal
+    from datetime import date as _date, timedelta
+
+    clinic = (
+        await db.execute(
+            select(ClinicFeatureStore)
+            .where(ClinicFeatureStore.slug == slug, ClinicFeatureStore.is_active.is_(True))
+        )
+    ).scalar_one_or_none()
+    if clinic is None:
+        raise HTTPException(status_code=404, detail=f"Clinic '{slug}' not found.")
+
+    today = _date.today()
+    end_date = today + timedelta(days=days)
+
+    # Fetch slot configs
+    slot_rows = (await db.execute(
+        select(ClinicAvailabilitySlot).where(
+            ClinicAvailabilitySlot.clinic_id == clinic.id,
+            ClinicAvailabilitySlot.slot_date >= today,
+            ClinicAvailabilitySlot.slot_date <= end_date,
+        )
+    )).scalars().all()
+
+    # Booked counts per day
+    booked_rows = (await db.execute(
+        select(Booking.start_date, func.count(Booking.id)).where(
+            Booking.clinic_id == clinic.id,
+            Booking.start_date >= today,
+            Booking.start_date <= end_date,
+            Booking.status.in_(["pending", "confirmed"]),
+        ).group_by(Booking.start_date)
+    )).all()
+    booked_by_date: dict = {r[0]: r[1] for r in booked_rows}
+
+    # Treatment names lookup
+    t_rows = (await db.execute(
+        select(Treatment).where(Treatment.clinic_id == clinic.id, Treatment.is_active.is_(True))
+    )).scalars().all()
+    treatment_names = {str(t.id): t.name for t in t_rows}
+
+    slots = []
+    for s in slot_rows:
+        booked = booked_by_date.get(s.slot_date, 0)
+        avail = max(0, s.total_slots - booked)
+        slots.append({
+            "date": str(s.slot_date),
+            "available_slots": avail,
+            "total_slots": s.total_slots,
+            "is_closed": s.is_closed,
+            "treatment_names": [treatment_names.get(tid, "") for tid in (s.treatment_ids or [])],
+        })
+
+    return {
+        "clinic_id": str(clinic.id),
+        "clinic_name": clinic.name,
+        "days_ahead": days,
+        "slots": sorted(slots, key=lambda x: x["date"]),
+    }
