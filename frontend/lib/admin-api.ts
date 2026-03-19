@@ -133,9 +133,13 @@ export function getClinic() {
 
 export function updateClinic(data: Partial<Clinic>) {
   return adminFetch<Clinic>("/api/admin/clinic", {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   });
+}
+
+export function getClinicReviews() {
+  return adminFetch<ClinicReviews>("/api/admin/clinic/reviews");
 }
 
 export function deactivateClinic() {
@@ -236,26 +240,72 @@ export function deleteTreatment(id: string) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Availability / Slots                                               */
+/*  Clinic Availability (per-day slot config)                         */
+/* ------------------------------------------------------------------ */
+
+export function getAvailability(params: { month?: string; date_from?: string; date_to?: string }) {
+  const qs = new URLSearchParams();
+  if (params.month) qs.set("month", params.month);
+  if (params.date_from) qs.set("date_from", params.date_from);
+  if (params.date_to) qs.set("date_to", params.date_to);
+  return adminFetch<AvailabilityDay[]>(`/api/admin/availability?${qs}`);
+}
+
+export function upsertAvailabilityDay(slotDate: string, data: AvailabilityDayConfig) {
+  return adminFetch<AvailabilityDay>(`/api/admin/availability/${slotDate}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function bulkSetAvailability(data: {
+  dates: string[];
+  total_slots: number;
+  is_closed: boolean;
+  close_reason?: string | null;
+  treatment_ids: string[];
+  notes?: string | null;
+}) {
+  return adminFetch<AvailabilityDay[]>("/api/admin/availability/bulk", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function setRecurringAvailability(data: {
+  weekdays: number[];
+  date_from: string;
+  date_to: string;
+  total_slots: number;
+  is_closed: boolean;
+  close_reason?: string | null;
+  treatment_ids: string[];
+  notes?: string | null;
+}) {
+  return adminFetch<{ updated: number; from: string; to: string }>(
+    "/api/admin/availability/recurring",
+    { method: "POST", body: JSON.stringify(data) },
+  );
+}
+
+export function deleteAvailabilityDay(slotDate: string) {
+  return adminFetch<void>(`/api/admin/availability/${slotDate}`, { method: "DELETE" });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Booking Slots (time-of-day doctor slots — legacy)                 */
 /* ------------------------------------------------------------------ */
 
 export function getSlots(params: { doctor_id?: string; month?: string }) {
   const qs = new URLSearchParams();
   if (params.doctor_id) qs.set("doctor_id", params.doctor_id);
   if (params.month) qs.set("month", params.month);
-  return adminFetch<Slot[]>(`/api/admin/slots?${qs}`);
+  return adminFetch<Slot[]>(`/api/admin/slots/calendar?${qs}`);
 }
 
 export function createSlot(data: Partial<Slot>) {
-  return adminFetch<Slot>("/api/admin/slots", {
+  return adminFetch<Slot>("/api/admin/slots/single", {
     method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export function updateSlot(id: string, data: Partial<Slot>) {
-  return adminFetch<Slot>(`/api/admin/slots/${id}`, {
-    method: "PUT",
     body: JSON.stringify(data),
   });
 }
@@ -264,7 +314,7 @@ export function deleteSlot(id: string) {
   return adminFetch<void>(`/api/admin/slots/${id}`, { method: "DELETE" });
 }
 
-export function blockDates(data: { doctor_id: string; dates: string[]; reason?: string }) {
+export function blockDates(data: { doctor_id?: string; date_from: string; date_to: string; reason?: string }) {
   return adminFetch<void>("/api/admin/slots/block", {
     method: "POST",
     body: JSON.stringify(data),
@@ -272,13 +322,15 @@ export function blockDates(data: { doctor_id: string; dates: string[]; reason?: 
 }
 
 export function setRecurring(data: {
-  doctor_id: string;
-  day_of_week: number;
+  doctor_id?: string;
+  treatment_id?: string;
+  pattern?: string;
+  days: string[];
   start_time: string;
   end_time: string;
-  max_patients: number;
-  valid_from: string;
-  valid_until: string;
+  max_bookings: number;
+  valid_from?: string;
+  valid_until?: string;
 }) {
   return adminFetch<void>("/api/admin/slots/recurring", {
     method: "POST",
@@ -303,18 +355,18 @@ export function getBookingStats() {
 }
 
 export function acceptBooking(id: string) {
-  return adminFetch<Booking>(`/api/admin/bookings/${id}/accept`, { method: "POST" });
+  return adminFetch<Booking>(`/api/admin/bookings/${id}/confirm`, { method: "PATCH" });
 }
 
 export function declineBooking(id: string, reason: string) {
   return adminFetch<Booking>(`/api/admin/bookings/${id}/decline`, {
-    method: "POST",
+    method: "PATCH",
     body: JSON.stringify({ reason }),
   });
 }
 
 export function completeBooking(id: string) {
-  return adminFetch<Booking>(`/api/admin/bookings/${id}/complete`, { method: "POST" });
+  return adminFetch<Booking>(`/api/admin/bookings/${id}/complete`, { method: "PATCH" });
 }
 
 /* ------------------------------------------------------------------ */
@@ -327,7 +379,7 @@ export function getEcommerceSettings() {
 
 export function updateEcommerceSettings(data: Partial<EcommerceSettings>) {
   return adminFetch<EcommerceSettings>("/api/admin/ecommerce/settings", {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }
@@ -336,16 +388,16 @@ export function getProducts() {
   return adminFetch<Product[]>("/api/admin/ecommerce/products");
 }
 
-export function createProduct(data: Partial<Product>) {
+export function createProduct(data: ProductInput) {
   return adminFetch<Product>("/api/admin/ecommerce/products", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export function updateProduct(id: string, data: Partial<Product>) {
+export function updateProduct(id: string, data: ProductInput) {
   return adminFetch<Product>(`/api/admin/ecommerce/products/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }
@@ -354,11 +406,8 @@ export function deleteProduct(id: string) {
   return adminFetch<void>(`/api/admin/ecommerce/products/${id}`, { method: "DELETE" });
 }
 
-export function getOrders(params?: { limit?: number; offset?: number }) {
-  const qs = new URLSearchParams();
-  if (params?.limit) qs.set("limit", String(params.limit));
-  if (params?.offset) qs.set("offset", String(params.offset));
-  return adminFetch<{ items: Order[]; total: number }>(`/api/admin/ecommerce/orders?${qs}`);
+export function getOrders() {
+  return adminFetch<Order[]>("/api/admin/ecommerce/orders");
 }
 
 export function updateOrderStatus(id: string, status: string) {
@@ -454,30 +503,66 @@ export interface Clinic {
   id: string;
   slug: string;
   name: string;
-  name_ml?: string;
-  name_ar?: string;
-  description: string;
-  description_ml?: string;
-  description_ar?: string;
-  phone: string;
-  email: string;
-  website?: string;
-  address: string;
-  district: string;
-  state: string;
-  lat: number;
-  lng: number;
+  tier: number;
+  // Descriptions (multilingual)
+  description_en: string | null;
+  description_ml: string | null;
+  description_ar: string | null;
+  // Location
+  district: string | null;
+  address: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  state: string | null;
+  pincode: string | null;
+  lat: number | null;
+  lng: number | null;
+  // Contact
+  phone: string | null;
+  email: string | null;
+  website_url: string | null;
+  // Tags
+  languages: string[];
   specialisations: string[];
   prakriti_affinities: string[];
   certifications: string[];
-  tier: number;
-  accommodation_type?: string;
-  airport_pickup: boolean;
-  operating_hours?: string;
-  social_facebook?: string;
-  social_instagram?: string;
-  social_youtube?: string;
+  // Pricing
+  pricing_min: number | null;
+  pricing_max: number | null;
+  // Facilities
+  accommodation_available: boolean;
+  pickup_available: boolean;
+  pickup_locations: string[];
+  ecommerce_enabled: boolean;
+  outcome_enrolled: boolean;
+  // Schedules & social
+  operating_hours: Record<string, { open: string; close: string; closed: boolean }> | null;
+  social_links: { facebook?: string; instagram?: string; youtube?: string; whatsapp?: string } | null;
+  // Getting Here
+  transport_info: string | null;
+  // Policies
+  shipping_policy: string | null;
+  return_policy: string | null;
+  // Read-only
+  rating: number | null;
+  review_count: number;
   is_active: boolean;
+}
+
+export interface ClinicReview {
+  id: string;
+  rating: number;
+  review_text: string | null;
+  reviewer_location: string | null;
+  treatment_slug: string | null;
+  verified: boolean;
+  created_at: string;
+}
+
+export interface ClinicReviews {
+  total: number;
+  avg_rating: number | null;
+  reviews: ClinicReview[];
 }
 
 export interface ClinicImage {
@@ -496,45 +581,69 @@ export interface Doctor {
   name_ar?: string;
   qualification: string;
   years_exp: number;
-  bio: string;
-  bio_ml?: string;
+  bio: string | null;
+  bio_ml?: string | null;
+  bio_ar?: string | null;
   specialisations: string[];
   prakriti_affinities: string[];
   languages: string[];
-  gender: string;
-  consultation_fee: number;
-  photo_url?: string;
+  gender: string | null;
+  consultation_fee_usd: number | null;
+  photo_url?: string | null;
   tier: number;
   is_active: boolean;
+  rating: number | null;
+  review_count: number;
+  doctor_certifications: Record<string, unknown> | null;
 }
 
 export interface Treatment {
   id: string;
   name: string;
-  name_ml?: string;
-  name_ar?: string;
+  name_ml?: string | null;
+  name_ar?: string | null;
   slug: string;
-  description: string;
-  description_ml?: string;
+  description: string | null;
+  description_ml?: string | null;
   prakriti_tags: string[];
-  duration_days_min: number;
-  duration_days_max: number;
-  price_min: number;
-  price_max: number;
+  duration_min_days: number | null;
+  duration_max_days: number | null;
+  price_per_day: number | null;
+  included_therapies: string[];
   doctor_ids: string[];
   is_active: boolean;
 }
 
+export interface AvailabilityDay {
+  slot_date: string;
+  total_slots: number;
+  is_closed: boolean;
+  close_reason: string | null;
+  treatment_ids: string[];
+  notes: string | null;
+}
+
+export interface AvailabilityDayConfig {
+  total_slots: number;
+  is_closed: boolean;
+  close_reason?: string | null;
+  treatment_ids: string[];
+  notes?: string | null;
+}
+
 export interface Slot {
   id: string;
-  doctor_id: string;
-  date: string;
+  slot_type: string;
+  date: string | null;
   start_time: string;
   end_time: string;
-  max_patients: number;
-  booked_count: number;
-  is_blocked: boolean;
-  block_reason?: string;
+  max_bookings: number;
+  current_bookings: number;
+  is_active: boolean;
+  doctor_id: string | null;
+  treatment_id: string | null;
+  notes: string | null;
+  recurrence: Record<string, unknown> | null;
 }
 
 export interface Booking {
@@ -542,17 +651,16 @@ export interface Booking {
   patient_name: string;
   patient_email: string;
   clinic_id: string;
-  doctor_id: string;
-  doctor_name: string;
-  treatment_id: string;
+  doctor_id: string | null;
+  doctor_name: string | null;
+  treatment_id: string | null;
   treatment_name: string;
   start_date: string;
   end_date: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled" | "declined";
-  decline_reason?: string;
+  status: string;
   total_amount: number;
   commission_amount: number;
-  payment_ref?: string;
+  payment_ref: string | null;
   created_at: string;
 }
 
@@ -564,30 +672,69 @@ export interface BookingStats {
 }
 
 export interface EcommerceSettings {
-  enabled: boolean;
-  store_name?: string;
-  description?: string;
-  shipping_policy?: string;
+  ecommerce_enabled: boolean;
+  shipping_policy: string | null;
+  return_policy: string | null;
+}
+
+export interface VariantInput {
+  label: string;
+  sku?: string | null;
+  price: number;
+  stock_qty?: number;
+  weight_grams?: number | null;
+}
+
+export interface ProductInput {
+  name?: string;
+  description?: string | null;
+  category?: string | null;
+  prakriti_tags?: string[];
+  base_price?: number | null;
+  currency?: string;
+  is_gmp_certified?: boolean;
+  is_active?: boolean;
+  variants?: VariantInput[];
+}
+
+export interface ProductVariant {
+  id: string;
+  label: string;
+  sku: string | null;
+  price: number;
+  stock_qty: number;
+  weight_grams: number | null;
+  is_active: boolean;
 }
 
 export interface Product {
   id: string;
+  slug: string;
   name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-  image_url?: string;
+  description: string | null;
+  category: string | null;
+  prakriti_tags: string[];
+  base_price: number | null;
+  currency: string;
+  photos: string[];
+  is_gmp_certified: boolean;
   is_active: boolean;
+  variants: ProductVariant[];
+}
+
+export interface OrderItem {
+  product_name: string;
+  quantity: number;
+  price: number;
 }
 
 export interface Order {
   id: string;
-  patient_name: string;
-  items: { product_name: string; quantity: number; price: number }[];
-  total: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  created_at: string;
+  status: string;
+  total_amount: number;
+  currency: string;
+  ordered_at: string;
+  items: OrderItem[];
 }
 
 export interface PlatformClinic {

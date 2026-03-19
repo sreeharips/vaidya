@@ -22,10 +22,10 @@ const EMPTY_TREATMENT: Partial<Treatment> = {
   description: "",
   description_ml: "",
   prakriti_tags: [],
-  duration_days_min: 7,
-  duration_days_max: 21,
-  price_min: 0,
-  price_max: 0,
+  duration_min_days: 7,
+  duration_max_days: 21,
+  price_per_day: 0,
+  
   doctor_ids: [],
   is_active: true,
 };
@@ -158,10 +158,10 @@ export default function TreatmentsPage() {
                   <tr key={t.id} className="hover:bg-cream/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-slate">{t.name}</td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">
-                      {t.duration_days_min}–{t.duration_days_max} days
+                      {t.duration_min_days}–{t.duration_max_days} days
                     </td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">
-                      ${t.price_min} – ${t.price_max}
+                      ${t.price_per_day} – ${t.price_per_day}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <div className="flex gap-1">
@@ -297,8 +297,8 @@ export default function TreatmentsPage() {
                   <input
                     type="number"
                     min={1}
-                    value={editing.duration_days_min ?? 7}
-                    onChange={(e) => updateField({ duration_days_min: parseInt(e.target.value) || 1 })}
+                    value={editing.duration_min_days ?? 7}
+                    onChange={(e) => updateField({ duration_min_days: parseInt(e.target.value) || 1 })}
                     className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                   />
                 </div>
@@ -307,8 +307,8 @@ export default function TreatmentsPage() {
                   <input
                     type="number"
                     min={1}
-                    value={editing.duration_days_max ?? 21}
-                    onChange={(e) => updateField({ duration_days_max: parseInt(e.target.value) || 1 })}
+                    value={editing.duration_max_days ?? 21}
+                    onChange={(e) => updateField({ duration_max_days: parseInt(e.target.value) || 1 })}
                     className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                   />
                 </div>
@@ -321,8 +321,8 @@ export default function TreatmentsPage() {
                   <input
                     type="number"
                     min={0}
-                    value={editing.price_min ?? 0}
-                    onChange={(e) => updateField({ price_min: parseFloat(e.target.value) || 0 })}
+                    value={editing.price_per_day ?? 0}
+                    onChange={(e) => updateField({ price_per_day: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                   />
                 </div>
@@ -331,8 +331,8 @@ export default function TreatmentsPage() {
                   <input
                     type="number"
                     min={0}
-                    value={editing.price_max ?? 0}
-                    onChange={(e) => updateField({ price_max: parseFloat(e.target.value) || 0 })}
+                    value={editing.price_per_day ?? 0}
+                    onChange={(e) => updateField({ price_per_day: parseFloat(e.target.value) || 0 })}
                     className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                   />
                 </div>

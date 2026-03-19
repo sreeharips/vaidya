@@ -9,23 +9,54 @@ import {
   updateProduct,
   deleteProduct,
   getOrders,
-  updateOrderStatus,
   type EcommerceSettings,
   type Product,
   type Order,
 } from "@/lib/admin-api";
 
-const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
-
+const CATEGORIES = ["oil", "powder", "tablet", "capsule", "syrup", "ghee", "choornam", "kashayam", "other"];
+const PRAKRITI_TAGS = ["Vata", "Pitta", "Kapha"];
 type ActiveTab = "products" | "orders";
 
-const EMPTY_PRODUCT: Partial<Product> = {
+interface VariantDraft {
+  id?: string;
+  label: string;
+  sku: string;
+  price: number;
+  stock_qty: number;
+  weight_grams: number | null;
+}
+
+interface ProductDraft {
+  name: string;
+  description: string;
+  category: string;
+  prakriti_tags: string[];
+  base_price: number | null;
+  currency: string;
+  is_gmp_certified: boolean;
+  is_active: boolean;
+  variants: VariantDraft[];
+}
+
+const EMPTY_DRAFT: ProductDraft = {
   name: "",
   description: "",
-  price: 0,
-  stock: 0,
-  category: "",
+  category: "other",
+  prakriti_tags: [],
+  base_price: null,
+  currency: "INR",
+  is_gmp_certified: false,
   is_active: true,
+  variants: [],
+};
+
+const EMPTY_VARIANT: VariantDraft = {
+  label: "",
+  sku: "",
+  price: 0,
+  stock_qty: 0,
+  weight_grams: null,
 };
 
 export default function EcommercePage() {
@@ -35,7 +66,7 @@ export default function EcommercePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>("products");
   const [panelOpen, setPanelOpen] = useState(false);
-  const [editing, setEditing] = useState<Partial<Product>>(EMPTY_PRODUCT);
+  const [draft, setDraft] = useState<ProductDraft>(EMPTY_DRAFT);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -44,25 +75,23 @@ export default function EcommercePage() {
       const [s, p, o] = await Promise.all([
         getEcommerceSettings(),
         getProducts(),
-        getOrders({ limit: 50 }),
+        getOrders(),
       ]);
       setSettings(s);
       setProducts(p);
-      setOrders(o.items);
+      setOrders(o);
     } catch {
       // handled
     }
     setLoading(false);
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const handleToggleEnabled = async () => {
     if (!settings) return;
     try {
-      const updated = await updateEcommerceSettings({ enabled: !settings.enabled });
+      const updated = await updateEcommerceSettings({ ecommerce_enabled: !settings.ecommerce_enabled });
       setSettings(updated);
     } catch {
       alert("Failed to update settings.");
@@ -70,24 +99,59 @@ export default function EcommercePage() {
   };
 
   const openAddProduct = () => {
-    setEditing({ ...EMPTY_PRODUCT });
+    setDraft({ ...EMPTY_DRAFT, variants: [] });
     setEditId(null);
     setPanelOpen(true);
   };
 
   const openEditProduct = (p: Product) => {
-    setEditing({ ...p });
+    setDraft({
+      name: p.name,
+      description: p.description || "",
+      category: p.category || "other",
+      prakriti_tags: p.prakriti_tags,
+      base_price: p.base_price,
+      currency: p.currency,
+      is_gmp_certified: p.is_gmp_certified,
+      is_active: p.is_active,
+      variants: p.variants.map((v) => ({
+        id: v.id,
+        label: v.label,
+        sku: v.sku || "",
+        price: v.price,
+        stock_qty: v.stock_qty,
+        weight_grams: v.weight_grams,
+      })),
+    });
     setEditId(p.id);
     setPanelOpen(true);
   };
 
   const handleSaveProduct = async () => {
+    if (!draft.name.trim()) { alert("Product name is required."); return; }
     setSaving(true);
     try {
+      const payload = {
+        name: draft.name,
+        description: draft.description || null,
+        category: draft.category,
+        prakriti_tags: draft.prakriti_tags,
+        base_price: draft.base_price,
+        currency: draft.currency,
+        is_gmp_certified: draft.is_gmp_certified,
+        is_active: draft.is_active,
+        variants: draft.variants.map((v) => ({
+          label: v.label,
+          sku: v.sku || null,
+          price: v.price,
+          stock_qty: v.stock_qty,
+          weight_grams: v.weight_grams,
+        })),
+      };
       if (editId) {
-        await updateProduct(editId, editing);
+        await updateProduct(editId, payload);
       } else {
-        await createProduct(editing);
+        await createProduct(payload);
       }
       const p = await getProducts();
       setProducts(p);
@@ -99,29 +163,33 @@ export default function EcommercePage() {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
+    if (!confirm("Deactivate this product? It will be hidden from the public store.")) return;
     try {
       await deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setProducts((prev) => prev.map((p) => p.id === id ? { ...p, is_active: false } : p));
     } catch {
       alert("Failed to delete product.");
     }
   };
 
-  const handleOrderStatus = async (orderId: string, status: string) => {
-    try {
-      await updateOrderStatus(orderId, status);
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: status as Order["status"] } : o))
-      );
-    } catch {
-      alert("Failed to update order status.");
-    }
+  const upd = (partial: Partial<ProductDraft>) =>
+    setDraft((prev) => ({ ...prev, ...partial }));
+
+  const togglePrakriti = (tag: string) => {
+    const arr = draft.prakriti_tags;
+    upd({ prakriti_tags: arr.includes(tag) ? arr.filter((t) => t !== tag) : [...arr, tag] });
   };
 
-  const updateField = (partial: Partial<Product>) => {
-    setEditing((prev) => ({ ...prev, ...partial }));
-  };
+  const addVariant = () =>
+    upd({ variants: [...draft.variants, { ...EMPTY_VARIANT }] });
+
+  const removeVariant = (idx: number) =>
+    upd({ variants: draft.variants.filter((_, i) => i !== idx) });
+
+  const updVariant = (idx: number, partial: Partial<VariantDraft>) =>
+    upd({
+      variants: draft.variants.map((v, i) => i === idx ? { ...v, ...partial } : v),
+    });
 
   if (loading) {
     return (
@@ -133,22 +201,23 @@ export default function EcommercePage() {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="font-serif text-2xl text-slate">E-commerce</h1>
+        <h1 className="font-serif text-2xl text-slate">Herbal Products</h1>
         {settings && (
           <div className="flex items-center gap-3">
             <span className="text-sm font-sans text-muted">
-              Store is {settings.enabled ? "enabled" : "disabled"}
+              Store {settings.ecommerce_enabled ? "enabled" : "disabled"}
             </span>
             <button
               onClick={handleToggleEnabled}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.enabled ? "bg-forest" : "bg-cream2"
+                settings.ecommerce_enabled ? "bg-forest" : "bg-cream2"
               }`}
             >
               <span
                 className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  settings.enabled ? "translate-x-6" : "translate-x-1"
+                  settings.ecommerce_enabled ? "translate-x-6" : "translate-x-1"
                 }`}
               />
             </button>
@@ -158,26 +227,17 @@ export default function EcommercePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-cream rounded-md p-1 w-fit">
-        <button
-          onClick={() => setActiveTab("products")}
-          className={`px-4 py-2 rounded-md text-sm font-sans font-medium transition-colors ${
-            activeTab === "products"
-              ? "bg-white text-slate shadow-sm"
-              : "text-muted hover:text-slate"
-          }`}
-        >
-          Products ({products.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("orders")}
-          className={`px-4 py-2 rounded-md text-sm font-sans font-medium transition-colors ${
-            activeTab === "orders"
-              ? "bg-white text-slate shadow-sm"
-              : "text-muted hover:text-slate"
-          }`}
-        >
-          Orders ({orders.length})
-        </button>
+        {(["products", "orders"] as ActiveTab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-4 py-2 rounded-md text-sm font-sans font-medium capitalize transition-colors ${
+              activeTab === t ? "bg-white text-slate shadow-sm" : "text-muted hover:text-slate"
+            }`}
+          >
+            {t === "products" ? `Products (${products.length})` : `Orders (${orders.length})`}
+          </button>
+        ))}
       </div>
 
       {/* Products tab */}
@@ -198,27 +258,54 @@ export default function EcommercePage() {
                 <thead>
                   <tr className="border-b border-cream2 bg-cream/50">
                     <th className="text-left px-4 py-3 text-muted font-medium">Name</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium">Category</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium">Price</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium">Stock</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium hidden md:table-cell">Category</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium">Base Price</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium hidden md:table-cell">Variants</th>
+                    <th className="text-left px-4 py-3 text-muted font-medium hidden md:table-cell">GMP</th>
                     <th className="text-left px-4 py-3 text-muted font-medium">Status</th>
-                    <th className="text-left px-4 py-3 text-muted font-medium"></th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cream2">
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                        No products yet.
+                      <td colSpan={7} className="px-4 py-10 text-center text-muted">
+                        No products yet. Add your first herbal product.
                       </td>
                     </tr>
                   ) : (
                     products.map((p) => (
                       <tr key={p.id} className="hover:bg-cream/30 transition-colors">
-                        <td className="px-4 py-3 font-medium text-slate">{p.name}</td>
-                        <td className="px-4 py-3 text-muted">{p.category || "—"}</td>
-                        <td className="px-4 py-3 text-slate">${p.price.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-muted">{p.stock}</td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-slate">{p.name}</div>
+                          {p.prakriti_tags.length > 0 && (
+                            <div className="flex gap-1 mt-0.5 flex-wrap">
+                              {p.prakriti_tags.map((tag) => (
+                                <span key={tag} className="text-[10px] font-sans text-gold">{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-muted hidden md:table-cell capitalize">
+                          {p.category || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate">
+                          {p.base_price != null
+                            ? `${p.currency} ${p.base_price.toFixed(2)}`
+                            : p.variants.length > 0
+                            ? `from ${p.currency} ${Math.min(...p.variants.map((v) => v.price)).toFixed(2)}`
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-muted hidden md:table-cell">
+                          {p.variants.length > 0 ? `${p.variants.length} variants` : "—"}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          {p.is_gmp_certified ? (
+                            <span className="text-xs text-forest font-medium">GMP</span>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <span
                             className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -240,7 +327,7 @@ export default function EcommercePage() {
                               onClick={() => handleDeleteProduct(p.id)}
                               className="text-red-400 hover:text-red-600 text-xs font-medium transition-colors"
                             >
-                              Delete
+                              Hide
                             </button>
                           </div>
                         </td>
@@ -264,43 +351,35 @@ export default function EcommercePage() {
           ) : (
             orders.map((order) => (
               <div key={order.id} className="bg-white rounded-md border border-cream2 p-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-sans text-sm font-semibold text-slate">
-                        {order.patient_name}
-                      </h3>
-                      <span className="text-xs font-sans text-muted">
-                        #{order.id.slice(0, 8)}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <p className="text-sm font-sans font-medium text-slate">
+                        Order #{order.id.slice(-8).toUpperCase()}
+                      </p>
+                      <span
+                        className={`px-2.5 py-1 rounded-md text-xs font-sans font-medium capitalize ${
+                          order.status === "delivered"
+                            ? "bg-forest-lt text-forest"
+                            : order.status === "cancelled"
+                            ? "bg-red-50 text-red-500"
+                            : "bg-gold-lt text-gold"
+                        }`}
+                      >
+                        {order.status}
                       </span>
                     </div>
-                    <div className="space-y-0.5">
+                    <div className="space-y-1">
                       {order.items.map((item, i) => (
-                        <p key={i} className="text-sm font-sans text-muted">
-                          {item.quantity}x {item.product_name} — ${item.price.toFixed(2)}
+                        <p key={i} className="text-xs font-sans text-muted">
+                          {item.product_name} × {item.quantity} — {order.currency} {item.price.toFixed(2)}
                         </p>
                       ))}
                     </div>
-                    <div className="flex items-center gap-3 mt-2 text-xs font-sans text-muted">
-                      <span className="font-medium text-slate">
-                        Total: ${order.total.toFixed(2)}
-                      </span>
-                      <span>{new Date(order.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <select
-                      value={order.status}
-                      onChange={(e) => handleOrderStatus(order.id, e.target.value)}
-                      className="px-3 py-1.5 rounded-md border border-cream2 text-xs font-sans text-slate bg-white focus:outline-none focus:ring-2 focus:ring-forest/30"
-                    >
-                      {ORDER_STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s.charAt(0).toUpperCase() + s.slice(1)}
-                        </option>
-                      ))}
-                    </select>
+                    <p className="text-xs font-sans text-muted mt-2">
+                      Total: <span className="text-slate font-medium">{order.currency} {order.total_amount.toFixed(2)}</span>
+                      <span className="ml-3">{new Date(order.ordered_at).toLocaleDateString()}</span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -329,78 +408,219 @@ export default function EcommercePage() {
             </div>
 
             <div className="p-6 space-y-5">
+
+              {/* Name */}
               <div>
-                <label className="block text-sm font-sans text-slate mb-1">Product Name</label>
+                <label className="block text-sm font-sans text-slate mb-1">Product Name *</label>
                 <input
                   type="text"
-                  value={editing.name || ""}
-                  onChange={(e) => updateField({ name: e.target.value })}
+                  value={draft.name}
+                  onChange={(e) => upd({ name: e.target.value })}
+                  placeholder="e.g. Dhanwantharam Thailam"
                   className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                 />
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-sm font-sans text-slate mb-1">Description</label>
                 <textarea
                   rows={3}
-                  value={editing.description || ""}
-                  onChange={(e) => updateField({ description: e.target.value })}
+                  value={draft.description}
+                  onChange={(e) => upd({ description: e.target.value })}
+                  placeholder="Benefits, ingredients, usage..."
                   className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest resize-vertical"
                 />
               </div>
 
+              {/* Category */}
               <div>
                 <label className="block text-sm font-sans text-slate mb-1">Category</label>
-                <input
-                  type="text"
-                  value={editing.category || ""}
-                  onChange={(e) => updateField({ category: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
-                  placeholder="e.g. Oils, Powders, Tablets"
-                />
+                <select
+                  value={draft.category}
+                  onChange={(e) => upd({ category: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate bg-white focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c} className="capitalize">
+                      {c.charAt(0).toUpperCase() + c.slice(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
+              {/* Base price + currency */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-sans text-slate mb-1">Price ($)</label>
+                  <label className="block text-sm font-sans text-slate mb-1">Base Price</label>
                   <input
                     type="number"
                     min={0}
                     step={0.01}
-                    value={editing.price ?? 0}
-                    onChange={(e) => updateField({ price: parseFloat(e.target.value) || 0 })}
+                    value={draft.base_price ?? ""}
+                    onChange={(e) => upd({ base_price: parseFloat(e.target.value) || null })}
+                    placeholder="—"
                     className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-sans text-slate mb-1">Stock</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={editing.stock ?? 0}
-                    onChange={(e) => updateField({ stock: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
-                  />
+                  <label className="block text-sm font-sans text-slate mb-1">Currency</label>
+                  <select
+                    value={draft.currency}
+                    onChange={(e) => upd({ currency: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate bg-white focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
+                  >
+                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
                 </div>
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editing.is_active ?? true}
-                  onChange={(e) => updateField({ is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-cream2 text-forest focus:ring-forest"
-                />
-                <span className="text-sm font-sans text-slate">Active (visible in store)</span>
-              </label>
+              {/* Prakriti tags */}
+              <div>
+                <label className="block text-sm font-sans text-slate mb-2">Prakriti Tags</label>
+                <div className="flex gap-3">
+                  {PRAKRITI_TAGS.map((tag) => (
+                    <label
+                      key={tag}
+                      className={`flex items-center px-4 py-2 rounded-md text-sm font-sans cursor-pointer transition-colors ${
+                        draft.prakriti_tags.includes(tag)
+                          ? "bg-gold text-white"
+                          : "bg-cream text-slate hover:bg-cream2"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={draft.prakriti_tags.includes(tag)}
+                        onChange={() => togglePrakriti(tag)}
+                        className="sr-only"
+                      />
+                      {tag}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
+              {/* Toggles */}
+              <div className="space-y-3">
+                {[
+                  { field: "is_active" as const, label: "Active (visible in store)" },
+                  { field: "is_gmp_certified" as const, label: "GMP Certified" },
+                ].map(({ field, label }) => (
+                  <label key={field} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!draft[field]}
+                      onChange={(e) => upd({ [field]: e.target.checked })}
+                      className="w-4 h-4 rounded border-cream2 text-forest focus:ring-forest"
+                    />
+                    <span className="text-sm font-sans text-slate">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Variants */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-sans font-medium text-slate">
+                    Variants
+                    <span className="ml-1 text-xs font-normal text-muted">(sizes, quantities, etc.)</span>
+                  </label>
+                  <button
+                    onClick={addVariant}
+                    className="text-xs font-sans text-forest hover:text-gold font-medium transition-colors"
+                  >
+                    + Add Variant
+                  </button>
+                </div>
+
+                {draft.variants.length === 0 ? (
+                  <p className="text-xs font-sans text-muted italic">
+                    No variants — base price applies to the whole product.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {draft.variants.map((v, idx) => (
+                      <div key={idx} className="border border-cream2 rounded-md p-4 space-y-3 bg-cream/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-sans font-medium text-slate">Variant {idx + 1}</span>
+                          <button
+                            onClick={() => removeVariant(idx)}
+                            className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-sans text-muted mb-1">Label *</label>
+                            <input
+                              type="text"
+                              value={v.label}
+                              onChange={(e) => updVariant(idx, { label: e.target.value })}
+                              placeholder="e.g. 200ml, 500g"
+                              className="w-full px-3 py-2 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-sans text-muted mb-1">SKU</label>
+                            <input
+                              type="text"
+                              value={v.sku}
+                              onChange={(e) => updVariant(idx, { sku: e.target.value })}
+                              placeholder="optional"
+                              className="w-full px-3 py-2 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-sans text-muted mb-1">Price ({draft.currency})</label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              value={v.price}
+                              onChange={(e) => updVariant(idx, { price: parseFloat(e.target.value) || 0 })}
+                              className="w-full px-3 py-2 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-sans text-muted mb-1">Stock</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={v.stock_qty}
+                              onChange={(e) => updVariant(idx, { stock_qty: parseInt(e.target.value) || 0 })}
+                              className="w-full px-3 py-2 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-sans text-muted mb-1">Weight (grams, optional)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={v.weight_grams ?? ""}
+                            onChange={(e) => updVariant(idx, { weight_grams: parseInt(e.target.value) || null })}
+                            placeholder="—"
+                            className="w-full px-3 py-2 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Save */}
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleSaveProduct}
                   disabled={saving}
                   className="flex-1 py-2.5 rounded-xl bg-forest text-white text-sm font-sans font-medium hover:bg-forest2 transition-colors disabled:opacity-60"
                 >
-                  {saving ? "Saving..." : editId ? "Update Product" : "Add Product"}
+                  {saving ? "Saving…" : editId ? "Update Product" : "Add Product"}
                 </button>
                 <button
                   onClick={() => setPanelOpen(false)}

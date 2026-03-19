@@ -124,6 +124,10 @@ class ClinicDetail(BaseModel):
     photos: list[str]
     address: str | None
     transport_info: str | None
+    description: str | None
+    phone: str | None
+    email: str | None
+    website_url: str | None
     lat: float | None
     lng: float | None
     doctors: list[DoctorAtClinic]
@@ -419,6 +423,13 @@ async def get_clinic(
         for r in review_rows
     ]
 
+    # Get language-specific description
+    description = None
+    if lang == "ml":
+        description = clinic.description_ml
+    else:
+        description = clinic.description_en
+
     result = ClinicDetail(
         id=str(clinic.id),
         slug=clinic.slug,
@@ -438,6 +449,10 @@ async def get_clinic(
         photos=clinic.photos or [],
         address=clinic.address,
         transport_info=clinic.transport_info,
+        description=description,
+        phone=clinic.phone,
+        email=clinic.email,
+        website_url=clinic.website_url,
         lat=clinic.lat,
         lng=clinic.lng,
         doctors=doctors,

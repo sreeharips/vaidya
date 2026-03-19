@@ -107,7 +107,8 @@ export default async function DoctorsPage({ params: { lang }, searchParams }: Pa
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 48px 64px', display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+      <div style={{ padding: '32px 48px 64px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 32, alignItems: 'flex-start' }}>
 
         {/* Sidebar */}
         <aside style={{ width: 240, flexShrink: 0, position: 'sticky', top: 24 }}>
@@ -181,6 +182,7 @@ export default async function DoctorsPage({ params: { lang }, searchParams }: Pa
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   )

@@ -28,14 +28,19 @@ router = APIRouter()
 
 class BookingListItem(BaseModel):
     id: str
-    patient_display: str
-    treatment_name: str
+    patient_name: str
+    patient_email: str
+    clinic_id: str
+    doctor_id: str | None
     doctor_name: str | None
+    treatment_id: str | None
+    treatment_name: str
     start_date: str
     end_date: str
     status: str
-    total_amount: float | None
-    currency: str
+    total_amount: float
+    commission_amount: float
+    payment_ref: str | None
     created_at: str
 
 
@@ -49,11 +54,10 @@ class DeclineBody(BaseModel):
 
 
 class BookingStats(BaseModel):
-    total_this_month: int
+    bookings_this_month: int
     revenue_this_month: float
-    pending_count: int
-    avg_stay_days: float
-    top_treatment: str | None
+    pending_requests: int
+    active_doctors: int
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -81,16 +85,22 @@ async def list_bookings(
     for b in results:
         treatment = await db.get(Treatment, b.treatment_id) if b.treatment_id else None
         doctor = await db.get(Doctor, b.doctor_id) if b.doctor_id else None
+        patient_label = b.guest_email or f"Guest #{str(b.patient_pseudo_id)[:8]}"
         items.append(BookingListItem(
             id=str(b.id),
-            patient_display=b.guest_email or f"Guest #{str(b.patient_pseudo_id)[:8]}",
-            treatment_name=treatment.name if treatment else "—",
+            patient_name=patient_label,
+            patient_email=b.guest_email or "",
+            clinic_id=str(b.clinic_id),
+            doctor_id=str(b.doctor_id) if b.doctor_id else None,
             doctor_name=doctor.name if doctor else None,
+            treatment_id=str(b.treatment_id) if b.treatment_id else None,
+            treatment_name=treatment.name if treatment else "—",
             start_date=str(b.start_date),
             end_date=str(b.end_date),
             status=b.status,
-            total_amount=float(b.total_amount) if b.total_amount else None,
-            currency=b.currency,
+            total_amount=float(b.total_amount) if b.total_amount else 0.0,
+            commission_amount=float(b.commission_amount) if b.commission_amount else 0.0,
+            payment_ref=b.payment_ref,
             created_at=b.created_at.isoformat(),
         ))
 
@@ -193,30 +203,16 @@ async def get_booking_stats(
     )
     month_bookings = (await db.execute(month_q)).scalars().all()
 
-    total_this_month = len(month_bookings)
+    bookings_this_month = len(month_bookings)
     revenue = sum(float(b.total_amount or 0) for b in month_bookings if b.status in ("confirmed", "completed", "payment_received"))
+    pending_requests = sum(1 for b in month_bookings if b.status == "pending")
 
-    # Pending
-    pending_count = sum(1 for b in month_bookings if b.status == "pending")
-
-    # Average stay
-    stays = [(b.end_date - b.start_date).days for b in month_bookings if b.start_date and b.end_date]
-    avg_stay = sum(stays) / len(stays) if stays else 0
-
-    # Top treatment
-    treatment_counts: dict[str, int] = {}
-    for b in month_bookings:
-        if b.treatment_id:
-            t = await db.get(Treatment, b.treatment_id)
-            if t:
-                treatment_counts[t.name] = treatment_counts.get(t.name, 0) + 1
-
-    top = max(treatment_counts, key=treatment_counts.get) if treatment_counts else None
+    # Active doctors (doctors with at least one active booking this month)
+    active_doctor_ids = {b.doctor_id for b in month_bookings if b.doctor_id and b.status in ("pending", "confirmed")}
 
     return BookingStats(
-        total_this_month=total_this_month,
+        bookings_this_month=bookings_this_month,
         revenue_this_month=round(revenue, 2),
-        pending_count=pending_count,
-        avg_stay_days=round(avg_stay, 1),
-        top_treatment=top,
+        pending_requests=pending_requests,
+        active_doctors=len(active_doctor_ids),
     )

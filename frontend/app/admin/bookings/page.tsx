@@ -163,10 +163,8 @@ export default function BookingsPage() {
                     <span className="text-gold">
                       Commission: ${booking.commission_amount.toLocaleString()}
                     </span>
-                    {booking.decline_reason && (
-                      <span className="text-red-500">
-                        Declined: {booking.decline_reason}
-                      </span>
+                    {booking.status === "cancelled" && (
+                      <span className="text-red-500">Declined</span>
                     )}
                   </div>
                   <p className="text-xs font-sans text-muted mt-1">

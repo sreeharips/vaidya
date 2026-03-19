@@ -96,6 +96,10 @@ interface ClinicDetail {
   photos: string[]
   address: string | null
   transport_info: string | null
+  description: string | null
+  phone: string | null
+  email: string | null
+  website_url: string | null
   lat: number | null
   lng: number | null
   doctors: Doctor[]
@@ -281,6 +285,18 @@ export default async function ClinicPage({
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px 80px' }}>
+
+        {/* ── About / Description ──────────────────────────────────────── */}
+        {clinic.description && (
+          <section style={{ marginBottom: 56 }}>
+            <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 16 }}>
+              About {clinic.name}
+            </h2>
+            <p style={{ fontSize: 15, lineHeight: 1.8, color: 'var(--slate)', whiteSpace: 'pre-wrap' }}>
+              {clinic.description}
+            </p>
+          </section>
+        )}
 
         {/* ── Doctors ─────────────────────────────────────────────────────── */}
         {clinic.doctors.length > 0 && (
@@ -531,6 +547,41 @@ export default async function ClinicPage({
                 <div style={{ background: 'var(--forest-lt)', border: '1px solid rgba(30,61,47,0.12)', borderRadius: 'var(--r-md)', padding: 18 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--forest2)', marginBottom: 6 }}>Accommodation</div>
                   <div style={{ fontSize: 14, color: 'var(--forest)', lineHeight: 1.6 }}>On-site accommodation available for retreat guests.</div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Contact Information ──────────────────────────────────────── */}
+        {(clinic.phone || clinic.email || clinic.website_url) && (
+          <section style={{ marginBottom: 56 }}>
+            <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 20 }}>
+              Get in Touch
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+              {clinic.phone && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Phone</div>
+                  <a href={`tel:${clinic.phone}`} style={{ fontSize: 14, color: 'var(--forest)', textDecoration: 'none', fontWeight: 500 }}>
+                    {clinic.phone}
+                  </a>
+                </div>
+              )}
+              {clinic.email && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Email</div>
+                  <a href={`mailto:${clinic.email}`} style={{ fontSize: 14, color: 'var(--forest)', textDecoration: 'none', fontWeight: 500 }}>
+                    {clinic.email}
+                  </a>
+                </div>
+              )}
+              {clinic.website_url && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Website</div>
+                  <a href={clinic.website_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 14, color: 'var(--forest)', textDecoration: 'none', fontWeight: 500 }}>
+                    Visit website →
+                  </a>
                 </div>
               )}
             </div>

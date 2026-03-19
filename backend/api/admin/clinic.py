@@ -14,7 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.admin_auth import get_admin_clinic
 from db.database import get_db
-from db.models import ClinicFeatureStore
+from sqlalchemy import select
+
+from db.models import ClinicFeatureStore, Doctor, Review, Treatment
 
 router = APIRouter()
 
@@ -53,6 +55,7 @@ class ClinicProfileOut(BaseModel):
     outcome_enrolled: bool
     operating_hours: dict | None
     social_links: dict | None
+    transport_info: str | None
     shipping_policy: str | None
     return_policy: str | None
     rating: float | None
@@ -65,6 +68,7 @@ class ClinicUpdate(BaseModel):
     description_en: str | None = None
     description_ml: str | None = None
     description_ar: str | None = None
+    address: str | None = None
     address_line1: str | None = None
     address_line2: str | None = None
     district: str | None = None
@@ -84,6 +88,7 @@ class ClinicUpdate(BaseModel):
     accommodation_available: bool | None = None
     pickup_available: bool | None = None
     pickup_locations: list[str] | None = None
+    transport_info: str | None = None
     ecommerce_enabled: bool | None = None
     outcome_enrolled: bool | None = None
     operating_hours: dict | None = None
@@ -123,6 +128,7 @@ def _clinic_to_out(c: ClinicFeatureStore) -> ClinicProfileOut:
         accommodation_available=c.accommodation_available,
         pickup_available=c.pickup_available,
         pickup_locations=c.pickup_locations or [],
+        transport_info=c.transport_info,
         ecommerce_enabled=c.ecommerce_enabled,
         outcome_enrolled=c.outcome_enrolled,
         operating_hours=c.operating_hours,
@@ -157,6 +163,41 @@ async def update_clinic(
     await db.commit()
     await db.refresh(clinic)
     return _clinic_to_out(clinic)
+
+
+@router.get("/clinic/reviews")
+async def get_clinic_reviews(
+    clinic: ClinicFeatureStore = Depends(get_admin_clinic),
+    db: AsyncSession = Depends(get_db),
+    limit: int = 50,
+):
+    """
+    Return reviews for this clinic — admin read-only view.
+    Includes unverified reviews (staff can see all, unlike the public page).
+    """
+    rows = (await db.execute(
+        select(Review)
+        .where(Review.clinic_id == clinic.id)
+        .order_by(Review.created_at.desc())
+        .limit(limit)
+    )).scalars().all()
+
+    return {
+        "total": len(rows),
+        "avg_rating": round(sum(r.rating for r in rows) / len(rows), 1) if rows else None,
+        "reviews": [
+            {
+                "id": str(r.id),
+                "rating": r.rating,
+                "review_text": r.review_text,
+                "reviewer_location": r.reviewer_location,
+                "treatment_slug": r.treatment_slug,
+                "verified": r.verified,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in rows
+        ],
+    }
 
 
 @router.delete("/clinic")

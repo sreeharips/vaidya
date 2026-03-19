@@ -46,7 +46,7 @@ const EMPTY_DOCTOR: Partial<Doctor> = {
   prakriti_affinities: [],
   languages: [],
   gender: "male",
-  consultation_fee: 0,
+  consultation_fee_usd: 0,
   is_active: true,
 };
 
@@ -445,9 +445,9 @@ export default function DoctorsPage() {
                   type="number"
                   min={0}
                   step={0.01}
-                  value={editing.consultation_fee ?? 0}
+                  value={editing.consultation_fee_usd ?? 0}
                   onChange={(e) =>
-                    updateField({ consultation_fee: parseFloat(e.target.value) || 0 })
+                    updateField({ consultation_fee_usd: parseFloat(e.target.value) || 0 })
                   }
                   className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest"
                 />
