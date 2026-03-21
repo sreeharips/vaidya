@@ -22,7 +22,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
-from db.models import Booking, ClinicFeatureStore, Doctor, PatientProfile, Treatment
+from db.models import Booking, ClinicFeatureStore, Doctor, DoctorTreatment, PatientProfile, Treatment
 from db.outcomes import append_outcome
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,7 @@ class BookingRequest(BaseModel):
     treatment_id: str
     start_date: date
     end_date: date
+    guest_email: str | None = None
     patient_pseudo_id: str | None = Field(default=None, max_length=64)
     lang: str = Field(default="en", pattern="^(en|ar|de|fr|ml|hi)$")
 
@@ -161,13 +162,12 @@ async def request_booking(
     except ValueError:
         raise HTTPException(status_code=422, detail="clinic_id, doctor_id, and treatment_id must be valid UUIDs.")
 
-    # Treatment must belong to exactly this clinic AND this doctor
+    # Verify treatment belongs to this clinic
     treatment = (
         await db.execute(
             select(Treatment).where(
                 Treatment.id == treatment_uuid,
                 Treatment.clinic_id == clinic_uuid,
-                Treatment.doctor_id == doctor_uuid,
                 Treatment.is_active.is_(True),
             )
         )
@@ -176,17 +176,38 @@ async def request_booking(
     if treatment is None:
         raise HTTPException(
             status_code=422,
-            detail=(
-                "Treatment not found, or it does not belong to the specified clinic and doctor. "
-                "Verify treatment_id, clinic_id, and doctor_id."
-            ),
+            detail="Treatment not found or does not belong to this clinic.",
         )
 
     clinic = (await db.execute(select(ClinicFeatureStore).where(ClinicFeatureStore.id == clinic_uuid))).scalar_one_or_none()
-    doctor = (await db.execute(select(Doctor).where(Doctor.id == doctor_uuid, Doctor.is_active.is_(True)))).scalar_one_or_none()
+    doctor = (await db.execute(select(Doctor).where(Doctor.id == doctor_uuid, Doctor.clinic_id == clinic_uuid, Doctor.is_active.is_(True)))).scalar_one_or_none()
 
     if clinic is None or doctor is None:
         raise HTTPException(status_code=422, detail="Clinic or doctor not found.")
+
+    # If the treatment has doctor links, the chosen doctor must be one of them.
+    # If no links exist (ungated treatment), any active clinic doctor is accepted.
+    dt_link = (
+        await db.execute(
+            select(DoctorTreatment).where(DoctorTreatment.treatment_id == treatment_uuid).limit(1)
+        )
+    ).scalar_one_or_none()
+
+    if dt_link is not None:
+        # Treatment has specific doctors — validate the chosen doctor is linked
+        allowed = (
+            await db.execute(
+                select(DoctorTreatment).where(
+                    DoctorTreatment.treatment_id == treatment_uuid,
+                    DoctorTreatment.doctor_id == doctor_uuid,
+                )
+            )
+        ).scalar_one_or_none()
+        if allowed is None:
+            raise HTTPException(
+                status_code=422,
+                detail="The selected doctor does not deliver this treatment.",
+            )
 
     # ── Financials ────────────────────────────────────────────────────────────
     nights = (body.end_date - body.start_date).days
@@ -216,6 +237,7 @@ async def request_booking(
         clinic_id=clinic_uuid,
         doctor_id=doctor_uuid,
         treatment_id=treatment_uuid,
+        guest_email=body.guest_email,
         start_date=body.start_date,
         end_date=body.end_date,
         status="pending",
