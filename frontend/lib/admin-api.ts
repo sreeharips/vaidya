@@ -230,7 +230,7 @@ export function createTreatment(data: Partial<Treatment>) {
 
 export function updateTreatment(id: string, data: Partial<Treatment>) {
   return adminFetch<Treatment>(`/api/admin/treatments/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }
@@ -367,6 +367,30 @@ export function declineBooking(id: string, reason: string) {
 
 export function completeBooking(id: string) {
   return adminFetch<Booking>(`/api/admin/bookings/${id}/complete`, { method: "PATCH" });
+}
+
+export function createAdminBooking(data: AdminBookingCreate) {
+  return adminFetch<{
+    id: string;
+    status: string;
+    treatment_name: string;
+    doctor_name: string | null;
+    guest_name: string;
+    start_date: string;
+    end_date: string;
+    nights: number;
+    total_amount: number;
+    commission_amount: number;
+    currency: string;
+    availability_warnings: Array<{ type: string; date: string; reason: string }>;
+  }>("/api/admin/bookings", { method: "POST", body: JSON.stringify(data) });
+}
+
+export function assignDoctor(bookingId: string, doctorId: string) {
+  return adminFetch<{ id: string; doctor_id: string; doctor_name: string }>(
+    `/api/admin/bookings/${bookingId}/assign-doctor`,
+    { method: "PATCH", body: JSON.stringify({ doctor_id: doctorId }) },
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -657,11 +681,26 @@ export interface Booking {
   treatment_name: string;
   start_date: string;
   end_date: string;
+  nights: number;
   status: string;
   total_amount: number;
   commission_amount: number;
+  currency: string;
   payment_ref: string | null;
   created_at: string;
+}
+
+export interface AdminBookingCreate {
+  treatment_id: string;
+  doctor_id?: string | null;
+  start_date: string;
+  end_date: string;
+  guest_name: string;
+  guest_email?: string | null;
+  guest_phone?: string | null;
+  lang?: string;
+  notes?: string | null;
+  skip_availability_check?: boolean;
 }
 
 export interface BookingStats {

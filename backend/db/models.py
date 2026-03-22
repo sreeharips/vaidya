@@ -801,7 +801,7 @@ class Booking(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_pseudo_id: Mapped[str] = mapped_column(String(64), ForeignKey("patient_profiles.pseudo_id"), index=True)
     clinic_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True)
-    doctor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("doctors.id"), index=True)
+    doctor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("doctors.id"), nullable=True, index=True)
     treatment_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("treatments.id"), index=True)
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("guest_sessions.id")
@@ -822,7 +822,7 @@ class Booking(Base):
 
     patient: Mapped["PatientProfile"] = relationship(back_populates="bookings", foreign_keys=[patient_pseudo_id])
     clinic: Mapped["ClinicFeatureStore"] = relationship()
-    doctor: Mapped["Doctor"] = relationship()
+    doctor: Mapped["Doctor | None"] = relationship()
     treatment: Mapped["Treatment"] = relationship()
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
 

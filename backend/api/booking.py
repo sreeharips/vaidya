@@ -42,7 +42,7 @@ _COMMISSION_DOMESTIC = 0.07        # 7 %
 
 class BookingRequest(BaseModel):
     clinic_id: str
-    doctor_id: str
+    doctor_id: str | None = None
     treatment_id: str
     start_date: date
     end_date: date
@@ -68,7 +68,7 @@ class BookingRequestResponse(BaseModel):
     currency: str
     nights: int
     clinic_name: str
-    doctor_name: str
+    doctor_name: str | None
     treatment_name: str
     start_date: date
     end_date: date
@@ -91,7 +91,7 @@ class BookingDetail(BaseModel):
     patient_pseudo_id: str
     clinic_id: str
     clinic_name: str | None
-    doctor_id: str
+    doctor_id: str | None
     doctor_name: str | None
     treatment_id: str
     treatment_name: str | None
@@ -116,7 +116,7 @@ def _commission_rate(lang: str) -> float:
 
 
 async def _fetch_booking_with_relations(booking_id: str, db: AsyncSession):
-    """Return (Booking, ClinicFeatureStore, Doctor, Treatment) or raise 404."""
+    """Return (Booking, ClinicFeatureStore, Doctor | None, Treatment) or raise 404."""
     try:
         bid = uuid.UUID(booking_id)
     except ValueError:
@@ -126,7 +126,7 @@ async def _fetch_booking_with_relations(booking_id: str, db: AsyncSession):
         await db.execute(
             select(Booking, ClinicFeatureStore, Doctor, Treatment)
             .join(ClinicFeatureStore, Booking.clinic_id == ClinicFeatureStore.id)
-            .join(Doctor, Booking.doctor_id == Doctor.id)
+            .outerjoin(Doctor, Booking.doctor_id == Doctor.id)
             .join(Treatment, Booking.treatment_id == Treatment.id)
             .where(Booking.id == bid)
         )
@@ -157,7 +157,7 @@ async def request_booking(
     """
     try:
         clinic_uuid = uuid.UUID(body.clinic_id)
-        doctor_uuid = uuid.UUID(body.doctor_id)
+        doctor_uuid = uuid.UUID(body.doctor_id) if body.doctor_id else None
         treatment_uuid = uuid.UUID(body.treatment_id)
     except ValueError:
         raise HTTPException(status_code=422, detail="clinic_id, doctor_id, and treatment_id must be valid UUIDs.")
@@ -180,34 +180,36 @@ async def request_booking(
         )
 
     clinic = (await db.execute(select(ClinicFeatureStore).where(ClinicFeatureStore.id == clinic_uuid))).scalar_one_or_none()
-    doctor = (await db.execute(select(Doctor).where(Doctor.id == doctor_uuid, Doctor.clinic_id == clinic_uuid, Doctor.is_active.is_(True)))).scalar_one_or_none()
+    if clinic is None:
+        raise HTTPException(status_code=422, detail="Clinic not found.")
 
-    if clinic is None or doctor is None:
-        raise HTTPException(status_code=422, detail="Clinic or doctor not found.")
+    doctor = None
+    if doctor_uuid:
+        doctor = (await db.execute(select(Doctor).where(Doctor.id == doctor_uuid, Doctor.clinic_id == clinic_uuid, Doctor.is_active.is_(True)))).scalar_one_or_none()
+        if doctor is None:
+            raise HTTPException(status_code=422, detail="Doctor not found or not active at this clinic.")
 
-    # If the treatment has doctor links, the chosen doctor must be one of them.
-    # If no links exist (ungated treatment), any active clinic doctor is accepted.
-    dt_link = (
-        await db.execute(
-            select(DoctorTreatment).where(DoctorTreatment.treatment_id == treatment_uuid).limit(1)
-        )
-    ).scalar_one_or_none()
-
-    if dt_link is not None:
-        # Treatment has specific doctors — validate the chosen doctor is linked
-        allowed = (
+        # If the treatment has doctor links, the chosen doctor must be one of them.
+        dt_link = (
             await db.execute(
-                select(DoctorTreatment).where(
-                    DoctorTreatment.treatment_id == treatment_uuid,
-                    DoctorTreatment.doctor_id == doctor_uuid,
-                )
+                select(DoctorTreatment).where(DoctorTreatment.treatment_id == treatment_uuid).limit(1)
             )
         ).scalar_one_or_none()
-        if allowed is None:
-            raise HTTPException(
-                status_code=422,
-                detail="The selected doctor does not deliver this treatment.",
-            )
+
+        if dt_link is not None:
+            allowed = (
+                await db.execute(
+                    select(DoctorTreatment).where(
+                        DoctorTreatment.treatment_id == treatment_uuid,
+                        DoctorTreatment.doctor_id == doctor_uuid,
+                    )
+                )
+            ).scalar_one_or_none()
+            if allowed is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail="The selected doctor does not deliver this treatment.",
+                )
 
     # ── Financials ────────────────────────────────────────────────────────────
     nights = (body.end_date - body.start_date).days
@@ -250,9 +252,10 @@ async def request_booking(
     db.add(booking)
     await db.flush()
 
+    doctor_name = doctor.name if doctor else None
     logger.info(
-        "Booking created: id=%s patient=%s clinic=%s treatment=%s total=%.2f USD nights=%d",
-        booking.id, pseudo_id, clinic.name, treatment.name, total_amount, nights,
+        "Booking created: id=%s patient=%s clinic=%s doctor=%s treatment=%s total=%.2f USD nights=%d",
+        booking.id, pseudo_id, clinic.name, doctor_name, treatment.name, total_amount, nights,
     )
 
     return BookingRequestResponse(
@@ -263,7 +266,7 @@ async def request_booking(
         currency="USD",
         nights=nights,
         clinic_name=clinic.name,
-        doctor_name=doctor.name,
+        doctor_name=doctor_name,
         treatment_name=treatment.name,
         start_date=body.start_date,
         end_date=body.end_date,
@@ -486,8 +489,8 @@ async def get_booking(
         patient_pseudo_id=booking.patient_pseudo_id,
         clinic_id=str(booking.clinic_id),
         clinic_name=clinic.name,
-        doctor_id=str(booking.doctor_id),
-        doctor_name=doctor.name,
+        doctor_id=str(booking.doctor_id) if booking.doctor_id else None,
+        doctor_name=doctor.name if doctor else None,
         treatment_id=str(booking.treatment_id),
         treatment_name=treatment.name,
         start_date=booking.start_date,
