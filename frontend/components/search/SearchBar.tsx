@@ -82,7 +82,6 @@ export default function SearchBar({
           border: '1px solid var(--border2)',
           borderRadius: 'var(--r-xl)',
           padding: '8px 8px 8px 16px',
-          maxWidth: '460px',
           width: '100%',
           transition: 'border-color var(--transition)',
         }}

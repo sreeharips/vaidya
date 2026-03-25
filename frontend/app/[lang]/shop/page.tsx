@@ -66,8 +66,8 @@ export default async function ShopPage({ params: { lang }, searchParams }: PageP
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
 
       {/* Hero header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid var(--border)', padding: '40px 48px 36px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 48px 36px' }}>
           <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: 8 }}>
             Direct from the vaidya
           </p>
@@ -90,10 +90,12 @@ export default async function ShopPage({ params: { lang }, searchParams }: PageP
           </div>
 
           {/* Search + Filter bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
-            <SearchBar variant="compact" type="product" placeholder="Search oils, capsules, powders…" />
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
+              <SearchBar variant="compact" type="product" placeholder="Search oils, capsules, powders…" />
+            </div>
+            <ShopFilterBar lang={lang} category={category} prakriti={prakriti} gmpOnly={gmpOnly} />
           </div>
-          <ShopFilterBar lang={lang} category={category} prakriti={prakriti} gmpOnly={gmpOnly} />
         </div>
       </div>
 
