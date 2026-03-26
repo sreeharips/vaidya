@@ -1,25 +1,25 @@
 {
   "home": {
     "meta": {
-      "title": "Vaidya — Ayurveda Authentique au Kerala",
-      "description": "Trouvez des médecins ayurvédiques certifiés et des programmes de traitement authentiques au Kerala, Inde.",
-      "ogTitle": "Vaidya — Trouvez votre Vaidya. Guérissez à la source.",
-      "ogDescription": "Médecins ayurvédiques certifiés et programmes de traitement authentiques — adaptés à votre constitution unique."
+      "title": "AyuRetreats — Retraites Ayurvéda Authentiques au Kerala",
+      "description": "Découvrez des retraites Ayurvéda certifiées et des programmes de traitement authentiques au Kerala, Inde. Réservez votre retraite de guérison en ligne.",
+      "ogTitle": "AyuRetreats — Trouvez votre Retraite. Guérissez à la source.",
+      "ogDescription": "Retraites Ayurvéda certifiées et programmes de traitement authentiques au Kerala — vérifiés, fiables et adaptés à vos besoins."
     },
     "nav": {
-      "findDoctor": "Trouver un médecin",
+      "findDoctor": "Trouver une retraite",
       "treatments": "Traitements",
       "aboutAyurveda": "À propos de l'Ayurveda",
       "forClinics": "Pour les cliniques",
-      "cta": "Test Prakriti"
+      "cta": "Parcourir les retraites"
     },
     "hero": {
       "eyebrow": "Ayurveda Authentique · Kerala · Fondé en 2026",
       "h1Part1": "Trouvez votre",
-      "h1Italic": "vaidya.",
+      "h1Italic": "retraite.",
       "h1Part2": "Guérissez à la source.",
-      "subtitle": "Médecins ayurvédiques certifiés et programmes de traitement authentiques — adaptés à votre constitution unique.",
-      "searchPlaceholder": "Rechercher par médecin, hôpital ou condition…",
+      "subtitle": "Ayurveda certifié au Kerala — recherchez cliniques, traitements ou médecins.",
+      "searchPlaceholder": "Rechercher par retraite, traitement ou condition…",
       "searchButton": "Rechercher"
     },
     "quickTags": {
@@ -41,10 +41,10 @@
     },
     "trust": {
       "items": [
-        { "number": "50+",  "label": "Cliniques certifiées" },
+        { "number": "50+",  "label": "Retraites certifiées" },
         { "number": "120+", "label": "Médecins vérifiés" },
         { "number": "6",    "label": "Langues supportées" },
-        { "number": "15",   "label": "Cliniques certifiées Tier 2" }
+        { "number": "15",   "label": "Retraites certifiées Tier 2" }
       ]
     }
   }

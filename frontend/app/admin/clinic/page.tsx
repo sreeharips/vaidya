@@ -700,8 +700,8 @@ export default function ClinicProfilePage() {
             ))}
           </div>
           <p className="text-xs text-muted mt-4">
-            Tier upgrades and certification changes are managed by Vaidya.{" "}
-            <a href="mailto:partners@vaidya.health" className="text-forest underline">Contact partners@vaidya.health</a>
+            Tier upgrades and certification changes are managed by AyuRetreats.{" "}
+            <a href="mailto:partners@ayuretreats.com" className="text-forest underline">Contact partners@ayuretreats.com</a>
           </p>
         </Section>
 

@@ -146,6 +146,9 @@ export default function NavBar() {
   const router = useRouter()
   const { user, isAuthenticated, logout } = useAuth()
 
+  const isHome = path === `/${lang}` || path === `/${lang}/`
+  const dark = isHome
+
   const links = [
     { href: `/${lang}/clinics`,              label: 'Clinics'  },
     { href: `/${lang}/clinics?tab=packages`, label: 'Packages' },
@@ -166,10 +169,10 @@ export default function NavBar() {
         alignItems:     'center',
         justifyContent: 'space-between',
         padding:        '0 48px',
-        height:         '68px',
-        background:     'rgba(247,243,237,0.92)',
-        backdropFilter: 'blur(12px)',
-        borderBottom:   '1px solid var(--border)',
+        height:         '56px',
+        background:     dark ? '#0f2218' : 'rgba(247,243,237,0.92)',
+        backdropFilter: dark ? 'none' : 'blur(12px)',
+        borderBottom:   dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid var(--border)',
         gap:            '16px',
       }}
     >
@@ -178,18 +181,18 @@ export default function NavBar() {
         href={`/${lang}`}
         style={{
           fontFamily:    'var(--serif)',
-          fontSize:      '26px',
+          fontSize:      '22px',
           fontWeight:    600,
-          color:         'var(--forest)',
+          color:         dark ? '#FDFAF6' : 'var(--forest)',
           letterSpacing: '-0.02em',
           textDecoration:'none',
           display:       'flex',
           alignItems:    'center',
-          gap:           '8px',
+          gap:           '6px',
           flexShrink:    0,
         }}
       >
-        <span style={{ color: 'var(--gold)' }}>✦</span> Vaidya
+        <span style={{ color: 'var(--gold)' }}>✦</span> AyuRetreats
       </Link>
 
       {/* Nav links */}
@@ -203,9 +206,12 @@ export default function NavBar() {
               className="nav-link"
               style={{
                 fontWeight:    active ? 500 : 400,
-                color:         active ? 'var(--forest)' : 'var(--muted)',
+                color:         dark
+                  ? (active ? '#FDFAF6' : 'rgba(253,250,246,0.5)')
+                  : (active ? 'var(--forest)' : 'var(--muted)'),
                 borderBottom:  active ? '2px solid var(--gold)' : '2px solid transparent',
                 paddingBottom: '4px',
+                fontSize:      '13px',
               }}
             >
               {label}
@@ -214,10 +220,8 @@ export default function NavBar() {
         })}
       </div>
 
-      {/* Right side: Auth */}
+      {/* Auth */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-
-        {/* Auth: guest → Sign in button | authenticated → avatar dropdown */}
         {isAuthenticated && user ? (
           <UserMenu user={user} lang={lang} onLogout={handleLogout} />
         ) : (
@@ -227,23 +231,22 @@ export default function NavBar() {
                 fontFamily:    'var(--sans)',
                 fontSize:      '13px',
                 fontWeight:    500,
-                padding:       '8px 18px',
+                padding:       '7px 16px',
                 borderRadius:  'var(--r-xl)',
-                border:        '1.5px solid var(--border2)',
+                border:        dark ? '1px solid rgba(253,250,246,0.2)' : '1.5px solid var(--border2)',
                 background:    'transparent',
-                color:         'var(--slate)',
+                color:         dark ? 'rgba(253,250,246,0.7)' : 'var(--slate)',
                 cursor:        'pointer',
-                letterSpacing: '0.01em',
                 transition:    'all var(--transition)',
                 whiteSpace:    'nowrap',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--forest)'
-                e.currentTarget.style.color = 'var(--forest)'
+                e.currentTarget.style.borderColor = dark ? 'rgba(253,250,246,0.5)' : 'var(--forest)'
+                e.currentTarget.style.color = dark ? '#FDFAF6' : 'var(--forest)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border2)'
-                e.currentTarget.style.color = 'var(--slate)'
+                e.currentTarget.style.borderColor = dark ? 'rgba(253,250,246,0.2)' : 'var(--border2)'
+                e.currentTarget.style.color = dark ? 'rgba(253,250,246,0.7)' : 'var(--slate)'
               }}
             >
               Sign in

@@ -22,8 +22,9 @@ const config: Config = {
         muted:      '#8A7F76',
       },
       fontFamily: {
-        serif: ['Cormorant Garamond', 'Georgia', 'serif'],
-        sans:  ['DM Sans', 'system-ui', 'sans-serif'],
+        /* Match next/font variables from app/layout.tsx */
+        serif: ['var(--font-cormorant)', 'Cormorant Garamond', 'Georgia', 'serif'],
+        sans:  ['var(--font-dm-sans)', 'DM Sans', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         sm: '6px',

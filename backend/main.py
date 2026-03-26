@@ -77,7 +77,7 @@ class GuestSessionMiddleware(BaseHTTPMiddleware):
 
 
 app = FastAPI(
-    title="Vaidya API",
+    title="AyuRetreats API",
     description="Clinic-based Ayurvedic wellness retreat booking platform",
     version="0.2.0",
 )
@@ -105,9 +105,9 @@ app.include_router(search_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "vaidya-backend"}
+    return {"status": "ok", "service": "ayuretreats-backend"}
 
 
 @app.get("/")
 async def root():
-    return {"message": "Vaidya API", "docs": "/docs"}
+    return {"message": "AyuRetreats API", "docs": "/docs"}

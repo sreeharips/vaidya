@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="font-serif text-4xl text-forest">Vaidya</h1>
+          <h1 className="font-serif text-4xl text-forest">AyuRetreats</h1>
           <p className="text-muted text-sm font-sans mt-1">Admin Portal</p>
         </div>
 

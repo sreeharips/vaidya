@@ -1,25 +1,25 @@
 {
   "home": {
     "meta": {
-      "title": "Vaidya — Authentic Ayurveda Retreats in Kerala",
-      "description": "Find credentialed Ayurvedic doctors and authentic treatment programmes in Kerala, India. AI-matched to your Prakriti constitution. Book online.",
-      "ogTitle": "Vaidya — Find Your Vaidya. Heal at the Source.",
-      "ogDescription": "Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution. Kerala's trusted Ayurveda marketplace."
+      "title": "AyuRetreats — Authentic Ayurveda Wellness Retreats in Kerala",
+      "description": "Find credentialed Ayurvedic wellness retreats and authentic treatment programmes in Kerala, India. Book your healing retreat online.",
+      "ogTitle": "AyuRetreats — Find Your Retreat. Heal at the Source.",
+      "ogDescription": "Credentialed Ayurvedic wellness retreats and authentic treatment programmes in Kerala — verified, trusted, and matched to your needs."
     },
     "nav": {
-      "findDoctor": "Find a Doctor",
+      "findDoctor": "Find a Retreat",
       "treatments": "Treatments",
       "aboutAyurveda": "About Ayurveda",
       "forClinics": "For Clinics",
-      "cta": "Take Prakriti Assessment"
+      "cta": "Browse Retreats"
     },
     "hero": {
       "eyebrow": "Authentic Ayurveda · Kerala · Est. 2026",
       "h1Part1": "Find your",
-      "h1Italic": "vaidya.",
+      "h1Italic": "retreat.",
       "h1Part2": "Heal at the source.",
-      "subtitle": "Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution.",
-      "searchPlaceholder": "Search by doctor, hospital, or condition…",
+      "subtitle": "Credentialed Ayurveda in Kerala — search clinics, treatments, or doctors.",
+      "searchPlaceholder": "Search by retreat, treatment, or condition…",
       "searchButton": "Search"
     },
     "quickTags": {
@@ -41,10 +41,10 @@
     },
     "trust": {
       "items": [
-        { "number": "50+",  "label": "Credentialed clinics" },
+        { "number": "50+",  "label": "Credentialed retreats" },
         { "number": "120+", "label": "Verified doctors" },
         { "number": "6",    "label": "Languages supported" },
-        { "number": "15",   "label": "Tier 2 certified clinics" }
+        { "number": "15",   "label": "Tier 2 certified retreats" }
       ]
     }
   }

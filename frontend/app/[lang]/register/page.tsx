@@ -23,7 +23,7 @@ export default function RegisterPage({ params }: { params: { lang: string } }) {
             marginBottom: '12px',
           }}
         >
-          ✦ Vaidya
+          ✦ AyuRetreats
         </div>
         <h1
           style={{
@@ -38,7 +38,7 @@ export default function RegisterPage({ params }: { params: { lang: string } }) {
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '28px', lineHeight: 1.6 }}>
           Account registration will be available shortly.
-          In the meantime, you can browse clinics, take the Prakriti assessment, and book as a guest.
+          In the meantime, you can browse retreats and book as a guest.
         </p>
         <Link
           href={`/${lang}/login`}

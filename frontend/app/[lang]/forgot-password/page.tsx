@@ -23,7 +23,7 @@ export default function ForgotPasswordPage({ params }: { params: { lang: string 
             marginBottom: '12px',
           }}
         >
-          ✦ Vaidya
+          ✦ AyuRetreats
         </div>
         <h1
           style={{

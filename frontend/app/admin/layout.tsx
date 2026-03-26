@@ -139,7 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo */}
         <div className="px-6 py-5 border-b border-white/10">
           <div className="flex items-baseline gap-2">
-            <span className="font-serif text-2xl text-gold">Vaidya</span>
+            <span className="font-serif text-2xl text-gold">AyuRetreats</span>
             <span className="text-xs font-sans uppercase tracking-widest text-white/60">
               Admin
             </span>
@@ -210,7 +210,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-serif text-lg text-forest">Vaidya</span>
+          <span className="font-serif text-lg text-forest">AyuRetreats</span>
           <div className="w-10" />
         </header>
 

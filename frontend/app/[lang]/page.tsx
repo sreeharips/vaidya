@@ -53,79 +53,74 @@ export async function generateMetadata({ params: { lang } }: { params: { lang: s
     description: t('description'),
     openGraph: {
       title: t('ogTitle'), description: t('ogDescription'),
-      url: `https://vaidya.health/${lang}`, siteName: 'Vaidya', locale: lang, type: 'website',
-      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Vaidya — Authentic Ayurveda' }],
+      url: `https://ayuretreats.com/${lang}`, siteName: 'AyuRetreats', locale: lang, type: 'website',
+      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'AyuRetreats — Authentic Ayurveda Wellness Retreats' }],
     },
     twitter: { card: 'summary_large_image', title: t('ogTitle'), description: t('ogDescription'), images: ['/og-image.jpg'] },
     alternates: {
-      canonical: `https://vaidya.health/${lang}`,
-      languages: { en: 'https://vaidya.health/en', ar: 'https://vaidya.health/ar', de: 'https://vaidya.health/de', fr: 'https://vaidya.health/fr', ml: 'https://vaidya.health/ml', hi: 'https://vaidya.health/hi' },
+      canonical: `https://ayuretreats.com/${lang}`,
+      languages: { en: 'https://ayuretreats.com/en', ar: 'https://ayuretreats.com/ar', de: 'https://ayuretreats.com/de', fr: 'https://ayuretreats.com/fr', ml: 'https://ayuretreats.com/ml', hi: 'https://ayuretreats.com/hi' },
     },
   }
 }
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
-  const t    = await getTranslations({ locale: lang, namespace: 'home' })
+  const t = await getTranslations({ locale: lang, namespace: 'home' })
   const isRtl = lang === 'ar'
   const clinics = await fetchClinics()
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }} dir={isRtl ? 'rtl' : 'ltr'}>
 
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <section style={{
-        background: 'linear-gradient(160deg, #0f2218 0%, #1E3D2F 60%, #2D5440 100%)',
-        padding: '36px 48px 28px',
-      }}>
-        <div style={{ maxWidth: 680, margin: '0 auto' }}>
+      {/* ── Hero (continues from dark navbar) — styles in globals.css (.home-hero) ─ */}
+      <section
+        className="home-hero"
+        style={{
+          padding: 'clamp(18px, 4vw, 26px) clamp(16px, 5vw, 40px) clamp(20px, 3.5vw, 28px)',
+        }}
+      >
+        <div
+          className="home-hero-inner"
+          style={{
+            maxWidth: 620,
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+          }}
+        >
+          <header style={{ textAlign: isRtl ? 'right' : 'left' }}>
+            <h1
+              style={{
+                fontFamily: 'var(--serif)',
+                fontSize: 'clamp(22px, 2.6vw, 30px)',
+                fontWeight: 400,
+                color: '#FDFAF6',
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+                margin: 0,
+              }}
+            >
+              {t('hero.h1Part1')}{' '}
+              <em style={{ fontStyle: 'italic', fontWeight: 300, color: 'var(--gold)' }}>
+                {t('hero.h1Italic')}
+              </em>{' '}
+              <span style={{ fontWeight: 300 }}>{t('hero.h1Part2')}</span>
+            </h1>
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'rgba(253,250,246,0.5)',
+                lineHeight: 1.45,
+                margin: '8px 0 0',
+                maxWidth: 440,
+              }}
+            >
+              {t('hero.subtitle')}
+            </p>
+          </header>
 
-          {/* Headline + subtitle */}
-          <h1 style={{
-            fontFamily: 'var(--serif)',
-            fontSize: 'clamp(24px, 3vw, 36px)',
-            fontWeight: 300,
-            color: '#FDFAF6',
-            lineHeight: 1.2,
-            letterSpacing: '-0.01em',
-            marginBottom: '6px',
-          }}>
-            Find your <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>vaidya.</em>{' '}Heal at the source.
-          </h1>
-          <p style={{ fontSize: '13px', color: 'rgba(253,250,246,0.5)', lineHeight: 1.5, marginBottom: '20px', maxWidth: 520 }}>
-            Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution.
-          </p>
-
-          {/* Search */}
           <HeroSearch lang={lang} placeholder={t('hero.searchPlaceholder')} buttonLabel={t('hero.searchButton')} />
-
-          {/* Pills */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-            {['Panchakarma', 'Shirodhara', 'Abhyanga', 'Virechana', 'Basti', 'Detox & Cleanse', 'Stress Relief', 'Pain Management', 'Skin & Hair'].map((label) => (
-              <Link key={label} href={`/${lang}/clinics`} style={{
-                fontSize: '11px', padding: '3px 11px', borderRadius: '99px',
-                border: '1px solid rgba(253,250,246,0.14)', color: 'rgba(253,250,246,0.55)',
-                textDecoration: 'none', background: 'rgba(253,250,246,0.05)',
-                whiteSpace: 'nowrap',
-              }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Stats */}
-          <div style={{ display: 'flex', gap: '28px', marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(253,250,246,0.08)', flexWrap: 'wrap' }}>
-            {[
-              { stat: '50+',    label: 'Credentialed Clinics' },
-              { stat: 'BAMS',   label: 'Doctor Verified' },
-              { stat: '2-Tier', label: 'Credentialing' },
-            ].map((item) => (
-              <div key={item.stat} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ fontFamily: 'var(--serif)', fontSize: '18px', color: 'var(--gold)', fontWeight: 500 }}>{item.stat}</span>
-                <span style={{ fontSize: '11px', color: 'rgba(253,250,246,0.38)', letterSpacing: '0.04em' }}>{item.label}</span>
-              </div>
-            ))}
-          </div>
-
         </div>
       </section>
 
@@ -196,7 +191,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
 
         {/* How it works */}
         <div>
-          <SectionHeader label="Simple process" title="How Vaidya Works" />
+          <SectionHeader label="Simple process" title="How AyuRetreats Works" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {HOW_IT_WORKS.map((step, i) => (
               <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
@@ -240,7 +235,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '16px' }}>
               Get credentialed and reach international patients looking for authentic Ayurveda care.
             </p>
-            <Link href="mailto:clinics@vaidya.health" style={{ display: 'inline-block', background: 'var(--forest)', color: '#fff', fontSize: '13px', fontWeight: 500, padding: '9px 22px', borderRadius: '99px', textDecoration: 'none' }}>
+            <Link href="mailto:clinics@ayuretreats.com" style={{ display: 'inline-block', background: 'var(--forest)', color: '#fff', fontSize: '13px', fontWeight: 500, padding: '9px 22px', borderRadius: '99px', textDecoration: 'none' }}>
               List your clinic
             </Link>
           </div>

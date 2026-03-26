@@ -61,7 +61,7 @@ function LoginForm() {
               textDecoration: 'none',
             }}
           >
-            <span style={{ color: 'var(--gold)' }}>✦</span> Vaidya
+            <span style={{ color: 'var(--gold)' }}>✦</span> AyuRetreats
           </Link>
           <p style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '6px' }}>
             Authentic Ayurveda — Kerala
@@ -84,8 +84,8 @@ function LoginForm() {
           >
             <span style={{ fontSize: '15px', marginTop: '1px' }}>ℹ️</span>
             <p style={{ flex: 1, fontSize: '13px', color: 'var(--forest2)', lineHeight: 1.55, margin: 0 }}>
-              You can browse and take assessments without signing in.{' '}
-              Sign in to save your history across devices.
+              You can browse retreats and book without signing in.{' '}
+              Sign in to save your bookings across devices.
             </p>
             <button
               onClick={() => setInfoDismissed(true)}

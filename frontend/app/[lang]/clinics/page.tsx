@@ -30,9 +30,9 @@ interface PageProps {
 
 export async function generateMetadata({ params: { lang } }: PageProps): Promise<Metadata> {
   return {
-    title: 'Ayurveda Wellness Retreats in Kerala — Browse & Filter | Vaidya',
+    title: 'Ayurveda Wellness Retreats in Kerala — Browse & Filter | AyuRetreats',
     description: 'Discover credentialed Ayurveda wellness retreats in Kerala. Filter by wellness goal, district, budget, language, and more.',
-    alternates: { canonical: `https://vaidya.health/${lang}/clinics` },
+    alternates: { canonical: `https://ayuretreats.com/${lang}/clinics` },
   }
 }
 
@@ -95,8 +95,8 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 540, marginBottom: 20 }}>
             {total > 0
-              ? `${total} credentialed retreat${total !== 1 ? 's' : ''} — all verified by Vaidya`
-              : 'Credentialed retreats — all verified by Vaidya'}
+              ? `${total} credentialed retreat${total !== 1 ? 's' : ''} — all verified by AyuRetreats`
+              : 'Credentialed retreats — all verified by AyuRetreats'}
           </p>
           <SearchBar variant="compact" type="clinic" placeholder="Search retreats, wellness goals, districts…" />
         </div>

@@ -114,13 +114,13 @@ export async function generateMetadata({
   params: { lang: string; slug: string }
 }): Promise<Metadata> {
   const clinic = await fetchClinic(params.slug, params.lang)
-  if (!clinic) return { title: 'Retreat not found | Vaidya' }
+  if (!clinic) return { title: 'Retreat not found | AyuRetreats' }
   const tierLabel = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   return {
-    title: `${clinic.name} — ${tierLabel} Ayurveda Retreat ${clinic.district ?? 'Kerala'} | Vaidya`,
+    title: `${clinic.name} — ${tierLabel} Ayurveda Retreat ${clinic.district ?? 'Kerala'} | AyuRetreats`,
     description: `${clinic.name} is a ${tierLabel} Ayurvedic wellness retreat in ${clinic.district ?? 'Kerala'}. ${clinic.packages.length} packages available. Book online.`,
     alternates: {
-      canonical: `https://vaidya.com/${params.lang}/clinics/${params.slug}`,
+      canonical: `https://ayuretreats.com/${params.lang}/clinics/${params.slug}`,
     },
   }
 }

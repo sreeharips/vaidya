@@ -1,25 +1,25 @@
 {
   "home": {
     "meta": {
-      "title": "Vaidya — Authentisches Ayurveda in Kerala",
-      "description": "Finden Sie zertifizierte Ayurveda-Ärzte und authentische Behandlungsprogramme in Kerala, Indien.",
-      "ogTitle": "Vaidya — Finden Sie Ihren Vaidya. Heilen an der Quelle.",
-      "ogDescription": "Zertifizierte Ayurveda-Ärzte und authentische Behandlungsprogramme — abgestimmt auf Ihre einzigartige Konstitution."
+      "title": "AyuRetreats — Authentische Ayurveda Wellness-Retreats in Kerala",
+      "description": "Entdecken Sie zertifizierte Ayurveda Wellness-Retreats und authentische Behandlungsprogramme in Kerala, Indien. Buchen Sie Ihr Heilungs-Retreat online.",
+      "ogTitle": "AyuRetreats — Finden Sie Ihr Retreat. Heilen an der Quelle.",
+      "ogDescription": "Zertifizierte Ayurveda Wellness-Retreats und authentische Behandlungsprogramme in Kerala — geprüft, vertrauenswürdig und auf Ihre Bedürfnisse abgestimmt."
     },
     "nav": {
-      "findDoctor": "Arzt finden",
+      "findDoctor": "Retreat finden",
       "treatments": "Behandlungen",
       "aboutAyurveda": "Über Ayurveda",
       "forClinics": "Für Kliniken",
-      "cta": "Prakriti-Test starten"
+      "cta": "Retreats durchsuchen"
     },
     "hero": {
       "eyebrow": "Authentisches Ayurveda · Kerala · Seit 2026",
-      "h1Part1": "Finden Sie Ihren",
-      "h1Italic": "Vaidya.",
+      "h1Part1": "Finden Sie Ihr",
+      "h1Italic": "Retreat.",
       "h1Part2": "Heilen an der Quelle.",
-      "subtitle": "Zertifizierte Ayurveda-Ärzte und authentische Behandlungsprogramme — abgestimmt auf Ihre einzigartige Konstitution.",
-      "searchPlaceholder": "Suche nach Arzt, Klinik oder Beschwerde…",
+      "subtitle": "Zertifiziertes Ayurveda in Kerala — Kliniken, Behandlungen oder Ärzte suchen.",
+      "searchPlaceholder": "Suche nach Retreat, Behandlung oder Beschwerde…",
       "searchButton": "Suchen"
     },
     "quickTags": {
@@ -41,10 +41,10 @@
     },
     "trust": {
       "items": [
-        { "number": "50+",  "label": "Zertifizierte Kliniken" },
+        { "number": "50+",  "label": "Zertifizierte Retreats" },
         { "number": "120+", "label": "Verifizierte Ärzte" },
         { "number": "6",    "label": "Unterstützte Sprachen" },
-        { "number": "15",   "label": "Tier-2-zertifizierte Kliniken" }
+        { "number": "15",   "label": "Tier-2-zertifizierte Retreats" }
       ]
     }
   }

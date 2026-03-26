@@ -30,16 +30,16 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
         className="search-hero-wrap"
         style={{
           width: '100%',
-          maxWidth: '680px',
+          maxWidth: '620px',
           background: 'var(--white)',
           borderRadius: 'var(--r-xl)',
           boxShadow: 'var(--shadow2), 0 0 0 1px var(--border)',
-          padding: '6px 6px 6px 24px',
+          padding: '4px 4px 4px 18px',
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
+          gap: '10px',
           transition: 'box-shadow var(--transition)',
-          marginBottom: '20px',
+          marginBottom: '10px',
         }}
       >
         {/* Search icon */}
@@ -67,8 +67,8 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
             outline: 'none',
             background: 'transparent',
             fontFamily: 'var(--sans)',
-            fontSize: '16px',
-            fontWeight: 300,
+            fontSize: '15px',
+            fontWeight: 400,
             color: 'var(--slate)',
             minWidth: 0,
           }}
@@ -81,9 +81,9 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
             background: 'var(--forest)',
             color: 'var(--white)',
             fontFamily: 'var(--sans)',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: 500,
-            padding: '13px 28px',
+            padding: '11px 22px',
             borderRadius: 'var(--r-xl)',
             border: 'none',
             cursor: 'pointer',
@@ -95,8 +95,16 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
         </button>
       </form>
 
-      {/* Treatment quick-tags */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      {/* Treatment quick-tags — one tap to search */}
+      <div
+        className="hero-search-tags"
+        style={{
+          display: 'flex',
+          gap: '6px',
+          flexWrap: 'wrap',
+          justifyContent: 'flex-start',
+        }}
+      >
         {['Panchakarma', 'Shirodhara', 'Abhyanga', 'Virechana', 'Basti'].map(tag => (
           <button
             key={tag}
