@@ -76,7 +76,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       <section
         className="home-hero"
         style={{
-          padding: 'clamp(18px, 4vw, 26px) clamp(16px, 5vw, 40px) clamp(20px, 3.5vw, 28px)',
+          padding: 'clamp(10px, 2.5vw, 16px) clamp(14px, 4vw, 36px) clamp(12px, 2vw, 18px)',
         }}
       >
         <div
@@ -86,17 +86,17 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             margin: '0 auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: 14,
+            gap: 8,
           }}
         >
           <header style={{ textAlign: isRtl ? 'right' : 'left' }}>
             <h1
               style={{
                 fontFamily: 'var(--serif)',
-                fontSize: 'clamp(22px, 2.6vw, 30px)',
+                fontSize: 'clamp(18px, 2.2vw, 26px)',
                 fontWeight: 400,
                 color: '#FDFAF6',
-                lineHeight: 1.15,
+                lineHeight: 1.12,
                 letterSpacing: '-0.02em',
                 margin: 0,
               }}
@@ -109,33 +109,33 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             </h1>
             <p
               style={{
-                fontSize: '12px',
+                fontSize: '11px',
                 color: 'rgba(253,250,246,0.5)',
-                lineHeight: 1.45,
-                margin: '8px 0 0',
-                maxWidth: 440,
+                lineHeight: 1.4,
+                margin: '4px 0 0',
+                maxWidth: 420,
               }}
             >
               {t('hero.subtitle')}
             </p>
           </header>
 
-          <HeroSearch lang={lang} placeholder={t('hero.searchPlaceholder')} buttonLabel={t('hero.searchButton')} />
+          <HeroSearch lang={lang} placeholder={t('hero.searchPlaceholder')} buttonLabel={t('hero.searchButton')} compact />
         </div>
       </section>
 
-      {/* ── Wellness Goals ───────────────────────────────────────────────────── */}
-      <section style={{ padding: '48px 48px 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-        <SectionHeader label="Find your treatment" title="Browse by Wellness Goal" cta={{ label: 'All clinics', href: `/${lang}/clinics` }} />
-        <WellnessGoalGrid goals={WELLNESS_GOALS} lang={lang} />
+      {/* ── Wellness Goals (tight spacing so Featured fits in first screen) ─── */}
+      <section style={{ padding: '14px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader compact label="Find your treatment" title="Browse by Wellness Goal" cta={{ label: 'All clinics', href: `/${lang}/clinics` }} />
+        <WellnessGoalGrid goals={WELLNESS_GOALS} lang={lang} compact />
       </section>
 
       {/* ── Featured Clinics ─────────────────────────────────────────────────── */}
-      <section style={{ padding: '48px 48px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-        <SectionHeader label="Kerala's finest" title="Featured Wellness Retreats" cta={{ label: 'Browse all', href: `/${lang}/clinics` }} />
+      <section style={{ padding: '14px clamp(16px, 4vw, 40px) 40px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader compact label="Kerala's finest" title="Featured Wellness Retreats" cta={{ label: 'Browse all', href: `/${lang}/clinics` }} />
         {clinics.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-            {clinics.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} />)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {clinics.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
           </div>
         ) : (
           <EmptyState message="Clinics coming soon — credentialing in progress." />
@@ -246,12 +246,22 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
   )
 }
 
-function SectionHeader({ label, title, cta }: { label: string; title: string; cta?: { label: string; href: string } }) {
+function SectionHeader({
+  label,
+  title,
+  cta,
+  compact,
+}: {
+  label: string
+  title: string
+  cta?: { label: string; href: string }
+  compact?: boolean
+}) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '8px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: compact ? '10px' : '20px', flexWrap: 'wrap', gap: '8px' }}>
       <div>
-        <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: '4px' }}>{label}</p>
-        <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.1 }}>{title}</h2>
+        <p style={{ fontSize: compact ? '9px' : '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: compact ? '2px' : '4px' }}>{label}</p>
+        <h2 style={{ fontFamily: 'var(--serif)', fontSize: compact ? 'clamp(17px, 2vw, 22px)' : 'clamp(20px, 2.5vw, 28px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.08 }}>{title}</h2>
       </div>
       {cta && (
         <Link href={cta.href} style={{ fontSize: '12px', fontWeight: 500, color: 'var(--forest)', textDecoration: 'none', borderBottom: '1px solid var(--gold)', paddingBottom: '1px', flexShrink: 0 }}>

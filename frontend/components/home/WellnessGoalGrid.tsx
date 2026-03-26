@@ -9,24 +9,34 @@ interface WellnessGoal {
   href: string
 }
 
-export default function WellnessGoalGrid({ goals, lang }: { goals: WellnessGoal[]; lang: string }) {
+export default function WellnessGoalGrid({
+  goals,
+  lang,
+  compact,
+}: {
+  goals: WellnessGoal[]
+  lang: string
+  compact?: boolean
+}) {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-      gap: '12px',
+      gridTemplateColumns: compact
+        ? 'repeat(auto-fill, minmax(200px, 1fr))'
+        : 'repeat(auto-fill, minmax(240px, 1fr))',
+      gap: compact ? '8px' : '12px',
     }}>
       {goals.map((goal) => (
         <Link key={goal.label} href={`/${lang}${goal.href}`} style={{ textDecoration: 'none' }}>
           <div
             style={{
-              padding: '20px 22px',
+              padding: compact ? '12px 14px' : '20px 22px',
               background: '#fff',
               border: '1px solid var(--border)',
               borderRadius: 'var(--r-md)',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
+              gap: compact ? '12px' : '16px',
               transition: 'all var(--transition)',
               cursor: 'pointer',
             }}
@@ -46,14 +56,14 @@ export default function WellnessGoalGrid({ goals, lang }: { goals: WellnessGoal[
             }}
           >
             <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
+              width: compact ? '36px' : '44px',
+              height: compact ? '36px' : '44px',
+              borderRadius: compact ? '10px' : '12px',
               background: 'var(--forest-lt)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
+              fontSize: compact ? '15px' : '18px',
               color: 'var(--forest)',
               flexShrink: 0,
               fontFamily: 'var(--serif)',
@@ -61,10 +71,10 @@ export default function WellnessGoalGrid({ goals, lang }: { goals: WellnessGoal[
               {goal.icon}
             </div>
             <div>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: '16px', color: 'var(--forest)', fontWeight: 500, marginBottom: '2px' }}>
+              <div style={{ fontFamily: 'var(--serif)', fontSize: compact ? '14px' : '16px', color: 'var(--forest)', fontWeight: 500, marginBottom: '2px' }}>
                 {goal.label}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.4 }}>
+              <div style={{ fontSize: compact ? '10px' : '11px', color: 'var(--muted)', lineHeight: 1.35 }}>
                 {goal.desc}
               </div>
             </div>

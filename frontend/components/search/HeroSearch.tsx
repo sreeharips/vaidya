@@ -7,9 +7,11 @@ interface HeroSearchProps {
   lang: string
   placeholder: string
   buttonLabel: string
+  /** Tighter bar + button for above-the-fold home layout */
+  compact?: boolean
 }
 
-export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearchProps) {
+export default function HeroSearch({ lang, placeholder, buttonLabel, compact }: HeroSearchProps) {
   const [query, setQuery] = useState('')
   const router = useRouter()
 
@@ -32,20 +34,20 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
           width: '100%',
           maxWidth: '620px',
           background: 'var(--white)',
-          borderRadius: 'var(--r-xl)',
+          borderRadius: compact ? 'var(--r-lg)' : 'var(--r-xl)',
           boxShadow: 'var(--shadow2), 0 0 0 1px var(--border)',
-          padding: '4px 4px 4px 18px',
+          padding: compact ? '3px 3px 3px 14px' : '4px 4px 4px 18px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: compact ? '8px' : '10px',
           transition: 'box-shadow var(--transition)',
-          marginBottom: '10px',
+          marginBottom: compact ? '4px' : '10px',
         }}
       >
         {/* Search icon */}
         <svg
-          width="20"
-          height="20"
+          width={compact ? '18' : '20'}
+          height={compact ? '18' : '20'}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -67,7 +69,7 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
             outline: 'none',
             background: 'transparent',
             fontFamily: 'var(--sans)',
-            fontSize: '15px',
+            fontSize: compact ? '14px' : '15px',
             fontWeight: 400,
             color: 'var(--slate)',
             minWidth: 0,
@@ -81,10 +83,10 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
             background: 'var(--forest)',
             color: 'var(--white)',
             fontFamily: 'var(--sans)',
-            fontSize: '13px',
+            fontSize: compact ? '12px' : '13px',
             fontWeight: 500,
-            padding: '11px 22px',
-            borderRadius: 'var(--r-xl)',
+            padding: compact ? '9px 18px' : '11px 22px',
+            borderRadius: compact ? 'var(--r-lg)' : 'var(--r-xl)',
             border: 'none',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
