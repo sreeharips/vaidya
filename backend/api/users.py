@@ -6,20 +6,14 @@ session_id from request.state (guest). The get_identity() helper resolves
 which identity to use — at least one is always present thanks to the
 GuestSessionMiddleware.
 
-GET    /api/users/me/preferences
-POST   /api/users/me/preferences
-GET    /api/users/me/watchlist?type=clinic|doctor
+GET    /api/users/me/watchlist?type=clinic
 POST   /api/users/me/watchlist
 DELETE /api/users/me/watchlist/{id}
 GET    /api/users/me/bookings        (auth required)
-GET    /api/users/me/consultations   (auth required)
-GET    /api/users/me/prescriptions   (auth required)
-GET    /api/users/me/prescriptions/{id}  (auth required)
-GET    /api/users/me/purchases       (auth required)
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from jose import JWTError, jwt
@@ -31,10 +25,6 @@ from core.config import settings
 from db.database import get_db
 from db.models import (
     BookingHistory,
-    ConsultationHistory,
-    Prescription,
-    ProductPurchaseHistory,
-    UserPreferences,
     UserWatchlist,
 )
 
@@ -81,25 +71,6 @@ def _require_auth(request: Request) -> uuid.UUID:
 
 # ── Pydantic models ────────────────────────────────────────────────────────────
 
-class PreferencesOut(BaseModel):
-    vata_pct: int | None
-    pitta_pct: int | None
-    kapha_pct: int | None
-    primary_type: str | None
-    secondary_type: str | None
-    assessment_id: str | None
-    updated_at: datetime
-
-
-class PreferencesIn(BaseModel):
-    vata_pct: int
-    pitta_pct: int
-    kapha_pct: int
-    primary_type: str
-    secondary_type: str | None = None
-    assessment_id: str | None = None
-
-
 class WatchlistOut(BaseModel):
     id: str
     entity_type: str
@@ -118,133 +89,12 @@ class BookingHistoryOut(BaseModel):
     id: str
     booking_id: str
     clinic_id: str
-    doctor_id: str
-    treatment_name: str
+    package_name: str
     start_date: str
     end_date: str
     total_paid: float | None
     status: str
     created_at: datetime
-
-
-class ConsultationOut(BaseModel):
-    id: str
-    doctor_id: str
-    clinic_id: str
-    consultation_date: datetime
-    chief_complaint_en: str | None
-    prakriti_at_consultation: str | None
-    created_at: datetime
-
-
-class PrescriptionOut(BaseModel):
-    id: str
-    consultation_id: str
-    doctor_id: str
-    prescription_date: str
-    structured_data: dict | None
-    medicines: dict | None
-    diet_instructions_en: str | None
-    follow_up_date: str | None
-    pdf_url: str | None
-    created_at: datetime
-
-
-class PurchaseOut(BaseModel):
-    id: str
-    product_name: str
-    product_slug: str
-    quantity: int
-    unit_price: float
-    total_price: float
-    currency: str
-    status: str
-    ordered_at: datetime
-
-
-# ── Preferences ────────────────────────────────────────────────────────────────
-
-@router.get("/me/preferences", response_model=PreferencesOut | None)
-async def get_preferences(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id, session_id = get_identity(request)
-
-    if user_id:
-        result = await db.execute(
-            select(UserPreferences).where(UserPreferences.user_id == user_id)
-        )
-    elif session_id:
-        result = await db.execute(
-            select(UserPreferences).where(UserPreferences.session_id == session_id)
-        )
-    else:
-        return None
-
-    prefs = result.scalar_one_or_none()
-    if not prefs:
-        return None
-
-    return _prefs_out(prefs)
-
-
-@router.post("/me/preferences", response_model=PreferencesOut)
-async def upsert_preferences(
-    body: PreferencesIn,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    user_id, session_id = get_identity(request)
-    if not user_id and not session_id:
-        raise HTTPException(status_code=400, detail="No identity found")
-
-    if user_id:
-        result = await db.execute(
-            select(UserPreferences).where(UserPreferences.user_id == user_id)
-        )
-    else:
-        result = await db.execute(
-            select(UserPreferences).where(UserPreferences.session_id == session_id)
-        )
-    prefs = result.scalar_one_or_none()
-
-    assessment_uuid = uuid.UUID(body.assessment_id) if body.assessment_id else None
-    now = datetime.now(timezone.utc)
-
-    if prefs:
-        prefs.prakriti_vata_pct = body.vata_pct
-        prefs.prakriti_pitta_pct = body.pitta_pct
-        prefs.prakriti_kapha_pct = body.kapha_pct
-        prefs.prakriti_primary_type = body.primary_type
-        prefs.prakriti_secondary_type = body.secondary_type
-        prefs.prakriti_completed_at = now
-        prefs.prakriti_assessment_id = assessment_uuid
-    else:
-        prefs = UserPreferences(
-            user_id=user_id,
-            session_id=session_id,
-            prakriti_vata_pct=body.vata_pct,
-            prakriti_pitta_pct=body.pitta_pct,
-            prakriti_kapha_pct=body.kapha_pct,
-            prakriti_primary_type=body.primary_type,
-            prakriti_secondary_type=body.secondary_type,
-            prakriti_completed_at=now,
-            prakriti_assessment_id=assessment_uuid,
-        )
-        db.add(prefs)
-
-    await db.flush()
-    return _prefs_out(prefs)
-
-
-def _prefs_out(prefs: UserPreferences) -> PreferencesOut:
-    return PreferencesOut(
-        vata_pct=prefs.prakriti_vata_pct,
-        pitta_pct=prefs.prakriti_pitta_pct,
-        kapha_pct=prefs.prakriti_kapha_pct,
-        primary_type=prefs.prakriti_primary_type,
-        secondary_type=prefs.prakriti_secondary_type,
-        assessment_id=str(prefs.prakriti_assessment_id) if prefs.prakriti_assessment_id else None,
-        updated_at=prefs.updated_at,
-    )
 
 
 # ── Watchlist ──────────────────────────────────────────────────────────────────
@@ -264,7 +114,7 @@ async def get_watchlist(
     else:
         return []
 
-    if type in ("clinic", "doctor"):
+    if type == "clinic":
         q = q.where(UserWatchlist.entity_type == type)
 
     result = await db.execute(q.order_by(UserWatchlist.created_at.desc()))
@@ -292,8 +142,8 @@ async def add_to_watchlist(
     if not user_id and not session_id:
         raise HTTPException(status_code=400, detail="No identity found")
 
-    if body.entity_type not in ("clinic", "doctor"):
-        raise HTTPException(status_code=422, detail="entity_type must be 'clinic' or 'doctor'")
+    if body.entity_type != "clinic":
+        raise HTTPException(status_code=422, detail="entity_type must be 'clinic'")
 
     try:
         entity_uuid = uuid.UUID(body.entity_id)
@@ -360,8 +210,7 @@ async def get_bookings(request: Request, db: AsyncSession = Depends(get_db)):
             id=str(r.id),
             booking_id=str(r.booking_id),
             clinic_id=str(r.clinic_id),
-            doctor_id=str(r.doctor_id),
-            treatment_name=r.treatment_name,
+            package_name=r.package_name,
             start_date=str(r.start_date),
             end_date=str(r.end_date),
             total_paid=float(r.total_paid) if r.total_paid is not None else None,
@@ -370,98 +219,3 @@ async def get_bookings(request: Request, db: AsyncSession = Depends(get_db)):
         )
         for r in rows
     ]
-
-
-@router.get("/me/consultations", response_model=list[ConsultationOut])
-async def get_consultations(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = _require_auth(request)
-    result = await db.execute(
-        select(ConsultationHistory)
-        .where(ConsultationHistory.user_id == user_id)
-        .order_by(ConsultationHistory.consultation_date.desc())
-    )
-    rows = result.scalars().all()
-    return [
-        ConsultationOut(
-            id=str(r.id),
-            doctor_id=str(r.doctor_id),
-            clinic_id=str(r.clinic_id),
-            consultation_date=r.consultation_date,
-            chief_complaint_en=r.chief_complaint_en,
-            prakriti_at_consultation=r.prakriti_at_consultation,
-            created_at=r.created_at,
-        )
-        for r in rows
-    ]
-
-
-@router.get("/me/prescriptions", response_model=list[PrescriptionOut])
-async def get_prescriptions(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = _require_auth(request)
-    result = await db.execute(
-        select(Prescription)
-        .where(Prescription.user_id == user_id)
-        .order_by(Prescription.prescription_date.desc())
-    )
-    rows = result.scalars().all()
-    return [_rx_out(r) for r in rows]
-
-
-@router.get("/me/prescriptions/{prescription_id}", response_model=PrescriptionOut)
-async def get_prescription(
-    prescription_id: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    user_id = _require_auth(request)
-    try:
-        rx = await db.get(Prescription, uuid.UUID(prescription_id))
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid prescription ID")
-
-    if not rx or rx.user_id != user_id:
-        raise HTTPException(status_code=404, detail="Prescription not found")
-
-    return _rx_out(rx)
-
-
-@router.get("/me/purchases", response_model=list[PurchaseOut])
-async def get_purchases(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = _require_auth(request)
-    result = await db.execute(
-        select(ProductPurchaseHistory)
-        .where(ProductPurchaseHistory.user_id == user_id)
-        .order_by(ProductPurchaseHistory.ordered_at.desc())
-    )
-    rows = result.scalars().all()
-    return [
-        PurchaseOut(
-            id=str(r.id),
-            product_name=r.product_name,
-            product_slug=r.product_slug,
-            quantity=r.quantity,
-            unit_price=float(r.unit_price),
-            total_price=float(r.total_price),
-            currency=r.currency,
-            status=r.status,
-            ordered_at=r.ordered_at,
-        )
-        for r in rows
-    ]
-
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _rx_out(r: Prescription) -> PrescriptionOut:
-    return PrescriptionOut(
-        id=str(r.id),
-        consultation_id=str(r.consultation_id),
-        doctor_id=str(r.doctor_id),
-        prescription_date=str(r.prescription_date),
-        structured_data=r.structured_data,
-        medicines=r.medicines,
-        diet_instructions_en=r.diet_instructions_en,
-        follow_up_date=str(r.follow_up_date) if r.follow_up_date else None,
-        pdf_url=r.pdf_url,
-        created_at=r.created_at,
-    )

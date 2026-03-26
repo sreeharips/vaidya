@@ -1,105 +1,104 @@
 """
-api/admin/tags.py — Specialisation and condition tag management.
+api/admin/tags.py — Wellness category and specialisation tag management.
 
-GET    /api/admin/tags/specialisations
-GET    /api/admin/tags/conditions
-PATCH  /api/admin/tags/clinic-specialisations
-PATCH  /api/admin/tags/clinic-conditions
-PATCH  /api/admin/tags/doctor-specialisations/{doctor_id}
+GET    /api/admin/tags/wellness-categories    — master list of wellness categories
+GET    /api/admin/tags/specialisations        — master list of specialisations
+PATCH  /api/admin/tags/clinic-specialisations — update clinic specialisations
+PATCH  /api/admin/tags/clinic-wellness-categories — update clinic wellness categories
 """
 
-import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.admin_auth import get_admin_clinic
 from db.database import get_db
-from db.models import ClinicFeatureStore, ConditionMap, Doctor
+from db.models import ClinicFeatureStore
 
 router = APIRouter()
 
-# Master specialisation list (seeded from config / curated by platform)
+# Master wellness category list — plain-language, no Sanskrit jargon
+WELLNESS_CATEGORIES = [
+    {"slug": "detox-cleanse", "name_en": "Detox & Cleanse", "name_ml": "ഡീറ്റോക്സ് & ക്ലെൻസ്"},
+    {"slug": "stress-relief", "name_en": "Stress Relief", "name_ml": "സമ്മർദ്ദ ശമനം"},
+    {"slug": "pain-management", "name_en": "Pain Management", "name_ml": "വേദന നിയന്ത്രണം"},
+    {"slug": "weight-wellness", "name_en": "Weight & Wellness", "name_ml": "ഭാരം & ആരോഗ്യം"},
+    {"slug": "skin-hair", "name_en": "Skin & Hair Care", "name_ml": "ത്വക് & മുടി പരിചരണം"},
+    {"slug": "immunity-boost", "name_en": "Immunity Boost", "name_ml": "രോഗപ്രതിരോധ വർധന"},
+    {"slug": "fertility-wellness", "name_en": "Fertility & Women's Health", "name_ml": "പ്രത്യുത്പാദന ആരോഗ്യം"},
+    {"slug": "anti-aging", "name_en": "Anti-Aging & Rejuvenation", "name_ml": "യൗവന സംരക്ഷണം"},
+    {"slug": "digestive-health", "name_en": "Digestive Health", "name_ml": "ദഹന ആരോഗ്യം"},
+    {"slug": "mental-clarity", "name_en": "Mental Clarity & Focus", "name_ml": "മാനസിക ശുദ്ധി"},
+    {"slug": "joint-mobility", "name_en": "Joint & Mobility", "name_ml": "സന്ധി & ചലനക്ഷമത"},
+    {"slug": "post-surgery", "name_en": "Post-Surgery Recovery", "name_ml": "ശസ്ത്രക്രിയാനന്തര വീണ്ടെടുപ്പ്"},
+]
+
+# Master specialisation list (treatment-level)
 SPECIALISATIONS = [
-    {"slug": "panchakarma", "name_en": "Panchakarma", "name_ml": "പഞ്ചകര്‍മ"},
-    {"slug": "shirodhara", "name_en": "Shirodhara", "name_ml": "ശിരോധാര"},
-    {"slug": "abhyanga", "name_en": "Abhyanga", "name_ml": "അഭ്യംഗ"},
-    {"slug": "pizhichil", "name_en": "Pizhichil", "name_ml": "പിഴിച്ചിൽ"},
-    {"slug": "njavara-kizhi", "name_en": "Njavara Kizhi", "name_ml": "നവര കിഴി"},
-    {"slug": "nasya", "name_en": "Nasya", "name_ml": "നസ്യ"},
-    {"slug": "virechana", "name_en": "Virechana", "name_ml": "വിരേചന"},
-    {"slug": "basti", "name_en": "Basti", "name_ml": "ബസ്തി"},
-    {"slug": "udvartana", "name_en": "Udvartana", "name_ml": "ഉദ്വർത്തന"},
-    {"slug": "rasayana", "name_en": "Rasayana", "name_ml": "രസായന"},
-    {"slug": "kati-basti", "name_en": "Kati Basti", "name_ml": "കടി ബസ്തി"},
-    {"slug": "janu-basti", "name_en": "Janu Basti", "name_ml": "ജാനു ബസ്തി"},
-    {"slug": "takradhara", "name_en": "Takradhara", "name_ml": "തക്രധാര"},
-    {"slug": "lepa", "name_en": "Lepa", "name_ml": "ലേപ"},
-    {"slug": "yoga-therapy", "name_en": "Yoga Therapy", "name_ml": "യോഗ ചികിത്സ"},
-    {"slug": "diet-counselling", "name_en": "Diet Counselling", "name_ml": "ആഹാര ഉപദേശം"},
-    {"slug": "fertility", "name_en": "Fertility Treatment", "name_ml": "വന്ധ്യത ചികിത്സ"},
-    {"slug": "stress-management", "name_en": "Stress Management", "name_ml": "സമ്മർദ്ദ നിയന്ത്രണം"},
-    {"slug": "skin-care", "name_en": "Skin Care", "name_ml": "ത്വക് പരിചരണം"},
-    {"slug": "weight-management", "name_en": "Weight Management", "name_ml": "ഭാരം നിയന്ത്രണം"},
+    {"slug": "panchakarma", "name_en": "Panchakarma"},
+    {"slug": "shirodhara", "name_en": "Shirodhara"},
+    {"slug": "abhyanga", "name_en": "Abhyanga"},
+    {"slug": "pizhichil", "name_en": "Pizhichil"},
+    {"slug": "njavara-kizhi", "name_en": "Njavara Kizhi"},
+    {"slug": "nasya", "name_en": "Nasya"},
+    {"slug": "virechana", "name_en": "Virechana"},
+    {"slug": "basti", "name_en": "Basti"},
+    {"slug": "udvartana", "name_en": "Udvartana"},
+    {"slug": "rasayana", "name_en": "Rasayana"},
+    {"slug": "kati-basti", "name_en": "Kati Basti"},
+    {"slug": "janu-basti", "name_en": "Janu Basti"},
+    {"slug": "takradhara", "name_en": "Takradhara"},
+    {"slug": "lepa", "name_en": "Lepa"},
+    {"slug": "yoga-therapy", "name_en": "Yoga Therapy"},
+    {"slug": "diet-counselling", "name_en": "Diet Counselling"},
 ]
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
 
-class SpecialisationOut(BaseModel):
+class WellnessCategoryOut(BaseModel):
     slug: str
     name_en: str
     name_ml: str | None = None
 
 
-class ConditionOut(BaseModel):
-    id: str
-    condition_slug: str
-    condition_name: str
-    condition_name_ar: str | None
-    condition_name_ml: str | None
+class SpecialisationOut(BaseModel):
+    slug: str
+    name_en: str
+
+
+class UpdateWellnessCategories(BaseModel):
+    categories: list[str]
 
 
 class UpdateSpecialisations(BaseModel):
     specialisations: list[str]
 
 
-class UpdateConditions(BaseModel):
-    condition_slugs: list[str]
-
-
-class UpdateDoctorTags(BaseModel):
-    specialisations: list[str]
-    prakriti_affinities: list[str]
-
-
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.get("/tags/wellness-categories", response_model=list[WellnessCategoryOut])
+async def list_wellness_categories():
+    return [WellnessCategoryOut(**c) for c in WELLNESS_CATEGORIES]
+
 
 @router.get("/tags/specialisations", response_model=list[SpecialisationOut])
 async def list_specialisations():
     return [SpecialisationOut(**s) for s in SPECIALISATIONS]
 
 
-@router.get("/tags/conditions", response_model=list[ConditionOut])
-async def list_conditions(
+@router.patch("/tags/clinic-wellness-categories")
+async def update_clinic_wellness_categories(
+    body: UpdateWellnessCategories,
+    clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(ConditionMap).order_by(ConditionMap.condition_name)
-    )
-    return [
-        ConditionOut(
-            id=str(c.id),
-            condition_slug=c.condition_slug,
-            condition_name=c.condition_name,
-            condition_name_ar=c.condition_name_ar,
-            condition_name_ml=c.condition_name_ml,
-        )
-        for c in result.scalars().all()
-    ]
+    clinic.wellness_categories = body.categories
+    clinic.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"wellness_categories": clinic.wellness_categories}
 
 
 @router.patch("/tags/clinic-specialisations")
@@ -112,41 +111,3 @@ async def update_clinic_specialisations(
     clinic.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return {"specialisations": clinic.specialisations}
-
-
-@router.patch("/tags/clinic-conditions")
-async def update_clinic_conditions(
-    body: UpdateConditions,
-    clinic: ClinicFeatureStore = Depends(get_admin_clinic),
-    db: AsyncSession = Depends(get_db),
-):
-    # Conditions are stored as part of specialisations or as separate metadata
-    # For now, store as a JSON field or extend the model
-    # Using included_therapies on the clinic is one approach, but let's store it simply
-    clinic.specialisations = list(set((clinic.specialisations or []) + body.condition_slugs))
-    clinic.updated_at = datetime.now(timezone.utc)
-    await db.commit()
-    return {"condition_slugs": body.condition_slugs}
-
-
-@router.patch("/tags/doctor-specialisations/{doctor_id}")
-async def update_doctor_tags(
-    doctor_id: str,
-    body: UpdateDoctorTags,
-    clinic: ClinicFeatureStore = Depends(get_admin_clinic),
-    db: AsyncSession = Depends(get_db),
-):
-    doctor = await db.get(Doctor, uuid.UUID(doctor_id))
-    if not doctor or doctor.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Doctor not found")
-
-    doctor.specialisations = body.specialisations
-    doctor.prakriti_affinities = body.prakriti_affinities
-    doctor.updated_at = datetime.now(timezone.utc)
-    await db.commit()
-
-    return {
-        "doctor_id": doctor_id,
-        "specialisations": doctor.specialisations,
-        "prakriti_affinities": doctor.prakriti_affinities,
-    }

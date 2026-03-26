@@ -10,11 +10,11 @@ export interface ClinicSummary {
   district: string | null
   rating: number | null
   review_count: number
-  specialisations: string[]
-  prakriti_affinities: string[]
+  wellness_categories: string[]
   languages: string[]
   pricing_min: number | null
-  pricing_max: number | null
+  package_count: number
+  cheapest_price: number | null
   certifications: string[]
   outcome_enrolled: boolean
   accommodation_available: boolean
@@ -42,7 +42,7 @@ export default function HomeClinicCard({ clinic, lang }: { clinic: ClinicSummary
       >
         {/* Cover photo */}
         <div style={{ height: 180, background: 'linear-gradient(135deg, var(--forest-lt) 0%, var(--cream2) 100%)', position: 'relative', flexShrink: 0, overflow: 'hidden' }}>
-          {clinic.photos[0] ? (
+          {clinic.photos?.[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={clinic.photos[0]} alt={clinic.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
@@ -72,14 +72,14 @@ export default function HomeClinicCard({ clinic, lang }: { clinic: ClinicSummary
             </div>
           )}
 
-          {clinic.specialisations.length > 0 && (
+          {(clinic.wellness_categories ?? []).length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-              {clinic.specialisations.slice(0, 3).map((s) => (
+              {(clinic.wellness_categories ?? []).slice(0, 3).map((s) => (
                 <span key={s} style={{ fontSize: 10, fontWeight: 500, padding: '3px 9px', borderRadius: 99, background: 'var(--cream2)', color: 'var(--slate)' }}>
                   {capitalize(s)}
                 </span>
               ))}
-              {clinic.certifications.slice(0, 1).map((c) => (
+              {(clinic.certifications ?? []).slice(0, 1).map((c) => (
                 <span key={c} style={{ fontSize: 10, fontWeight: 500, padding: '3px 9px', borderRadius: 99, background: 'var(--forest-lt)', color: 'var(--forest2)' }}>
                   {c}
                 </span>
@@ -103,10 +103,10 @@ export default function HomeClinicCard({ clinic, lang }: { clinic: ClinicSummary
           </div>
 
           <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {clinic.pricing_min != null ? (
+            {clinic.cheapest_price != null ? (
               <div>
-                <span style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', fontWeight: 500 }}>₹{clinic.pricing_min.toLocaleString()}</span>
-                <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 3 }}>/day</span>
+                <span style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', fontWeight: 500 }}>${clinic.cheapest_price.toLocaleString()}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 3 }}>/night</span>
               </div>
             ) : (
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>Price on request</span>

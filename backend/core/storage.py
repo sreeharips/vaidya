@@ -21,11 +21,9 @@ IMAGE_SIZES = {
     "clinic_hero": (1920, 1080),
     "clinic_gallery": (1200, 800),
     "clinic_logo": (400, 400),
-    "doctor_profile": (400, 400),
-    "doctor_gallery": (1200, 800),
     "treatment": (1200, 800),
-    "certificate": (1200, 1600),
     "room": (1200, 800),
+    "team_photo": (400, 400),
 }
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
@@ -100,7 +98,6 @@ def delete_from_s3(s3_key: str) -> None:
 def generate_s3_key(
     clinic_id: str,
     image_type: str,
-    doctor_id: str | None = None,
     extension: str = "webp",
 ) -> str:
     """Generate an S3 key following the folder structure convention."""
@@ -110,21 +107,9 @@ def generate_s3_key(
         "clinic_gallery": f"clinics/{clinic_id}/gallery/{file_id}.{extension}",
         "clinic_logo": f"clinics/{clinic_id}/logo/{file_id}.{extension}",
         "room": f"clinics/{clinic_id}/rooms/{file_id}.{extension}",
-        "doctor_profile": f"clinics/{clinic_id}/doctors/{doctor_id}/profile/{file_id}.{extension}",
-        "doctor_gallery": f"clinics/{clinic_id}/doctors/{doctor_id}/gallery/{file_id}.{extension}",
-        "certificate": f"clinics/{clinic_id}/doctors/{doctor_id}/certs/{file_id}.{extension}",
         "treatment": f"clinics/{clinic_id}/treatments/{file_id}.{extension}",
+        "team_photo": f"clinics/{clinic_id}/team/{file_id}.{extension}",
     }
     return type_folder_map.get(image_type, f"clinics/{clinic_id}/other/{file_id}.{extension}")
 
 
-def upload_pdf_to_s3(
-    file_data: bytes,
-    clinic_id: str,
-    doctor_id: str,
-) -> tuple[str, str]:
-    """Upload a PDF certification document. Returns (s3_key, s3_url)."""
-    file_id = uuid.uuid4().hex[:16]
-    s3_key = f"clinics/{clinic_id}/doctors/{doctor_id}/certs/{file_id}.pdf"
-    url = upload_to_s3(file_data, s3_key, content_type="application/pdf")
-    return s3_key, url

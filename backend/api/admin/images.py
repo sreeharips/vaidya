@@ -38,7 +38,6 @@ class ImageOut(BaseModel):
     image_type: str
     display_order: int
     alt_text: str | None
-    doctor_id: str | None
     created_at: str
 
 
@@ -58,19 +57,18 @@ class ReorderItem(BaseModel):
 async def upload_image(
     file: UploadFile = File(...),
     image_type: str = Form(...),
-    doctor_id: str | None = Form(default=None),
     user: User = Depends(require_clinic_admin),
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
     # Validate content type
     if file.content_type not in ALLOWED_CONTENT_TYPES:
-        raise HTTPException(status_code=400, detail=f"File type not allowed. Accepted: jpg, png, webp")
+        raise HTTPException(status_code=400, detail="File type not allowed. Accepted: jpg, png, webp")
 
-    # Validate image_type
-    valid_types = {"clinic_hero", "clinic_gallery", "clinic_logo", "doctor_profile", "doctor_gallery", "treatment", "certificate", "room"}
+    # Validate image_type — clinic-only types (no doctor types)
+    valid_types = {"clinic_hero", "clinic_gallery", "clinic_logo", "treatment", "room", "team_photo"}
     if image_type not in valid_types:
-        raise HTTPException(status_code=400, detail=f"Invalid image_type. Must be one of: {', '.join(valid_types)}")
+        raise HTTPException(status_code=400, detail=f"Invalid image_type. Must be one of: {', '.join(sorted(valid_types))}")
 
     # Read and validate size
     file_data = await file.read()
@@ -84,14 +82,12 @@ async def upload_image(
     s3_key = generate_s3_key(
         clinic_id=str(clinic.id),
         image_type=image_type,
-        doctor_id=doctor_id,
     )
     s3_url = upload_to_s3(processed, s3_key)
 
     # Save to DB
     image = ClinicImage(
         clinic_id=clinic.id,
-        doctor_id=uuid.UUID(doctor_id) if doctor_id else None,
         image_type=image_type,
         s3_key=s3_key,
         s3_url=s3_url,
@@ -107,7 +103,6 @@ async def upload_image(
         image_type=image.image_type,
         display_order=image.display_order,
         alt_text=image.alt_text,
-        doctor_id=str(image.doctor_id) if image.doctor_id else None,
         created_at=image.created_at.isoformat(),
     )
 
@@ -115,15 +110,12 @@ async def upload_image(
 @router.get("/images", response_model=list[ImageOut])
 async def list_images(
     type: str | None = None,
-    doctor_id: str | None = None,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
     q = select(ClinicImage).where(ClinicImage.clinic_id == clinic.id)
     if type:
         q = q.where(ClinicImage.image_type == type)
-    if doctor_id:
-        q = q.where(ClinicImage.doctor_id == uuid.UUID(doctor_id))
     q = q.order_by(ClinicImage.display_order, ClinicImage.created_at)
 
     results = (await db.execute(q)).scalars().all()
@@ -134,7 +126,6 @@ async def list_images(
             image_type=img.image_type,
             display_order=img.display_order,
             alt_text=img.alt_text,
-            doctor_id=str(img.doctor_id) if img.doctor_id else None,
             created_at=img.created_at.isoformat(),
         )
         for img in results
@@ -166,7 +157,6 @@ async def update_image(
         image_type=image.image_type,
         display_order=image.display_order,
         alt_text=image.alt_text,
-        doctor_id=str(image.doctor_id) if image.doctor_id else None,
         created_at=image.created_at.isoformat(),
     )
 

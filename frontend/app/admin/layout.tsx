@@ -8,11 +8,9 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: "grid" },
   { label: "Clinic Profile", href: "/admin/clinic", icon: "building" },
   { label: "Images", href: "/admin/clinic/images", icon: "image" },
-  { label: "Doctors", href: "/admin/doctors", icon: "users" },
-  { label: "Treatments", href: "/admin/treatments", icon: "heart" },
-  { label: "Availability", href: "/admin/availability", icon: "calendar" },
+  { label: "Packages", href: "/admin/packages", icon: "heart" },
+  { label: "Team", href: "/admin/team", icon: "users" },
   { label: "Bookings", href: "/admin/bookings", icon: "clipboard" },
-  { label: "E-commerce", href: "/admin/ecommerce", icon: "shopping" },
   { label: "Users", href: "/admin/users", icon: "userCog" },
 ];
 
@@ -50,11 +48,6 @@ const ICONS: Record<string, JSX.Element> = {
   clipboard: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-    </svg>
-  ),
-  shopping: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
     </svg>
   ),
   userCog: (

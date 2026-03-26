@@ -19,25 +19,6 @@ export interface AuthUser {
   role: string
 }
 
-export interface Preferences {
-  vata_pct: number | null
-  pitta_pct: number | null
-  kapha_pct: number | null
-  primary_type: string | null
-  secondary_type: string | null
-  assessment_id: string | null
-  updated_at: string
-}
-
-export type PreferencesInput = {
-  vata_pct: number
-  pitta_pct: number
-  kapha_pct: number
-  primary_type: string
-  secondary_type?: string
-  assessment_id?: string
-}
-
 // ── Token storage ──────────────────────────────────────────────────────────────
 
 const REFRESH_KEY = 'vaidya_refresh_token'
@@ -111,31 +92,3 @@ export async function apiLogout(): Promise<void> {
   })
 }
 
-export async function apiGetPreferences(
-  accessToken?: string | null,
-): Promise<Preferences | null> {
-  const headers: HeadersInit = {}
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
-  const res = await fetch(`${API}/api/users/me/preferences`, {
-    headers,
-    credentials: 'include',
-  })
-  if (!res.ok || res.status === 204) return null
-  return res.json()
-}
-
-export async function apiUpdatePreferences(
-  prefs: PreferencesInput,
-  accessToken?: string | null,
-): Promise<Preferences> {
-  const headers: HeadersInit = { 'Content-Type': 'application/json' }
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`
-  const res = await fetch(`${API}/api/users/me/preferences`, {
-    method: 'POST',
-    headers,
-    credentials: 'include',
-    body: JSON.stringify(prefs),
-  })
-  if (!res.ok) throw new Error('Failed to save preferences')
-  return res.json()
-}

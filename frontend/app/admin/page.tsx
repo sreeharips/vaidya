@@ -86,8 +86,8 @@ export default function AdminDashboardPage() {
       color: "bg-bark-lt text-bark",
     },
     {
-      label: "Active doctors",
-      value: stats?.active_doctors ?? 0,
+      label: "Active packages",
+      value: stats?.active_packages ?? 0,
       color: "bg-forest-lt text-forest",
     },
   ];
@@ -126,10 +126,10 @@ export default function AdminDashboardPage() {
                   <div key={booking.id} className="px-5 py-4 flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="font-sans text-sm font-medium text-slate truncate">
-                        {booking.patient_name}
+                        {booking.guest_name}
                       </p>
                       <p className="font-sans text-xs text-muted mt-0.5">
-                        {booking.treatment_name} &middot; Dr. {booking.doctor_name}
+                        {booking.package_name}
                       </p>
                       <p className="font-sans text-xs text-muted">
                         {new Date(booking.start_date).toLocaleDateString()} &ndash;{" "}
@@ -168,9 +168,8 @@ export default function AdminDashboardPage() {
             <div className="p-4 space-y-2">
               {[
                 { label: "Edit clinic profile", href: "/admin/clinic" },
-                { label: "Manage doctors", href: "/admin/doctors" },
-                { label: "View calendar", href: "/admin/availability" },
-                { label: "Manage treatments", href: "/admin/treatments" },
+                { label: "Manage packages", href: "/admin/packages" },
+                { label: "Manage team", href: "/admin/team" },
                 { label: "View all bookings", href: "/admin/bookings" },
               ].map((link) => (
                 <button

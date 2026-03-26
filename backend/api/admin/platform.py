@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.admin_auth import require_platform_admin
 from db.database import get_db
-from db.models import Booking, ClinicFeatureStore, Doctor, User
+from db.models import Booking, ClinicFeatureStore, ClinicTeam, User
 
 router = APIRouter(prefix="/platform")
 
@@ -33,7 +33,7 @@ class ClinicListItem(BaseModel):
     slug: str
     tier: int
     is_active: bool
-    doctor_count: int
+    team_count: int
     booking_count_30d: int
     revenue_30d: float
     outcome_enrolled: bool
@@ -46,7 +46,7 @@ class TierUpgrade(BaseModel):
 
 class PlatformStats(BaseModel):
     total_clinics: int
-    total_doctors: int
+    total_team_members: int
     total_bookings: int
     total_gmv: float
     total_revenue: float
@@ -67,9 +67,9 @@ async def list_all_clinics(
     result = []
 
     for c in clinics:
-        # Doctor count
-        doc_count = (await db.execute(
-            select(func.count(Doctor.id)).where(Doctor.clinic_id == c.id)
+        # Team member count
+        team_count = (await db.execute(
+            select(func.count(ClinicTeam.id)).where(ClinicTeam.clinic_id == c.id)
         )).scalar_one()
 
         # Bookings last 30 days
@@ -88,7 +88,7 @@ async def list_all_clinics(
             slug=c.slug,
             tier=c.tier,
             is_active=c.is_active,
-            doctor_count=doc_count,
+            team_count=team_count,
             booking_count_30d=len(bookings_30d),
             revenue_30d=round(revenue, 2),
             outcome_enrolled=c.outcome_enrolled,
@@ -110,21 +110,11 @@ async def upgrade_tier(
 
     clinic.tier = body.tier
     clinic.updated_at = datetime.now(timezone.utc)
-
-    # Update all doctors at this clinic to same tier
-    doctors = (await db.execute(
-        select(Doctor).where(Doctor.clinic_id == clinic.id)
-    )).scalars().all()
-    for d in doctors:
-        d.tier = body.tier
-        d.updated_at = datetime.now(timezone.utc)
-
     await db.commit()
 
     return {
         "clinic_id": clinic_id,
         "tier": body.tier,
-        "doctors_updated": len(doctors),
         "notes": body.notes,
     }
 
@@ -165,7 +155,7 @@ async def platform_stats(
     db: AsyncSession = Depends(get_db),
 ):
     total_clinics = (await db.execute(select(func.count(ClinicFeatureStore.id)))).scalar_one()
-    total_doctors = (await db.execute(select(func.count(Doctor.id)))).scalar_one()
+    total_team = (await db.execute(select(func.count(ClinicTeam.id)))).scalar_one()
     total_bookings = (await db.execute(select(func.count(Booking.id)))).scalar_one()
 
     # GMV = total booking amounts
@@ -178,7 +168,7 @@ async def platform_stats(
 
     return PlatformStats(
         total_clinics=total_clinics,
-        total_doctors=total_doctors,
+        total_team_members=total_team,
         total_bookings=total_bookings,
         total_gmv=round(total_gmv, 2),
         total_revenue=round(total_revenue, 2),

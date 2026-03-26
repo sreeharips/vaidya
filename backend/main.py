@@ -6,15 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.admin import admin_router
-from api.assessment import router as assessment_router
 from api.auth import router as auth_router
 from api.booking import router as booking_router
 from api.clinics import router as clinics_router
-from api.doctors import router as doctors_router
-from api.products import router as products_router
+from api.packages import router as packages_router
 from api.search import router as search_router
 from api.users import router as users_router
-from api.voice import router as voice_router
 from db.database import async_session
 from db.models import GuestSession
 
@@ -81,8 +78,8 @@ class GuestSessionMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(
     title="Vaidya API",
-    description="AI-powered Ayurveda marketplace",
-    version="0.1.0",
+    description="Clinic-based Ayurvedic wellness retreat booking platform",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -100,13 +97,10 @@ app.add_middleware(GuestSessionMiddleware)
 app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(users_router)
-app.include_router(assessment_router)
 app.include_router(booking_router)
 app.include_router(clinics_router)
-app.include_router(doctors_router)
-app.include_router(products_router)
+app.include_router(packages_router)
 app.include_router(search_router)
-app.include_router(voice_router)
 
 
 @app.get("/health")

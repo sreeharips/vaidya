@@ -11,8 +11,7 @@ interface Booking {
   id: string
   booking_id: string
   clinic_id: string
-  doctor_id: string
-  treatment_name: string
+  package_name: string
   start_date: string
   end_date: string
   total_paid: number | null
@@ -84,7 +83,7 @@ export default function BookingsPage() {
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--muted)', lineHeight: 1.7, maxWidth: 440, marginBottom: '32px' }}>
             Sign in to see all your Ayurveda retreat bookings in one place —
-            treatment details, dates, and post-retreat medicine orders.
+            package details, dates, and payment history.
           </p>
           <Link
             href={`/${lang}/login?redirect=/${lang}/profile/bookings`}
@@ -226,7 +225,7 @@ export default function BookingsPage() {
                         marginBottom: '4px',
                       }}
                     >
-                      {b.treatment_name}
+                      {b.package_name}
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>
                       {b.start_date} — {b.end_date}

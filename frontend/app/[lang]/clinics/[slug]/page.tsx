@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import ClinicDoctorCard from '@/components/cards/ClinicDoctorCard'
 import AvailabilityStrip from '@/components/clinics/AvailabilityStrip'
 
 export const revalidate = 3600
@@ -18,52 +17,27 @@ const STATIC_SLUGS = [
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface ProductVariant {
+interface Package {
   id: string
-  label: string
-  sku: string | null
-  price: number
-  stock_qty: number
-}
-
-interface Product {
-  id: string
-  slug: string
   name: string
   description: string | null
-  category: string | null
-  prakriti_tags: string[]
-  base_price: number | null
-  currency: string
-  photos: string[]
-  is_gmp_certified: boolean
-  variants: ProductVariant[]
-}
-
-interface Treatment {
-  id: string
-  slug: string
-  name: string
+  package_type: string | null
+  wellness_categories: string[]
   duration_min_days: number | null
   duration_max_days: number | null
-  price_per_day: number | null
-  included_therapies: string[]
-  prakriti_tags: string[]
-  doctors: string[]
+  price_usd: number | null
+  includes_accommodation: boolean
+  includes_meals: boolean
+  includes_transfers: boolean
+  max_guests_per_slot: number | null
 }
 
-interface Doctor {
+interface TeamMember {
   id: string
-  slug: string
   name: string
   qualification: string
-  years_exp: number
-  tier: number
-  rating: number | null
-  review_count: number
-  specialisations: string[]
-  prakriti_affinities: string[]
-  languages: string[]
+  years_experience: number
+  bio: string | null
   photo_url: string | null
 }
 
@@ -85,8 +59,7 @@ interface ClinicDetail {
   district: string | null
   rating: number | null
   review_count: number
-  specialisations: string[]
-  prakriti_affinities: string[]
+  wellness_categories: string[]
   languages: string[]
   pricing_min: number | null
   pricing_max: number | null
@@ -102,9 +75,8 @@ interface ClinicDetail {
   website_url: string | null
   lat: number | null
   lng: number | null
-  doctors: Doctor[]
-  treatments: Treatment[]
-  products: Product[]
+  packages: Package[]
+  team: TeamMember[]
   reviews: Review[]
 }
 
@@ -112,13 +84,6 @@ interface ClinicDetail {
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ')
-}
-
-function lowestVariantPrice(product: Product): number | null {
-  if (product.variants.length > 0) {
-    return Math.min(...product.variants.map(v => v.price))
-  }
-  return product.base_price
 }
 
 // ── Data fetch ────────────────────────────────────────────────────────────────
@@ -149,11 +114,11 @@ export async function generateMetadata({
   params: { lang: string; slug: string }
 }): Promise<Metadata> {
   const clinic = await fetchClinic(params.slug, params.lang)
-  if (!clinic) return { title: 'Clinic not found | Vaidya' }
+  if (!clinic) return { title: 'Retreat not found | Vaidya' }
   const tierLabel = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   return {
-    title: `${clinic.name} — ${tierLabel} Ayurveda ${clinic.district ?? 'Kerala'} | Vaidya`,
-    description: `${clinic.name} is a ${tierLabel} Ayurvedic clinic in ${clinic.district ?? 'Kerala'}. ${clinic.treatments.length} treatments, ${clinic.doctors.length} doctors. Book online.`,
+    title: `${clinic.name} — ${tierLabel} Ayurveda Retreat ${clinic.district ?? 'Kerala'} | Vaidya`,
+    description: `${clinic.name} is a ${tierLabel} Ayurvedic wellness retreat in ${clinic.district ?? 'Kerala'}. ${clinic.packages.length} packages available. Book online.`,
     alternates: {
       canonical: `https://vaidya.com/${params.lang}/clinics/${params.slug}`,
     },
@@ -175,21 +140,14 @@ export default async function ClinicPage({
   const tierBg       = clinic.tier === 2 ? 'var(--gold-lt)' : 'var(--forest-lt)'
   const priceDisplay = clinic.pricing_min
     ? clinic.pricing_max
-      ? `₹${clinic.pricing_min.toLocaleString()} – ₹${clinic.pricing_max.toLocaleString()} / day`
-      : `From ₹${clinic.pricing_min.toLocaleString()} / day`
+      ? `$${clinic.pricing_min.toLocaleString()} – $${clinic.pricing_max.toLocaleString()} / night`
+      : `From $${clinic.pricing_min.toLocaleString()} / night`
     : null
-
-  // Group products by category for the shop section
-  const productsByCategory = clinic.products.reduce<Record<string, Product[]>>((acc, p) => {
-    const cat = p.category ?? 'Other'
-    ;(acc[cat] ??= []).push(p)
-    return acc
-  }, {})
 
   // JSON-LD structured data
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'MedicalBusiness',
+    '@type': 'HealthAndBeautyBusiness',
     name: clinic.name,
     address: clinic.address ?? undefined,
     geo: clinic.lat && clinic.lng ? { '@type': 'GeoCoordinates', latitude: clinic.lat, longitude: clinic.lng } : undefined,
@@ -229,7 +187,7 @@ export default async function ClinicPage({
           {/* Eyebrow */}
           <div className="hero-eyebrow-line" style={{ marginBottom: 14 }}>
             <span style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 500 }}>
-              Ayurveda Clinic · {clinic.district ?? 'Kerala'}
+              Wellness Retreat · {clinic.district ?? 'Kerala'}
             </span>
           </div>
 
@@ -267,10 +225,9 @@ export default async function ClinicPage({
           {/* Stats row */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
             {[
-              { value: clinic.doctors.length,    label: 'Doctors' },
-              { value: clinic.treatments.length, label: 'Treatments' },
-              { value: clinic.products.length,   label: 'Products' },
-              { value: clinic.review_count,      label: 'Reviews' },
+              { value: clinic.packages.length,  label: 'Packages' },
+              { value: clinic.team.length,      label: 'Team members' },
+              { value: clinic.review_count,     label: 'Reviews' },
               ...(clinic.rating ? [{ value: `${clinic.rating.toFixed(1)} ★`, label: 'Rating' }] : []),
               ...(priceDisplay ? [{ value: priceDisplay, label: 'Retreat pricing' }] : []),
             ].map(({ value, label }) => (
@@ -298,229 +255,182 @@ export default async function ClinicPage({
           </section>
         )}
 
-        {/* ── Doctors ─────────────────────────────────────────────────────── */}
-        {clinic.doctors.length > 0 && (
+        {/* ── Wellness Packages ─────────────────────────────────────────── */}
+        {clinic.packages.length > 0 && (
           <section style={{ marginBottom: 56 }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 24 }}>
-              Our Doctors
+              Wellness Packages
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-              {clinic.doctors.map((doc) => (
-                <ClinicDoctorCard key={doc.id} doc={doc} lang={params.lang} />
-              ))}
+            <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+              {clinic.packages.map((pkg, i) => {
+                const durationLabel =
+                  pkg.duration_min_days && pkg.duration_max_days
+                    ? pkg.duration_min_days === pkg.duration_max_days
+                      ? `${pkg.duration_min_days} days`
+                      : `${pkg.duration_min_days}–${pkg.duration_max_days} days`
+                    : pkg.duration_min_days
+                      ? `From ${pkg.duration_min_days} days`
+                      : pkg.duration_max_days
+                        ? `Up to ${pkg.duration_max_days} days`
+                        : null
+
+                const pricePerNight =
+                  pkg.price_usd && pkg.duration_min_days
+                    ? Math.round(pkg.price_usd / pkg.duration_min_days)
+                    : null
+
+                const includes: string[] = []
+                if (pkg.includes_accommodation) includes.push('Accommodation')
+                if (pkg.includes_meals) includes.push('Meals')
+                if (pkg.includes_transfers) includes.push('Transfers')
+
+                return (
+                  <div
+                    key={pkg.id}
+                    style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)', padding: '20px 20px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--slate)' }}>{pkg.name}</div>
+                          {pkg.package_type && (
+                            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--forest-lt)', color: 'var(--forest2)', padding: '2px 8px', borderRadius: 99 }}>
+                              {pkg.package_type}
+                            </span>
+                          )}
+                        </div>
+
+                        {pkg.description && (
+                          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
+                            {pkg.description.length > 120 ? pkg.description.slice(0, 120) + '…' : pkg.description}
+                          </div>
+                        )}
+
+                        {/* Duration */}
+                        {durationLabel && (
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
+                            {durationLabel}
+                          </div>
+                        )}
+
+                        {/* Wellness categories */}
+                        {pkg.wellness_categories.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                            {pkg.wellness_categories.map((cat) => (
+                              <span key={cat} style={{ fontSize: 10, background: 'var(--gold-lt)', color: 'var(--bark)', padding: '2px 8px', borderRadius: 99 }}>
+                                {capitalize(cat)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Includes */}
+                        {includes.length > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                            Includes: {includes.join(', ')}
+                          </div>
+                        )}
+
+                        {/* Max guests */}
+                        {pkg.max_guests_per_slot && (
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                            Max {pkg.max_guests_per_slot} guest{pkg.max_guests_per_slot !== 1 ? 's' : ''} per slot
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {pkg.price_usd ? (
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--forest)' }}>
+                              ${pkg.price_usd.toLocaleString()}
+                            </div>
+                            {pricePerNight && (
+                              <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                                ~${pricePerNight}/night
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 12, color: 'var(--muted)' }}>Price on request</div>
+                        )}
+                        <Link
+                          href={`/${params.lang}/booking?clinic=${clinic.slug}&package=${pkg.id}`}
+                          style={{ display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 600, color: 'var(--forest)', background: 'var(--forest-lt)', padding: '6px 14px', borderRadius: 99, textDecoration: 'none' }}
+                        >
+                          Book
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </section>
         )}
 
-        {/* ── Treatments ──────────────────────────────────────────────────── */}
-        {clinic.treatments.length > 0 && (
+        {/* ── Our Team ──────────────────────────────────────────────────────── */}
+        {clinic.team.length > 0 && (
           <section style={{ marginBottom: 56 }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 24 }}>
-              Treatment Programmes
+              Our Team
             </h2>
-            <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-              {clinic.treatments.map((t, i) => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+              {clinic.team.map((member) => (
                 <div
-                  key={t.id}
-                  className="treatment-row"
-                  style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)', padding: '18px 20px' }}
+                  key={member.id}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--r-md)',
+                    padding: '20px',
+                    display: 'flex',
+                    gap: 14,
+                    alignItems: 'flex-start',
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--slate)', marginBottom: 4 }}>{t.name}</div>
-                      {/* Duration */}
-                      {(t.duration_min_days || t.duration_max_days) && (
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>
-                          {t.duration_min_days === t.duration_max_days
-                            ? `${t.duration_min_days} days`
-                            : `${t.duration_min_days ?? '?'}–${t.duration_max_days ?? '?'} days`}
-                        </div>
-                      )}
-                      {/* Prakriti tags */}
-                      {t.prakriti_tags.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-                          {t.prakriti_tags.map((tag) => (
-                            <span key={tag} style={{ fontSize: 10, background: 'var(--gold-lt)', color: 'var(--bark)', padding: '2px 8px', borderRadius: 99 }}>
-                              {capitalize(tag)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {/* Doctors delivering this treatment */}
-                      {t.doctors.length > 0 && (
-                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                          By {t.doctors.join(', ')}
-                        </div>
-                      )}
+                  {/* Photo or placeholder */}
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      background: 'var(--forest-lt)',
+                      flexShrink: 0,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {member.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={member.photo_url}
+                        alt={member.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: 18, color: 'var(--forest2)' }}>
+                        {member.name.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)', marginBottom: 2 }}>
+                      {member.name}
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      {t.price_per_day ? (
-                        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--forest)' }}>
-                          ₹{t.price_per_day.toLocaleString()}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--muted)' }}>/day</span>
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Price on request</div>
-                      )}
-                      <Link
-                        href={`/${params.lang}/booking?clinic=${clinic.slug}&treatment=${t.slug}`}
-                        style={{ display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 600, color: 'var(--forest)', background: 'var(--forest-lt)', padding: '6px 14px', borderRadius: 99, textDecoration: 'none' }}
-                      >
-                        Book
-                      </Link>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                      {member.qualification} · {member.years_experience} yrs experience
                     </div>
+                    {member.bio && (
+                      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
+                        {member.bio.length > 100 ? member.bio.slice(0, 100) + '…' : member.bio}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* ── Herbal Products Shop ─────────────────────────────────────────── */}
-        {clinic.products.length > 0 && (
-          <section style={{ marginBottom: 56 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-              <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)' }}>
-                Herbal Products
-              </h2>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Ships directly from {clinic.name}</span>
-            </div>
-            <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24 }}>
-              Authentic Ayurvedic formulations prepared by the clinic's own vaidyas.
-            </p>
-
-            {Object.entries(productsByCategory).map(([category, products]) => (
-              <div key={category} style={{ marginBottom: 32 }}>
-                {/* Category heading */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted)' }}>
-                    {capitalize(category)}
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
-                  {products.map((product) => {
-                    const fromPrice = lowestVariantPrice(product)
-                    return (
-                      <div
-                        key={product.id}
-                        style={{
-                          background: '#fff',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--r-md)',
-                          overflow: 'hidden',
-                          display: 'flex',
-                          flexDirection: 'column',
-                        }}
-                      >
-                        {/* Product photo or placeholder */}
-                        <div
-                          style={{
-                            height: 140,
-                            background: 'var(--forest-lt)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {product.photos[0] ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={product.photos[0]}
-                              alt={product.name}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <span style={{ fontSize: 36 }}>🌿</span>
-                          )}
-                        </div>
-
-                        <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)', marginBottom: 4 }}>
-                            {product.name}
-                          </div>
-
-                          {product.description && (
-                            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, lineHeight: 1.5 }}>
-                              {product.description.length > 90 ? product.description.slice(0, 90) + '…' : product.description}
-                            </div>
-                          )}
-
-                          {/* Prakriti tags */}
-                          {product.prakriti_tags.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
-                              {product.prakriti_tags.map((tag) => (
-                                <span key={tag} style={{ fontSize: 10, background: 'var(--gold-lt)', color: 'var(--bark)', padding: '2px 7px', borderRadius: 99 }}>
-                                  {capitalize(tag)}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* GMP badge */}
-                          {product.is_gmp_certified && (
-                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--forest2)', background: 'var(--forest-lt)', padding: '2px 8px', borderRadius: 99, display: 'inline-block', marginBottom: 8, width: 'fit-content' }}>
-                              GMP Certified
-                            </div>
-                          )}
-
-                          {/* Variants */}
-                          {product.variants.length > 1 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-                              {product.variants.map((v) => (
-                                <span
-                                  key={v.id}
-                                  style={{
-                                    fontSize: 11,
-                                    border: '1px solid var(--border2)',
-                                    borderRadius: 6,
-                                    padding: '2px 8px',
-                                    color: v.stock_qty > 0 ? 'var(--slate)' : 'var(--muted)',
-                                    background: v.stock_qty > 0 ? '#fff' : 'var(--cream2)',
-                                    textDecoration: v.stock_qty === 0 ? 'line-through' : 'none',
-                                  }}
-                                >
-                                  {v.label} · ₹{v.price.toLocaleString()}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                              {fromPrice != null ? (
-                                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--forest)' }}>
-                                  {product.variants.length > 1 ? 'From ' : ''}
-                                  ₹{fromPrice.toLocaleString()}
-                                  <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--muted)', marginLeft: 2 }}>{product.currency}</span>
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: 12, color: 'var(--muted)' }}>Price on request</span>
-                              )}
-                            </div>
-                            <button
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: '#fff',
-                                background: 'var(--forest)',
-                                border: 'none',
-                                padding: '7px 16px',
-                                borderRadius: 99,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Add to cart
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
           </section>
         )}
 
@@ -592,7 +502,7 @@ export default async function ClinicPage({
         {clinic.reviews.length > 0 && (
           <section style={{ marginBottom: 56 }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 20 }}>
-              Patient Reviews
+              Guest Reviews
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {clinic.reviews.map((r) => (
@@ -613,7 +523,7 @@ export default async function ClinicPage({
                   )}
                   {r.treatment_slug && (
                     <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
-                      Treatment: {capitalize(r.treatment_slug)}
+                      Package: {capitalize(r.treatment_slug)}
                     </div>
                   )}
                 </div>

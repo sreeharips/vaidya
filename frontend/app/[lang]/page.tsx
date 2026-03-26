@@ -3,19 +3,11 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import HeroSearch from '@/components/search/HeroSearch'
 import HomeClinicCard, { type ClinicSummary } from '@/components/cards/HomeClinicCard'
-import HomeDoctorCard, { type DoctorSummary } from '@/components/cards/HomeDoctorCard'
-import HomeProductCard, { type ProductItem } from '@/components/cards/HomeProductCard'
+import WellnessGoalGrid from '@/components/home/WellnessGoalGrid'
 
-export const revalidate = 300   // homepage refreshes every 5 minutes
+export const revalidate = 300
 
 const API_BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-interface ConditionItem { slug: string; label: string }
-interface TrustItem     { number: string; label: string }
-
-// ── Data fetches ──────────────────────────────────────────────────────────────
 
 async function fetchClinics(): Promise<ClinicSummary[]> {
   try {
@@ -25,23 +17,34 @@ async function fetchClinics(): Promise<ClinicSummary[]> {
   } catch { return [] }
 }
 
-async function fetchDoctors(): Promise<DoctorSummary[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/doctors?limit=8`, { next: { revalidate: 300 } })
-    if (!res.ok) return []
-    return (await res.json()).items ?? []
-  } catch { return [] }
-}
+const WELLNESS_GOALS = [
+  { icon: '◈', label: 'Panchakarma',  desc: 'Full-body detox',         href: '/clinics?treatment=panchakarma' },
+  { icon: '◉', label: 'Shirodhara',   desc: 'Stress & mind reset',     href: '/clinics?treatment=shirodhara' },
+  { icon: '◌', label: 'Kizhi',        desc: 'Herbal pain therapy',     href: '/clinics?treatment=kizhi' },
+  { icon: '◎', label: 'Abhyanga',     desc: 'Full-body oil massage',   href: '/clinics?treatment=abhyanga' },
+  { icon: '◈', label: 'Skin & Hair',  desc: 'Ayurvedic beauty',        href: '/clinics?goal=skin' },
+  { icon: '◉', label: 'Digestive',    desc: 'Gut health & metabolism', href: '/clinics?goal=digestive' },
+  { icon: '◌', label: 'Joint Care',   desc: 'Arthritis & mobility',    href: '/clinics?goal=joints' },
+  { icon: '◎', label: 'Navarakizhi',  desc: 'Rice bolus therapy',      href: '/clinics?treatment=navarakizhi' },
+]
 
-async function fetchProducts(): Promise<ProductItem[]> {
-  try {
-    const res = await fetch(`${API_BASE}/api/products?limit=8`, { next: { revalidate: 300 } })
-    if (!res.ok) return []
-    return (await res.json()).items ?? []
-  } catch { return [] }
-}
+const KERALA_DISTRICTS = [
+  'Thiruvananthapuram', 'Kollam', 'Kottayam', 'Ernakulam',
+  'Thrissur', 'Palakkad', 'Kozhikode', 'Kannur', 'Wayanad', 'Alappuzha',
+]
 
-// ── Metadata ──────────────────────────────────────────────────────────────────
+const CONDITIONS = [
+  { label: 'Back & Spine Pain',   href: '/search?condition=back-pain' },
+  { label: 'Stress & Anxiety',    href: '/search?condition=stress' },
+  { label: 'Arthritis',           href: '/search?condition=arthritis' },
+  { label: 'Diabetes',            href: '/search?condition=diabetes' },
+  { label: 'Digestive Disorders', href: '/search?condition=digestive' },
+  { label: 'Skin Conditions',     href: '/search?condition=skin' },
+  { label: 'Weight Management',   href: '/search?condition=weight' },
+  { label: 'Insomnia',            href: '/search?condition=insomnia' },
+  { label: 'Hypertension',        href: '/search?condition=hypertension' },
+  { label: 'Migraines',           href: '/search?condition=migraine' },
+]
 
 export async function generateMetadata({ params: { lang } }: { params: { lang: string } }): Promise<Metadata> {
   const t = await getTranslations({ locale: lang, namespace: 'home.meta' })
@@ -61,136 +64,184 @@ export async function generateMetadata({ params: { lang } }: { params: { lang: s
   }
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
-  const t = await getTranslations({ locale: lang, namespace: 'home' })
-
-  const conditions = t.raw('conditions.items') as ConditionItem[]
-  const trustItems = t.raw('trust.items')       as TrustItem[]
-  const isRtl      = lang === 'ar'
-
-  const [clinics, doctors, products] = await Promise.all([fetchClinics(), fetchDoctors(), fetchProducts()])
+  const t    = await getTranslations({ locale: lang, namespace: 'home' })
+  const isRtl = lang === 'ar'
+  const clinics = await fetchClinics()
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div style={{ minHeight: '100vh', background: 'var(--cream)' }} dir={isRtl ? 'rtl' : 'ltr'}>
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <section
-        className="hero-mandala"
-        style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '80px 48px 80px', position: 'relative', overflow: 'hidden',
-          background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184,134,44,0.07) 0%, transparent 70%)',
-        }}
-      >
-        <p className="hero-eyebrow-line" style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '24px' }}>
-          {t('hero.eyebrow')}
-        </p>
+      <section style={{
+        background: 'linear-gradient(160deg, #0f2218 0%, #1E3D2F 60%, #2D5440 100%)',
+        padding: '36px 48px 28px',
+      }}>
+        <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
-        <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 6vw, 76px)', fontWeight: 300, color: 'var(--forest)', textAlign: 'center', lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '20px', maxWidth: '860px' }}>
-          {t('hero.h1Part1')}{' '}
-          <em style={{ fontStyle: 'italic', color: 'var(--gold)', fontWeight: 300 }}>{t('hero.h1Italic')}</em>
-          <br />{t('hero.h1Part2')}
-        </h1>
+          {/* Headline + subtitle */}
+          <h1 style={{
+            fontFamily: 'var(--serif)',
+            fontSize: 'clamp(24px, 3vw, 36px)',
+            fontWeight: 300,
+            color: '#FDFAF6',
+            lineHeight: 1.2,
+            letterSpacing: '-0.01em',
+            marginBottom: '6px',
+          }}>
+            Find your <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>vaidya.</em>{' '}Heal at the source.
+          </h1>
+          <p style={{ fontSize: '13px', color: 'rgba(253,250,246,0.5)', lineHeight: 1.5, marginBottom: '20px', maxWidth: 520 }}>
+            Credentialed Ayurvedic doctors and authentic treatment programmes — matched to your unique constitution.
+          </p>
 
-        <p style={{ fontSize: '17px', fontWeight: 300, color: 'var(--muted)', textAlign: 'center', maxWidth: '520px', lineHeight: 1.7, marginBottom: '48px' }}>
-          {t('hero.subtitle')}
-        </p>
+          {/* Search */}
+          <HeroSearch lang={lang} placeholder={t('hero.searchPlaceholder')} buttonLabel={t('hero.searchButton')} />
 
-        <HeroSearch lang={lang} placeholder={t('hero.searchPlaceholder')} buttonLabel={t('hero.searchButton')} />
+          {/* Pills */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
+            {['Panchakarma', 'Shirodhara', 'Abhyanga', 'Virechana', 'Basti', 'Detox & Cleanse', 'Stress Relief', 'Pain Management', 'Skin & Hair'].map((label) => (
+              <Link key={label} href={`/${lang}/clinics`} style={{
+                fontSize: '11px', padding: '3px 11px', borderRadius: '99px',
+                border: '1px solid rgba(253,250,246,0.14)', color: 'rgba(253,250,246,0.55)',
+                textDecoration: 'none', background: 'rgba(253,250,246,0.05)',
+                whiteSpace: 'nowrap',
+              }}>
+                {label}
+              </Link>
+            ))}
+          </div>
 
-        <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '24px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          {t('conditions.sectionLabel')}
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', maxWidth: '640px', marginTop: '12px' }}>
-          {conditions.map((c) => (
-            <Link key={c.slug} href={`/${lang}/conditions/${c.slug}`} className="cond-pill">{c.label}</Link>
-          ))}
+          {/* Stats */}
+          <div style={{ display: 'flex', gap: '28px', marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(253,250,246,0.08)', flexWrap: 'wrap' }}>
+            {[
+              { stat: '50+',    label: 'Credentialed Clinics' },
+              { stat: 'BAMS',   label: 'Doctor Verified' },
+              { stat: '2-Tier', label: 'Credentialing' },
+            ].map((item) => (
+              <div key={item.stat} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ fontFamily: 'var(--serif)', fontSize: '18px', color: 'var(--gold)', fontWeight: 500 }}>{item.stat}</span>
+                <span style={{ fontSize: '11px', color: 'rgba(253,250,246,0.38)', letterSpacing: '0.04em' }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 
-      {/* ── Trust strip ──────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '40px', justifyContent: 'center', alignItems: 'center', padding: '28px 48px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: '#fff', flexWrap: 'wrap' }}>
-        {trustItems.map((item) => (
-          <div key={item.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontFamily: 'var(--serif)', fontSize: '26px', fontWeight: 600, color: 'var(--forest)' }}>{item.number}</span>
-            <span style={{ fontSize: '11px', color: 'var(--muted)', letterSpacing: '0.04em', textTransform: 'uppercase', textAlign: 'center' }}>{item.label}</span>
-          </div>
-        ))}
-      </div>
+      {/* ── Wellness Goals ───────────────────────────────────────────────────── */}
+      <section style={{ padding: '48px 48px 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader label="Find your treatment" title="Browse by Wellness Goal" cta={{ label: 'All clinics', href: `/${lang}/clinics` }} />
+        <WellnessGoalGrid goals={WELLNESS_GOALS} lang={lang} />
+      </section>
 
-      {/* ── Popular Clinics ───────────────────────────────────────────────────── */}
-      <section style={{ padding: '64px 48px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-        <SectionHeader label="Kerala's finest" title="Popular Ayurveda Clinics" cta={{ label: 'Browse all clinics', href: `/${lang}/clinics` }} />
+      {/* ── Featured Clinics ─────────────────────────────────────────────────── */}
+      <section style={{ padding: '48px 48px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader label="Kerala's finest" title="Featured Wellness Retreats" cta={{ label: 'Browse all', href: `/${lang}/clinics` }} />
         {clinics.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24, alignItems: 'stretch' }}>
-            {clinics.map((clinic) => <HomeClinicCard key={clinic.id} clinic={clinic} lang={lang} />)}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+            {clinics.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} />)}
           </div>
         ) : (
           <EmptyState message="Clinics coming soon — credentialing in progress." />
         )}
       </section>
 
-      {/* ── Featured Doctors ──────────────────────────────────────────────────── */}
-      <section style={{ padding: '0 48px 64px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-        <SectionHeader label="Experienced vaidyas" title="Featured Doctors" cta={{ label: 'Find a doctor', href: `/${lang}/doctors` }} />
-        {doctors.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, alignItems: 'stretch' }}>
-            {doctors.map((doctor) => <HomeDoctorCard key={doctor.id} doctor={doctor} lang={lang} />)}
-          </div>
-        ) : (
-          <EmptyState message="Doctor profiles coming soon." />
-        )}
-      </section>
+      {/* ── Conditions + Districts (two-col) ─────────────────────────────────── */}
+      <section style={{ background: '#fff', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '48px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px' }}>
 
-      {/* ── Herbal Products ───────────────────────────────────────────────────── */}
-      <section style={{ padding: '64px 48px', background: '#fff', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <SectionHeader label="Direct from the vaidya" title="Herbal Products Shop" cta={{ label: 'Browse all products', href: `/${lang}/shop` }} />
-          {products.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20, alignItems: 'stretch' }}>
-              {products.map((product) => <HomeProductCard key={product.id} product={product} lang={lang} />)}
-            </div>
-          ) : (
-            <EmptyState message="Herbal products coming soon." />
-          )}
-        </div>
-      </section>
-
-      {/* ── How it works ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '72px 48px', maxWidth: 900, margin: '0 auto', width: '100%' }}>
-        <SectionHeader label="Simple process" title="How Vaidya Works" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32 }}>
-          {HOW_IT_WORKS.map((step, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--forest-lt)', color: 'var(--forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, margin: '0 auto 16px' }}>
-                {step.icon}
-              </div>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', marginBottom: 6 }}>{step.title}</div>
-              <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>{step.body}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Bottom CTA ───────────────────────────────────────────────────────── */}
-      <section style={{ padding: '0 48px 80px' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', background: 'linear-gradient(135deg, var(--forest) 0%, var(--forest2) 100%)', borderRadius: 'var(--r-xl)', padding: '52px 48px', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Conditions */}
           <div>
-            <div style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(22px,3vw,32px)', color: '#fff', fontWeight: 300, marginBottom: 8 }}>
-              Not sure which clinic is right for you?
-            </div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', maxWidth: 420, lineHeight: 1.6 }}>
-              Take our 5-minute Prakriti assessment. We'll match you to the right clinics and treatments for your constitution.
+            <SectionHeader label="Search by condition" title="Conditions We Treat" cta={{ label: 'Search', href: `/${lang}/search` }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {CONDITIONS.map((c) => (
+                <Link key={c.label} href={`/${lang}${c.href}`} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 12px', fontSize: '12px', color: 'var(--slate)',
+                  textDecoration: 'none', borderRadius: 'var(--r-sm)',
+                  border: '1px solid var(--border)', background: 'var(--cream)',
+                }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--gold)', flexShrink: 0 }} />
+                  {c.label}
+                </Link>
+              ))}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link href={`/${lang}/assessment`} style={{ display: 'inline-block', background: 'var(--gold)', color: '#fff', fontSize: 14, fontWeight: 600, padding: '13px 28px', borderRadius: 99, textDecoration: 'none' }}>
-              Take free assessment
+
+          {/* Districts */}
+          <div>
+            <SectionHeader label="Kerala, India" title="Browse by District" cta={{ label: 'View all', href: `/${lang}/clinics` }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {KERALA_DISTRICTS.map((d) => (
+                <Link key={d} href={`/${lang}/clinics?district=${d.toLowerCase()}`} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                  padding: '6px 14px', borderRadius: '99px',
+                  border: '1px solid var(--border2)', fontSize: '12px',
+                  color: 'var(--slate)', textDecoration: 'none', background: 'var(--cream)',
+                }}>
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ color: 'var(--gold)', flexShrink: 0 }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {d}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works + CTA (side by side) ───────────────────────────────── */}
+      <section style={{ padding: '48px', maxWidth: 1200, margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
+
+        {/* How it works */}
+        <div>
+          <SectionHeader label="Simple process" title="How Vaidya Works" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {HOW_IT_WORKS.map((step, i) => (
+              <div key={i} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                  background: 'var(--forest-lt)', color: 'var(--forest)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '16px', fontFamily: 'var(--serif)',
+                }}>
+                  {step.icon}
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'var(--serif)', fontSize: '16px', color: 'var(--forest)', fontWeight: 500, marginBottom: '3px' }}>{step.title}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.6 }}>{step.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA cards stacked */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ background: 'var(--gold-lt)', border: '1px solid rgba(184,134,44,0.2)', borderRadius: 'var(--r-md)', padding: '28px 28px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--bark)', marginBottom: '8px' }}>For patients</p>
+            <p style={{ fontFamily: 'var(--serif)', fontSize: '20px', color: 'var(--slate)', marginBottom: '8px', lineHeight: 1.2 }}>
+              Not sure which retreat is right for you?
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '16px' }}>
+              Browse by condition, treatment, or budget. Every clinic is credentialed before listing.
+            </p>
+            <Link href={`/${lang}/clinics`} style={{ display: 'inline-block', background: 'var(--bark)', color: '#fff', fontSize: '13px', fontWeight: 500, padding: '9px 22px', borderRadius: '99px', textDecoration: 'none' }}>
+              Browse retreats
             </Link>
-            <Link href={`/${lang}/clinics`} style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 14, fontWeight: 500, padding: '13px 28px', borderRadius: 99, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}>
-              Browse clinics
+          </div>
+
+          <div style={{ background: 'var(--forest-lt)', border: '1px solid rgba(30,61,47,0.15)', borderRadius: 'var(--r-md)', padding: '28px 28px' }}>
+            <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--forest2)', marginBottom: '8px' }}>For clinics</p>
+            <p style={{ fontFamily: 'var(--serif)', fontSize: '20px', color: 'var(--slate)', marginBottom: '8px', lineHeight: 1.2 }}>
+              Run an authentic Ayurveda retreat?
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.6, marginBottom: '16px' }}>
+              Get credentialed and reach international patients looking for authentic Ayurveda care.
+            </p>
+            <Link href="mailto:clinics@vaidya.health" style={{ display: 'inline-block', background: 'var(--forest)', color: '#fff', fontSize: '13px', fontWeight: 500, padding: '9px 22px', borderRadius: '99px', textDecoration: 'none' }}>
+              List your clinic
             </Link>
           </div>
         </div>
@@ -200,17 +251,15 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
   )
 }
 
-// ── Server-only sub-components (no event handlers) ────────────────────────────
-
 function SectionHeader({ label, title, cta }: { label: string; title: string; cta?: { label: string; href: string } }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '8px' }}>
       <div>
-        <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: 6 }}>{label}</p>
-        <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(24px,3vw,36px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.1 }}>{title}</h2>
+        <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: '4px' }}>{label}</p>
+        <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(20px, 2.5vw, 28px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.1 }}>{title}</h2>
       </div>
       {cta && (
-        <Link href={cta.href} style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)', textDecoration: 'none', borderBottom: '1px solid var(--gold)', paddingBottom: 2, flexShrink: 0 }}>
+        <Link href={cta.href} style={{ fontSize: '12px', fontWeight: 500, color: 'var(--forest)', textDecoration: 'none', borderBottom: '1px solid var(--gold)', paddingBottom: '1px', flexShrink: 0 }}>
           {cta.label} →
         </Link>
       )}
@@ -220,15 +269,14 @@ function SectionHeader({ label, title, cta }: { label: string; title: string; ct
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div style={{ padding: '48px 24px', textAlign: 'center', border: '1px dashed var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--muted)', fontSize: 14 }}>
+    <div style={{ padding: '40px 24px', textAlign: 'center', border: '1px dashed var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--muted)', fontSize: '13px' }}>
       {message}
     </div>
   )
 }
 
 const HOW_IT_WORKS = [
-  { icon: '🔍', title: 'Search & Discover',   body: 'Browse credentialed Ayurveda clinics and vaidyas by specialisation, location, or condition.' },
-  { icon: '✦',  title: 'Prakriti Assessment', body: 'Take our 5-minute voice or text assessment. Get clinics matched to your unique body constitution.' },
-  { icon: '📅', title: 'Book Your Retreat',   body: 'Book directly with the clinic. Secure payment, no hidden fees, international support.' },
-  { icon: '🌿', title: 'Continue at Home',    body: "Order the clinic's authentic herbal formulations shipped directly to your door." },
+  { icon: '◎', title: 'Search & Discover',  body: 'Browse by condition, treatment type, district, or budget.' },
+  { icon: '◈', title: 'Review & Compare',   body: 'See BAMS credentials, patient reviews, programmes, and pricing.' },
+  { icon: '◉', title: 'Book & Heal',        body: 'Book with secure payment. Retreat team follows up within 24 hours.' },
 ]

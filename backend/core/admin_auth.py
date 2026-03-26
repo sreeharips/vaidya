@@ -1,9 +1,8 @@
 """
 core/admin_auth.py — Role-based admin access dependencies.
 
-Three admin roles (on users.role):
+Two admin roles (on users.role):
   - clinic_admin: manages their own clinic only
-  - doctor: manages their own profile only (within their clinic)
   - platform_admin: read-only overview of all clinics, can trigger tier upgrades
 """
 
@@ -26,14 +25,6 @@ async def require_clinic_admin(
         raise HTTPException(status_code=403, detail="Clinic admin access required")
     return user
 
-
-async def require_doctor(
-    user: User = Depends(get_current_user),
-) -> User:
-    """Raises 403 if user is not a doctor or clinic_admin."""
-    if user.role not in ("doctor", "clinic_admin"):
-        raise HTTPException(status_code=403, detail="Doctor or clinic admin access required")
-    return user
 
 
 async def require_platform_admin(

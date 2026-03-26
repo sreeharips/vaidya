@@ -6,7 +6,6 @@ POST   /api/admin/bookings              — create booking (walk-in / phone)
 PATCH  /api/admin/bookings/{id}/confirm — accept a pending booking
 PATCH  /api/admin/bookings/{id}/decline — decline with reason
 PATCH  /api/admin/bookings/{id}/complete — mark confirmed → completed
-PATCH  /api/admin/bookings/{id}/assign-doctor — assign or change doctor
 GET    /api/admin/bookings/stats        — monthly summary
 """
 
@@ -14,7 +13,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,13 +21,10 @@ from core.admin_auth import get_admin_clinic
 from db.database import get_db
 from db.models import (
     Booking,
-    ClinicAvailabilitySlot,
     ClinicBlockedDate,
     ClinicFeatureStore,
-    Doctor,
-    DoctorTreatment,
     PatientProfile,
-    Treatment,
+    WellnessPackage,
 )
 from db.outcomes import append_outcome
 
@@ -45,16 +41,15 @@ _COMMISSION_DOMESTIC = 0.07
 
 class BookingListItem(BaseModel):
     id: str
-    patient_name: str
-    patient_email: str
+    guest_name: str | None
+    guest_email: str | None
     clinic_id: str
-    doctor_id: str | None
-    doctor_name: str | None
-    treatment_id: str | None
-    treatment_name: str
+    package_id: str
+    package_name: str
     start_date: str
     end_date: str
     nights: int
+    guest_count: int
     status: str
     total_amount: float
     commission_amount: float
@@ -69,13 +64,12 @@ class BookingsPage(BaseModel):
 
 
 class AdminBookingCreate(BaseModel):
-    treatment_id: str
-    doctor_id: str | None = None
+    package_id: str
     start_date: date
     end_date: date
     guest_name: str = Field(min_length=1, max_length=200)
     guest_email: str | None = None
-    guest_phone: str | None = None
+    guest_count: int = Field(default=1, ge=1, le=20)
     lang: str = Field(default="en", pattern="^(en|ar|de|fr|ml|hi)$")
     notes: str | None = None
     skip_availability_check: bool = False
@@ -87,10 +81,6 @@ class AdminBookingCreate(BaseModel):
         return self
 
 
-class AssignDoctorBody(BaseModel):
-    doctor_id: str
-
-
 class DeclineBody(BaseModel):
     reason: str
 
@@ -99,7 +89,7 @@ class BookingStats(BaseModel):
     bookings_this_month: int
     revenue_this_month: float
     pending_requests: int
-    active_doctors: int
+    active_packages: int
 
 
 # ── Availability helpers ─────────────────────────────────────────────────────
@@ -110,7 +100,7 @@ async def _check_availability(
     start_date: date,
     end_date: date,
 ) -> list[dict]:
-    """Check for blocked dates and slot capacity issues in the date range.
+    """Check for blocked dates in the date range.
 
     Returns a list of warning dicts. Empty list = all clear.
     """
@@ -132,24 +122,7 @@ async def _check_availability(
             "reason": bd.reason or "Blocked",
         })
 
-    # Check availability slots
-    slots = (await db.execute(
-        select(ClinicAvailabilitySlot).where(
-            ClinicAvailabilitySlot.clinic_id == clinic_id,
-            ClinicAvailabilitySlot.slot_date >= start_date,
-            ClinicAvailabilitySlot.slot_date < end_date,
-        )
-    )).scalars().all()
-
-    for slot in slots:
-        if slot.is_closed:
-            warnings.append({
-                "type": "closed",
-                "date": str(slot.slot_date),
-                "reason": slot.close_reason or "Clinic closed",
-            })
-
-    # Check existing booking count per date for capacity
+    # Check existing booking count for capacity
     existing_count = (await db.execute(
         select(func.count(Booking.id)).where(
             Booking.clinic_id == clinic_id,
@@ -159,15 +132,12 @@ async def _check_availability(
         )
     )).scalar_one()
 
-    # If any configured slot exists, check against lowest capacity
-    if slots:
-        min_capacity = min(s.total_slots for s in slots if not s.is_closed) if any(not s.is_closed for s in slots) else 0
-        if min_capacity > 0 and existing_count >= min_capacity:
-            warnings.append({
-                "type": "capacity",
-                "date": f"{start_date} to {end_date}",
-                "reason": f"At or near capacity ({existing_count} active bookings, {min_capacity} slots)",
-            })
+    if existing_count >= 20:  # Simple capacity check
+        warnings.append({
+            "type": "capacity",
+            "date": f"{start_date} to {end_date}",
+            "reason": f"High booking volume ({existing_count} active bookings overlap)",
+        })
 
     return warnings
 
@@ -195,22 +165,19 @@ async def list_bookings(
 
     items = []
     for b in results:
-        treatment = await db.get(Treatment, b.treatment_id) if b.treatment_id else None
-        doctor = await db.get(Doctor, b.doctor_id) if b.doctor_id else None
-        patient_label = b.guest_email or f"Guest #{str(b.patient_pseudo_id)[:8]}"
+        package = await db.get(WellnessPackage, b.package_id) if b.package_id else None
         nights = (b.end_date - b.start_date).days if b.end_date and b.start_date else 0
         items.append(BookingListItem(
             id=str(b.id),
-            patient_name=patient_label,
-            patient_email=b.guest_email or "",
+            guest_name=b.guest_name or f"Guest #{str(b.patient_pseudo_id)[:8]}",
+            guest_email=b.guest_email,
             clinic_id=str(b.clinic_id),
-            doctor_id=str(b.doctor_id) if b.doctor_id else None,
-            doctor_name=doctor.name if doctor else None,
-            treatment_id=str(b.treatment_id) if b.treatment_id else None,
-            treatment_name=treatment.name if treatment else "—",
+            package_id=str(b.package_id) if b.package_id else "",
+            package_name=package.name if package else "—",
             start_date=str(b.start_date),
             end_date=str(b.end_date),
             nights=nights,
+            guest_count=b.guest_count or 1,
             status=b.status,
             total_amount=float(b.total_amount) if b.total_amount else 0.0,
             commission_amount=float(b.commission_amount) if b.commission_amount else 0.0,
@@ -235,53 +202,24 @@ async def create_booking(
     - Does not require payment up-front
     - Validates availability unless skip_availability_check is set
     """
-    treatment_uuid = uuid.UUID(body.treatment_id)
-    doctor_uuid = uuid.UUID(body.doctor_id) if body.doctor_id else None
+    package_uuid = uuid.UUID(body.package_id)
 
-    # Validate treatment belongs to this clinic
-    treatment = (await db.execute(
-        select(Treatment).where(
-            Treatment.id == treatment_uuid,
-            Treatment.clinic_id == clinic.id,
-            Treatment.is_active.is_(True),
+    # Validate package belongs to this clinic
+    package = (await db.execute(
+        select(WellnessPackage).where(
+            WellnessPackage.id == package_uuid,
+            WellnessPackage.clinic_id == clinic.id,
+            WellnessPackage.is_active.is_(True),
         )
     )).scalar_one_or_none()
-    if not treatment:
-        raise HTTPException(status_code=422, detail="Treatment not found or inactive.")
-
-    # Validate doctor if specified
-    doctor = None
-    if doctor_uuid:
-        doctor = (await db.execute(
-            select(Doctor).where(
-                Doctor.id == doctor_uuid,
-                Doctor.clinic_id == clinic.id,
-                Doctor.is_active.is_(True),
-            )
-        )).scalar_one_or_none()
-        if not doctor:
-            raise HTTPException(status_code=422, detail="Doctor not found or inactive.")
-
-        # Validate doctor-treatment link if treatment has specific doctors
-        dt_links = (await db.execute(
-            select(DoctorTreatment).where(DoctorTreatment.treatment_id == treatment_uuid).limit(1)
-        )).scalar_one_or_none()
-        if dt_links:
-            allowed = (await db.execute(
-                select(DoctorTreatment).where(
-                    DoctorTreatment.treatment_id == treatment_uuid,
-                    DoctorTreatment.doctor_id == doctor_uuid,
-                )
-            )).scalar_one_or_none()
-            if not allowed:
-                raise HTTPException(status_code=422, detail="Doctor is not linked to this treatment.")
+    if not package:
+        raise HTTPException(status_code=422, detail="Package not found or inactive.")
 
     # Check availability
     availability_warnings = []
     if not body.skip_availability_check:
         availability_warnings = await _check_availability(db, clinic.id, body.start_date, body.end_date)
-        # Block on hard failures (blocked dates, closed dates)
-        hard_blocks = [w for w in availability_warnings if w["type"] in ("blocked", "closed")]
+        hard_blocks = [w for w in availability_warnings if w["type"] == "blocked"]
         if hard_blocks:
             raise HTTPException(
                 status_code=409,
@@ -293,8 +231,7 @@ async def create_booking(
 
     # Calculate financials
     nights = (body.end_date - body.start_date).days
-    price_per_day = float(treatment.price_per_day) if treatment.price_per_day else 0.0
-    total_amount = round(price_per_day * nights, 2)
+    total_amount = round(float(package.price_usd) * nights * body.guest_count, 2)
     rate = _COMMISSION_INTERNATIONAL if body.lang in _INTERNATIONAL_LANGS else _COMMISSION_DOMESTIC
     commission_amount = round(total_amount * rate, 2)
 
@@ -307,9 +244,10 @@ async def create_booking(
         id=uuid.uuid4(),
         patient_pseudo_id=pseudo_id,
         clinic_id=clinic.id,
-        doctor_id=doctor_uuid,
-        treatment_id=treatment_uuid,
+        package_id=package_uuid,
+        guest_name=body.guest_name,
         guest_email=body.guest_email,
+        guest_count=body.guest_count,
         start_date=body.start_date,
         end_date=body.end_date,
         status="confirmed",
@@ -326,12 +264,11 @@ async def create_booking(
         event_type="booking_confirmed",
         patient_pseudo_id=pseudo_id,
         clinic_id=clinic.id,
-        doctor_id=doctor_uuid,
         booking_status="confirmed",
         scores={
             "total_amount": total_amount,
             "nights": nights,
-            "treatment_slug": treatment.slug,
+            "package_name": package.name,
             "lang": body.lang,
             "source": "admin_manual",
         },
@@ -342,9 +279,9 @@ async def create_booking(
     return {
         "id": str(booking.id),
         "status": "confirmed",
-        "treatment_name": treatment.name,
-        "doctor_name": doctor.name if doctor else None,
+        "package_name": package.name,
         "guest_name": body.guest_name,
+        "guest_count": body.guest_count,
         "start_date": str(body.start_date),
         "end_date": str(body.end_date),
         "nights": nights,
@@ -375,7 +312,6 @@ async def confirm_booking(
         event_type="booking_confirmed",
         patient_pseudo_id=booking.patient_pseudo_id,
         clinic_id=booking.clinic_id,
-        doctor_id=booking.doctor_id,
         booking_status="confirmed",
     )
 
@@ -423,66 +359,11 @@ async def complete_booking(
         event_type="booking_completed",
         patient_pseudo_id=booking.patient_pseudo_id,
         clinic_id=booking.clinic_id,
-        doctor_id=booking.doctor_id,
         booking_status="completed",
     )
 
     await db.commit()
-    return {
-        "id": booking_id,
-        "status": "completed",
-    }
-
-
-@router.patch("/bookings/{booking_id}/assign-doctor")
-async def assign_doctor(
-    booking_id: str,
-    body: AssignDoctorBody,
-    clinic: ClinicFeatureStore = Depends(get_admin_clinic),
-    db: AsyncSession = Depends(get_db),
-):
-    """Assign or change the doctor on a booking."""
-    booking = await db.get(Booking, uuid.UUID(booking_id))
-    if not booking or booking.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.status in ("completed", "cancelled"):
-        raise HTTPException(status_code=400, detail=f"Cannot assign doctor to {booking.status} booking")
-
-    doctor_uuid = uuid.UUID(body.doctor_id)
-    doctor = (await db.execute(
-        select(Doctor).where(
-            Doctor.id == doctor_uuid,
-            Doctor.clinic_id == clinic.id,
-            Doctor.is_active.is_(True),
-        )
-    )).scalar_one_or_none()
-    if not doctor:
-        raise HTTPException(status_code=422, detail="Doctor not found or inactive.")
-
-    # Validate doctor-treatment link if treatment has specific doctors
-    if booking.treatment_id:
-        dt_links = (await db.execute(
-            select(DoctorTreatment).where(DoctorTreatment.treatment_id == booking.treatment_id).limit(1)
-        )).scalar_one_or_none()
-        if dt_links:
-            allowed = (await db.execute(
-                select(DoctorTreatment).where(
-                    DoctorTreatment.treatment_id == booking.treatment_id,
-                    DoctorTreatment.doctor_id == doctor_uuid,
-                )
-            )).scalar_one_or_none()
-            if not allowed:
-                raise HTTPException(status_code=422, detail="Doctor is not linked to this treatment.")
-
-    booking.doctor_id = doctor_uuid
-    booking.updated_at = datetime.now(timezone.utc)
-    await db.commit()
-
-    return {
-        "id": booking_id,
-        "doctor_id": str(doctor_uuid),
-        "doctor_name": doctor.name,
-    }
+    return {"id": booking_id, "status": "completed"}
 
 
 @router.get("/bookings/stats", response_model=BookingStats)
@@ -503,11 +384,17 @@ async def get_booking_stats(
     revenue = sum(float(b.total_amount or 0) for b in month_bookings if b.status in ("confirmed", "completed", "payment_received"))
     pending_requests = sum(1 for b in month_bookings if b.status == "pending")
 
-    active_doctor_ids = {b.doctor_id for b in month_bookings if b.doctor_id and b.status in ("pending", "confirmed")}
+    # Count active packages instead of active doctors
+    active_packages_count = (await db.execute(
+        select(func.count(WellnessPackage.id)).where(
+            WellnessPackage.clinic_id == clinic.id,
+            WellnessPackage.is_active.is_(True),
+        )
+    )).scalar_one()
 
     return BookingStats(
         bookings_this_month=bookings_this_month,
         revenue_this_month=round(revenue, 2),
         pending_requests=pending_requests,
-        active_doctors=len(active_doctor_ids),
+        active_packages=active_packages_count,
     )

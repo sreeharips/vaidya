@@ -14,12 +14,11 @@ const DISTRICTS = [
   'Kozhikode', 'Wayanad', 'Kannur', 'Kasaragod',
 ]
 
-const SPECIALISATIONS = [
-  'panchakarma', 'shirodhara', 'kizhi', 'abhyanga', 'pizhichil',
-  'njavara', 'nasya', 'basti', 'virechana', 'udvartana',
+const WELLNESS_CATEGORIES = [
+  'detox-cleanse', 'stress-relief', 'pain-management', 'weight-wellness',
+  'skin-hair', 'immunity-boost', 'anti-aging', 'digestive-health', 'joint-mobility',
 ]
 
-const PRAKRITI  = ['vata', 'pitta', 'kapha']
 const LANGUAGES = ['Malayalam', 'English', 'Hindi', 'Arabic', 'German', 'French']
 
 const PAGE_SIZE = 18
@@ -31,8 +30,8 @@ interface PageProps {
 
 export async function generateMetadata({ params: { lang } }: PageProps): Promise<Metadata> {
   return {
-    title: 'Ayurveda Clinics in Kerala — Browse & Filter | Vaidya',
-    description: 'Discover credentialed Ayurveda clinics in Kerala. Filter by treatment type, district, budget, language, and Prakriti constitution.',
+    title: 'Ayurveda Wellness Retreats in Kerala — Browse & Filter | Vaidya',
+    description: 'Discover credentialed Ayurveda wellness retreats in Kerala. Filter by wellness goal, district, budget, language, and more.',
     alternates: { canonical: `https://vaidya.health/${lang}/clinics` },
   }
 }
@@ -49,35 +48,33 @@ async function fetchClinics(params: URLSearchParams): Promise<{ items: ClinicSum
 }
 
 export default async function ClinicsPage({ params: { lang }, searchParams }: PageProps) {
-  const tier           = searchParams.tier
-  const specialisation = searchParams.specialisation
-  const district       = searchParams.district
-  const language       = searchParams.language
-  const prakriti       = searchParams.prakriti
-  const budgetMax      = searchParams.budget_max
-  const ratingMin      = searchParams.rating_min
-  const page           = Number(searchParams.page ?? '1')
-  const offset         = (page - 1) * PAGE_SIZE
+  const tier       = searchParams.tier
+  const category   = searchParams.category
+  const district   = searchParams.district
+  const language   = searchParams.language
+  const budgetMax  = searchParams.budget_max
+  const ratingMin  = searchParams.rating_min
+  const page       = Number(searchParams.page ?? '1')
+  const offset     = (page - 1) * PAGE_SIZE
 
   const qs = new URLSearchParams()
-  if (tier)           qs.set('tier', tier)
-  if (specialisation) qs.set('specialisation', specialisation)
-  if (district)       qs.set('district', district)
-  if (language)       qs.set('language', language)
-  if (prakriti)       qs.set('prakriti', prakriti)
-  if (budgetMax)      qs.set('budget_max', budgetMax)
-  if (ratingMin)      qs.set('rating_min', ratingMin)
+  if (tier)      qs.set('tier', tier)
+  if (category)  qs.set('category', category)
+  if (district)  qs.set('district', district)
+  if (language)  qs.set('language', language)
+  if (budgetMax) qs.set('budget_max', budgetMax)
+  if (ratingMin) qs.set('rating_min', ratingMin)
   qs.set('limit', String(PAGE_SIZE))
   qs.set('offset', String(offset))
 
   const { items: clinics, total } = await fetchClinics(qs)
 
   const totalPages    = Math.ceil(total / PAGE_SIZE)
-  const activeFilters = [tier, specialisation, district, language, prakriti, budgetMax, ratingMin].filter(Boolean).length
+  const activeFilters = [tier, category, district, language, budgetMax, ratingMin].filter(Boolean).length
 
   const buildUrl = (overrides: Record<string, string | undefined>) => {
     const p = new URLSearchParams()
-    const merged = { tier, specialisation, district, language, prakriti, budget_max: budgetMax, rating_min: ratingMin, page: String(page), ...overrides }
+    const merged = { tier, category, district, language, budget_max: budgetMax, rating_min: ratingMin, page: String(page), ...overrides }
     for (const [k, v] of Object.entries(merged)) {
       if (v && v !== 'undefined') p.set(k, v)
     }
@@ -94,14 +91,14 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
             Kerala, India
           </p>
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 400, color: 'var(--forest)', lineHeight: 1.15, marginBottom: 8 }}>
-            Ayurveda Clinics
+            Wellness Retreats
           </h1>
           <p style={{ fontSize: 14, color: 'var(--muted)', maxWidth: 540, marginBottom: 20 }}>
             {total > 0
-              ? `${total} credentialed clinic${total !== 1 ? 's' : ''} — all verified by Vaidya`
-              : 'Credentialed clinics — all verified by Vaidya'}
+              ? `${total} credentialed retreat${total !== 1 ? 's' : ''} — all verified by Vaidya`
+              : 'Credentialed retreats — all verified by Vaidya'}
           </p>
-          <SearchBar variant="compact" type="clinic" placeholder="Search clinics, treatments, districts…" />
+          <SearchBar variant="compact" type="clinic" placeholder="Search retreats, wellness goals, districts…" />
         </div>
       </div>
 
@@ -111,13 +108,12 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
         <aside style={{ width: 240, flexShrink: 0, position: 'sticky', top: 24 }}>
           <ListingFilterBar
             basePath={`/${lang}/clinics`}
-            current={{ tier, specialisation, district, language, prakriti, budgetMax, ratingMin }}
+            current={{ tier, category, district, language, budgetMax, ratingMin }}
             options={{
               districts: DISTRICTS,
-              specialisations: SPECIALISATIONS,
-              prakriti: PRAKRITI,
+              categories: WELLNESS_CATEGORIES,
               languages: LANGUAGES,
-              budgetLabel: 'Max budget (₹/day)',
+              budgetLabel: 'Max budget ($/night)',
             }}
           />
         </aside>
@@ -145,7 +141,7 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
           ) : (
             <div style={{ padding: '60px 24px', textAlign: 'center', border: '1px dashed var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--muted)' }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>✦</div>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', marginBottom: 8 }}>No clinics found</div>
+              <div style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', marginBottom: 8 }}>No retreats found</div>
               <div style={{ fontSize: 13 }}>Try adjusting your filters.</div>
               <a href={`/${lang}/clinics`} style={{ display: 'inline-block', marginTop: 16, fontSize: 13, color: 'var(--forest)', textDecoration: 'underline' }}>
                 Clear all filters

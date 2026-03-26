@@ -12,7 +12,7 @@ export interface Clinic {
   rating: number | null
   review_count: number
   specialisations: string[]
-  prakriti_affinities: string[]
+  wellness_categories: string[]
   languages: string[]
   pricing_min: number | null
   pricing_max: number | null

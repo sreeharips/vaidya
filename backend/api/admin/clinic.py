@@ -16,7 +16,7 @@ from core.admin_auth import get_admin_clinic
 from db.database import get_db
 from sqlalchemy import select
 
-from db.models import ClinicFeatureStore, Doctor, Review, Treatment
+from db.models import ClinicFeatureStore, Review
 
 router = APIRouter()
 
@@ -44,20 +44,17 @@ class ClinicProfileOut(BaseModel):
     website_url: str | None
     languages: list[str]
     specialisations: list[str]
-    prakriti_affinities: list[str]
+    wellness_categories: list[str]
     certifications: list[str]
     pricing_min: float | None
     pricing_max: float | None
     accommodation_available: bool
     pickup_available: bool
     pickup_locations: list[str]
-    ecommerce_enabled: bool
     outcome_enrolled: bool
     operating_hours: dict | None
     social_links: dict | None
     transport_info: str | None
-    shipping_policy: str | None
-    return_policy: str | None
     rating: float | None
     review_count: int
     is_active: bool
@@ -81,7 +78,7 @@ class ClinicUpdate(BaseModel):
     website_url: str | None = None
     languages: list[str] | None = None
     specialisations: list[str] | None = None
-    prakriti_affinities: list[str] | None = None
+    wellness_categories: list[str] | None = None
     pricing_min: float | None = None
     pricing_max: float | None = None
     certifications: list[str] | None = None
@@ -89,12 +86,9 @@ class ClinicUpdate(BaseModel):
     pickup_available: bool | None = None
     pickup_locations: list[str] | None = None
     transport_info: str | None = None
-    ecommerce_enabled: bool | None = None
     outcome_enrolled: bool | None = None
     operating_hours: dict | None = None
     social_links: dict | None = None
-    shipping_policy: str | None = None
-    return_policy: str | None = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -121,7 +115,7 @@ def _clinic_to_out(c: ClinicFeatureStore) -> ClinicProfileOut:
         website_url=c.website_url,
         languages=c.languages or [],
         specialisations=c.specialisations or [],
-        prakriti_affinities=c.prakriti_affinities or [],
+        wellness_categories=c.wellness_categories or [],
         certifications=c.certifications or [],
         pricing_min=float(c.pricing_min) if c.pricing_min else None,
         pricing_max=float(c.pricing_max) if c.pricing_max else None,
@@ -129,12 +123,9 @@ def _clinic_to_out(c: ClinicFeatureStore) -> ClinicProfileOut:
         pickup_available=c.pickup_available,
         pickup_locations=c.pickup_locations or [],
         transport_info=c.transport_info,
-        ecommerce_enabled=c.ecommerce_enabled,
         outcome_enrolled=c.outcome_enrolled,
         operating_hours=c.operating_hours,
         social_links=c.social_links,
-        shipping_policy=c.shipping_policy,
-        return_policy=c.return_policy,
         rating=c.rating,
         review_count=c.review_count,
         is_active=c.is_active,

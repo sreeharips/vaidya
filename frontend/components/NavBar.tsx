@@ -5,49 +5,6 @@ import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 
-// Dosha colour map
-const DOSHA_COLORS: Record<string, { bg: string; dot: string; text: string }> = {
-  vata:  { bg: 'rgba(107,79,58,0.10)', dot: '#8B6E5A', text: 'var(--bark)' },
-  pitta: { bg: 'rgba(30,61,47,0.08)',  dot: '#1E3D2F', text: 'var(--forest2)' },
-  kapha: { bg: 'rgba(184,134,44,0.10)', dot: '#B8862C', text: 'var(--gold)' },
-}
-
-function PrakritiChip({ type, lang }: { type: string; lang: string }) {
-  const key = type.toLowerCase()
-  const colors = DOSHA_COLORS[key] ?? DOSHA_COLORS.vata
-  return (
-    <Link
-      href={`/${lang}/assessment/results`}
-      title="View your Prakriti profile"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '5px 12px',
-        background: colors.bg,
-        borderRadius: 'var(--r-xl)',
-        border: '1px solid rgba(107,79,58,0.12)',
-        fontSize: '12px',
-        fontWeight: 500,
-        color: colors.text,
-        textDecoration: 'none',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span
-        style={{
-          width: '7px',
-          height: '7px',
-          borderRadius: '50%',
-          background: colors.dot,
-          flexShrink: 0,
-        }}
-      />
-      {type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
-    </Link>
-  )
-}
-
 function UserMenu({ user, lang, onLogout }: {
   user: { full_name: string | null; email: string }
   lang: string
@@ -74,8 +31,6 @@ function UserMenu({ user, lang, onLogout }: {
   const menuItems = [
     { href: `/${lang}/profile/bookings`, label: 'My bookings' },
     { href: `/${lang}/profile/watchlist`, label: 'Saved clinics' },
-    { href: `/${lang}/profile/prescriptions`, label: 'My prescriptions' },
-    { href: `/${lang}/profile/purchases`, label: 'Purchase history' },
   ]
 
   return (
@@ -189,22 +144,17 @@ export default function NavBar() {
   const lang = (params?.lang as string) || 'en'
   const path = usePathname() ?? ''
   const router = useRouter()
-  const { user, preferences, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout } = useAuth()
 
   const links = [
-    { href: `/${lang}/clinics`,               label: 'Clinics'    },
-    { href: `/${lang}/doctors`,               label: 'Doctors'    },
-    { href: `/${lang}/search?type=treatment`, label: 'Treatments' },
-    { href: `/${lang}/shop`,                  label: 'Herbal Shop'},
-    { href: `/${lang}/conditions`,            label: 'Conditions' },
+    { href: `/${lang}/clinics`,              label: 'Clinics'  },
+    { href: `/${lang}/clinics?tab=packages`, label: 'Packages' },
   ]
 
   async function handleLogout() {
     await logout()
     router.push(`/${lang}`)
   }
-
-  const prakritiType = preferences?.primary_type ?? null
 
   return (
     <nav
@@ -264,20 +214,8 @@ export default function NavBar() {
         })}
       </div>
 
-      {/* Right side: Prakriti chip + Assessment CTA + Auth */}
+      {/* Right side: Auth */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-
-        {/* Prakriti chip — shown for guests AND authenticated users */}
-        {prakritiType && (
-          <PrakritiChip type={prakritiType} lang={lang} />
-        )}
-
-        {/* Prakriti Assessment CTA */}
-        <Link href={`/${lang}/assessment`} style={{ textDecoration: 'none' }}>
-          <button className="nav-cta-btn">
-            {prakritiType ? 'Retake' : 'Prakriti'}
-          </button>
-        </Link>
 
         {/* Auth: guest → Sign in button | authenticated → avatar dropdown */}
         {isAuthenticated && user ? (

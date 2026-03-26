@@ -7,14 +7,8 @@ import {
   updateClinic,
   deactivateClinic,
   getClinicReviews,
-  getDoctors,
-  getTreatments,
-  getProducts,
   type Clinic,
   type ClinicReviews,
-  type Doctor,
-  type Treatment,
-  type Product,
 } from "@/lib/admin-api";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -30,7 +24,11 @@ const CERTIFICATION_OPTIONS = [
   "ISO 9001", "Kerala Tourism Approved", "NABH Wellness Certified",
 ];
 
-const PRAKRITI_OPTIONS = ["Vata", "Pitta", "Kapha"];
+const WELLNESS_CATEGORIES = [
+  "detox-cleanse", "stress-relief", "pain-management", "weight-wellness",
+  "skin-hair", "immunity-boost", "fertility-wellness", "anti-aging",
+  "digestive-health", "mental-clarity", "joint-mobility", "post-surgery",
+];
 const LANGUAGE_OPTIONS = ["English", "Malayalam", "Hindi", "Arabic", "German", "French"];
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
@@ -84,9 +82,6 @@ function Stars({ rating, max = 5 }: { rating: number; max?: number }) {
 export default function ClinicProfilePage() {
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [reviews, setReviews] = useState<ClinicReviews | null>(null);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [treatments, setTreatments] = useState<Treatment[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -97,15 +92,9 @@ export default function ClinicProfilePage() {
     Promise.all([
       getClinic(),
       getClinicReviews().catch(() => null),
-      getDoctors().catch(() => [] as Doctor[]),
-      getTreatments().catch(() => [] as Treatment[]),
-      getProducts().catch(() => [] as Product[]),
-    ]).then(([c, r, d, t, p]) => {
+    ]).then(([c, r]) => {
       setClinic(c);
       setReviews(r);
-      setDoctors(Array.isArray(d) ? d : []);
-      setTreatments(Array.isArray(t) ? t : []);
-      setProducts(Array.isArray(p) ? p : []);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -512,15 +501,15 @@ export default function ClinicProfilePage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-sans text-slate mb-2">Prakriti affinities</label>
-              <div className="flex gap-3">
-                {PRAKRITI_OPTIONS.map(p => (
-                  <label key={p} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-sans cursor-pointer transition-colors ${
-                    clinic.prakriti_affinities?.includes(p) ? "bg-gold text-white" : "bg-cream text-slate hover:bg-cream2"
+              <label className="block text-sm font-sans text-slate mb-2">Wellness categories</label>
+              <div className="flex flex-wrap gap-2">
+                {WELLNESS_CATEGORIES.map(c => (
+                  <label key={c} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-sans cursor-pointer transition-colors ${
+                    clinic.wellness_categories?.includes(c) ? "bg-gold text-white" : "bg-cream text-slate hover:bg-cream2"
                   }`}>
-                    <input type="checkbox" checked={clinic.prakriti_affinities?.includes(p) ?? false}
-                      onChange={() => toggleArr("prakriti_affinities", p)} className="sr-only" />
-                    {p}
+                    <input type="checkbox" checked={clinic.wellness_categories?.includes(c) ?? false}
+                      onChange={() => toggleArr("wellness_categories", c)} className="sr-only" />
+                    {c.replace(/-/g, ' ')}
                   </label>
                 ))}
               </div>
@@ -586,7 +575,6 @@ export default function ClinicProfilePage() {
               {[
                 { field: "accommodation_available" as keyof Clinic, label: "On-site accommodation" },
                 { field: "pickup_available"        as keyof Clinic, label: "Airport / transport pickup" },
-                { field: "ecommerce_enabled"       as keyof Clinic, label: "Online herbal shop" },
                 { field: "outcome_enrolled"        as keyof Clinic, label: "Outcome data enrolled" },
               ].map(({ field, label }) => (
                 <label key={field} className="flex items-center gap-2 cursor-pointer">
@@ -600,194 +588,25 @@ export default function ClinicProfilePage() {
                 </label>
               ))}
             </div>
-            {clinic.ecommerce_enabled && (
-              <div className="space-y-4 pt-4 border-t border-cream2">
-                <div>
-                  <label className="block text-sm font-sans text-slate mb-1">Shipping policy</label>
-                  <textarea
-                    rows={3}
-                    value={clinic.shipping_policy ?? ""}
-                    onChange={e => update({ shipping_policy: e.target.value })}
-                    placeholder="Delivery timelines, fees, coverage areas…"
-                    className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest resize-vertical"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-sans text-slate mb-1">Return policy</label>
-                  <textarea
-                    rows={3}
-                    value={clinic.return_policy ?? ""}
-                    onChange={e => update({ return_policy: e.target.value })}
-                    placeholder="Return / exchange conditions and timeframes…"
-                    className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest resize-vertical"
-                  />
-                </div>
-              </div>
-            )}
           </div>
         </Section>
 
-        {/* ── Doctors — read-only ───────────────────────────────────────────── */}
-        <Section title={`Doctors (${doctors.length})`} badge={<ReadOnlyBadge />}>
-          {doctors.length === 0 ? (
-            <p className="text-sm font-sans text-muted">
-              No doctors added yet.{" "}
-              <Link href="/admin/doctors" className="text-forest underline">Add doctors →</Link>
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {doctors.map(d => (
-                <div key={d.id} className="flex items-start gap-4 p-4 bg-cream rounded-md">
-                  {d.photo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={d.photo_url} alt={d.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-forest-lt flex items-center justify-center flex-shrink-0">
-                      <span className="text-forest font-serif text-lg">{d.name[0]}</span>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-sans font-medium text-slate text-sm">{d.name}</span>
-                      <span className="text-xs text-muted">{d.qualification}</span>
-                      {d.tier === 2 && (
-                        <span className="text-xs bg-gold-lt text-bark px-2 py-0.5 rounded">Tier 2</span>
-                      )}
-                      {!d.is_active && (
-                        <span className="text-xs text-red-500 border border-red-200 px-1.5 py-0.5 rounded">Inactive</span>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted mt-0.5">
-                      {d.years_exp} yrs
-                      {d.specialisations.slice(0, 3).length > 0 && ` · ${d.specialisations.slice(0, 3).join(", ")}`}
-                      {d.languages.length > 0 && ` · ${d.languages.join(", ")}`}
-                    </div>
-                    {d.rating !== null && d.rating !== undefined && (
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Stars rating={d.rating} />
-                        <span className="text-xs text-muted">{d.review_count} reviews</span>
-                      </div>
-                    )}
-                  </div>
-                  <Link
-                    href={`/admin/doctors?edit=${d.id}`}
-                    className="text-xs text-forest font-sans underline flex-shrink-0"
-                  >
-                    Edit
-                  </Link>
-                </div>
-              ))}
-              <Link href="/admin/doctors" className="text-xs text-forest font-sans underline block pt-1">
-                Manage all doctors →
-              </Link>
-            </div>
-          )}
+        {/* ── Team ─────────────────────────────────────────────────────────── */}
+        <Section title="Team">
+          <p className="text-sm font-sans text-muted">
+            Manage your clinic team members.{" "}
+            <Link href="/admin/team" className="text-forest underline">Go to Team →</Link>
+          </p>
         </Section>
 
-        {/* ── Treatments — read-only ────────────────────────────────────────── */}
-        <Section title={`Treatments (${treatments.length})`} badge={<ReadOnlyBadge />}>
-          {treatments.length === 0 ? (
-            <p className="text-sm font-sans text-muted">
-              No treatments added yet.{" "}
-              <Link href="/admin/treatments" className="text-forest underline">Add treatments →</Link>
-            </p>
-          ) : (
-            <div>
-              {treatments.map(t => (
-                <div key={t.id} className="flex items-center justify-between py-2.5 border-b border-cream2 last:border-0 gap-4">
-                  <div className="min-w-0">
-                    <span className="text-sm font-sans font-medium text-slate">{t.name}</span>
-                    {(t.duration_min_days || t.duration_max_days) && (
-                      <span className="text-xs text-muted ml-2">
-                        {t.duration_min_days === t.duration_max_days
-                          ? `${t.duration_min_days}d`
-                          : `${t.duration_min_days ?? "?"}–${t.duration_max_days ?? "?"}d`}
-                      </span>
-                    )}
-                    {t.prakriti_tags?.length > 0 && (
-                      <span className="text-xs text-muted ml-2">· {t.prakriti_tags.slice(0, 3).join(", ")}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    {t.price_per_day && (
-                      <span className="text-sm font-sans text-forest">
-                        ₹{t.price_per_day.toLocaleString()}/day
-                      </span>
-                    )}
-                    <Link href={`/admin/treatments?edit=${t.id}`} className="text-xs text-forest font-sans underline">
-                      Edit
-                    </Link>
-                  </div>
-                </div>
-              ))}
-              <Link href="/admin/treatments" className="text-xs text-forest font-sans underline block pt-3">
-                Manage all treatments →
-              </Link>
-            </div>
-          )}
+        {/* ── Packages ──────────────────────────────────────────────────────── */}
+        <Section title="Packages">
+          <p className="text-sm font-sans text-muted">
+            Manage your wellness packages.{" "}
+            <Link href="/admin/packages" className="text-forest underline">Go to Packages →</Link>
+          </p>
         </Section>
 
-        {/* ── Herbal Products ──────────────────────────────────────────────── */}
-        <Section
-          title={`Herbal Products (${products.length})`}
-          badge={
-            <Link
-              href="/admin/ecommerce"
-              className="text-xs font-sans text-forest hover:text-gold font-medium transition-colors"
-            >
-              Manage products →
-            </Link>
-          }
-        >
-          {products.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-sm font-sans text-muted mb-3">
-                No herbal products listed yet.
-              </p>
-              <Link
-                href="/admin/ecommerce"
-                className="inline-block px-4 py-2 rounded-xl bg-forest text-white text-sm font-sans font-medium hover:bg-forest2 transition-colors"
-              >
-                + Add Products
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {products.slice(0, 6).map((p) => (
-                <div key={p.id} className="flex items-center justify-between py-2 border-b border-cream2 last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-sans font-medium text-slate truncate">
-                      {p.name}
-                    </p>
-                    <p className="text-xs font-sans text-muted capitalize">{p.category || "—"}</p>
-                  </div>
-                  <div className="text-right ml-4 flex-shrink-0">
-                    <p className="text-sm font-sans text-slate">
-                      {p.base_price != null
-                        ? `${p.currency} ${p.base_price.toFixed(2)}`
-                        : p.variants.length > 0
-                        ? `from ${p.currency} ${Math.min(...p.variants.map((v) => v.price)).toFixed(2)}`
-                        : "—"}
-                    </p>
-                    <span
-                      className={`text-xs font-sans ${p.is_active ? "text-forest" : "text-muted"}`}
-                    >
-                      {p.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {products.length > 6 && (
-                <p className="text-xs font-sans text-muted text-center pt-1">
-                  +{products.length - 6} more —{" "}
-                  <Link href="/admin/ecommerce" className="text-forest hover:underline">
-                    view all
-                  </Link>
-                </p>
-              )}
-            </div>
-          )}
-        </Section>
 
         {/* ── Reviews — read-only ───────────────────────────────────────────── */}
         <Section
