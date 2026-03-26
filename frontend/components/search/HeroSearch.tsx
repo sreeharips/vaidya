@@ -105,7 +105,7 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
           justifyContent: 'flex-start',
         }}
       >
-        {['Panchakarma', 'Shirodhara', 'Abhyanga', 'Virechana', 'Basti'].map(tag => (
+        {/*['Panchakarma', 'Shirodhara', 'Abhyanga', 'Virechana', 'Basti'].map(tag => (
           <button
             key={tag}
             onClick={() => handleTagSearch(tag)}
@@ -113,7 +113,7 @@ export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearc
           >
             {tag}
           </button>
-        ))}
+        ))*/}
       </div>
     </>
   )
