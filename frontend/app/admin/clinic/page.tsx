@@ -92,10 +92,28 @@ export default function ClinicProfilePage() {
     Promise.all([
       getClinic(),
       getClinicReviews().catch(() => null),
-    ]).then(([c, r]) => {
-      setClinic(c);
-      setReviews(r);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([c, r]) => {
+        setClinic(c);
+        setReviews(r);
+      })
+      .catch((err: unknown) => {
+        // #region agent log
+        fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
+          body: JSON.stringify({
+            sessionId: "ee0189",
+            location: "admin/clinic/page.tsx:useEffect",
+            message: "clinic load failed",
+            data: { error: err instanceof Error ? err.message : String(err) },
+            timestamp: Date.now(),
+            hypothesisId: "H5",
+          }),
+        }).catch(() => {});
+        // #endregion
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const update = (partial: Partial<Clinic>) => {

@@ -20,10 +20,44 @@ export async function adminFetch<T = unknown>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (e: unknown) {
+    // #region agent log
+    fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
+      body: JSON.stringify({
+        sessionId: "ee0189",
+        location: "admin-api.ts:adminFetch",
+        message: "fetch network error",
+        data: { path, apiBase: API_BASE, err: e instanceof Error ? e.message : String(e) },
+        timestamp: Date.now(),
+        hypothesisId: "H3",
+      }),
+    }).catch(() => {});
+    // #endregion
+    throw e;
+  }
+
+  // #region agent log
+  fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
+    body: JSON.stringify({
+      sessionId: "ee0189",
+      location: "admin-api.ts:adminFetch",
+      message: "fetch response",
+      data: { path, status: res.status, ok: res.ok, apiBase: API_BASE },
+      timestamp: Date.now(),
+      hypothesisId: "H3-H5",
+    }),
+  }).catch(() => {});
+  // #endregion
 
   if (res.status === 401) {
     if (typeof window !== "undefined") {
@@ -36,6 +70,25 @@ export async function adminFetch<T = unknown>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    // #region agent log
+    fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
+      body: JSON.stringify({
+        sessionId: "ee0189",
+        location: "admin-api.ts:adminFetch",
+        message: "api error body",
+        data: {
+          path,
+          status: res.status,
+          detail: (body as { detail?: string }).detail,
+          message: (body as { message?: string }).message,
+        },
+        timestamp: Date.now(),
+        hypothesisId: "H1-H2",
+      }),
+    }).catch(() => {});
+    // #endregion
     throw new Error(body.detail || body.message || `API error ${res.status}`);
   }
 

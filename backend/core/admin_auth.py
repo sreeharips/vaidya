@@ -22,6 +22,28 @@ async def require_clinic_admin(
 ) -> User:
     """Raises 403 if user is not a clinic_admin."""
     if user.role != "clinic_admin":
+        # #region agent log
+        try:
+            import json
+            import time
+            _p = "/Users/sreeharisivadasan/vaidya/.cursor/debug-ee0189.log"
+            with open(_p, "a", encoding="utf-8") as _lf:
+                _lf.write(
+                    json.dumps(
+                        {
+                            "sessionId": "ee0189",
+                            "hypothesisId": "H1",
+                            "location": "admin_auth.require_clinic_admin",
+                            "message": "rejected non-clinic_admin",
+                            "data": {"user_role": user.role},
+                            "timestamp": int(time.time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+        except Exception:
+            pass
+        # #endregion
         raise HTTPException(status_code=403, detail="Clinic admin access required")
     return user
 
@@ -66,6 +88,28 @@ async def get_admin_clinic(
         clinic = await db.get(ClinicFeatureStore, user.clinic_id)
 
     if clinic is None:
+        # #region agent log
+        try:
+            import json
+            import time
+            _p = "/Users/sreeharisivadasan/vaidya/.cursor/debug-ee0189.log"
+            with open(_p, "a", encoding="utf-8") as _lf:
+                _lf.write(
+                    json.dumps(
+                        {
+                            "sessionId": "ee0189",
+                            "hypothesisId": "H2",
+                            "location": "admin_auth.get_admin_clinic",
+                            "message": "no clinic for user",
+                            "data": {"user_id": str(user.id), "role": user.role},
+                            "timestamp": int(time.time() * 1000),
+                        }
+                    )
+                    + "\n"
+                )
+        except Exception:
+            pass
+        # #endregion
         raise HTTPException(status_code=404, detail="No clinic linked to this account")
 
     return clinic
