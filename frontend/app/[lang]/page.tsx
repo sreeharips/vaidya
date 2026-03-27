@@ -9,9 +9,9 @@ export const revalidate = 300
 
 const API_BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-async function fetchClinics(): Promise<ClinicSummary[]> {
+async function fetchClinics(params = ''): Promise<ClinicSummary[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/clinics?limit=6`, { next: { revalidate: 300 } })
+    const res = await fetch(`${API_BASE}/api/clinics?${params}`, { next: { revalidate: 300 } })
     if (!res.ok) return []
     return (await res.json()).items ?? []
   } catch { return [] }
@@ -67,7 +67,12 @@ export async function generateMetadata({ params: { lang } }: { params: { lang: s
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
   const t = await getTranslations({ locale: lang, namespace: 'home' })
   const isRtl = lang === 'ar'
-  const clinics = await fetchClinics()
+  const [featured, popularRetreats, popularClinics, newListings] = await Promise.all([
+    fetchClinics('tier=2&limit=4'),
+    fetchClinics('rating_min=4&limit=8'),
+    fetchClinics('tier=1&limit=6'),
+    fetchClinics('limit=6'),
+  ])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }} dir={isRtl ? 'rtl' : 'ltr'}>
@@ -130,17 +135,59 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
         <WellnessGoalGrid goals={WELLNESS_GOALS} lang={lang} compact />
       </section>
 
-      {/* ── Featured Clinics ─────────────────────────────────────────────────── */}
-      <section style={{ padding: '14px clamp(16px, 4vw, 40px) 40px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-        <SectionHeader compact label="Kerala's finest" title="Featured Wellness Retreats" cta={{ label: 'Browse all', href: `/${lang}/clinics` }} />
-        {clinics.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-            {clinics.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
+      {/* ── Featured Retreats (Tier 2 — Certified Authentic) ────────────────── */}
+      <section style={{ padding: '14px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader compact label="Certified Authentic" title="Featured Retreats" cta={{ label: 'View all', href: `/${lang}/clinics?tier=2` }} />
+        {featured.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {featured.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} featured />)}
           </div>
         ) : (
-          <EmptyState message="Clinics coming soon — credentialing in progress." />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {newListings.slice(0, 4).map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} featured />)}
+          </div>
         )}
       </section>
+
+      {/* ── Popular Retreats (top-rated, 4+ stars) ───────────────────────────── */}
+      <section style={{ padding: '28px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader compact label="Highly rated" title="Popular Retreats" cta={{ label: 'Browse retreats', href: `/${lang}/clinics` }} />
+        {popularRetreats.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {popularRetreats.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {newListings.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
+          </div>
+        )}
+      </section>
+
+      {/* ── Popular Clinics (Tier 1 Verified — day clinics & outpatient) ─────── */}
+      <section style={{ padding: '28px clamp(16px, 4vw, 40px) 40px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader compact label="Verified clinics" title="Popular Clinics" cta={{ label: 'Browse clinics', href: `/${lang}/clinics?tier=1` }} />
+        {popularClinics.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {popularClinics.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
+            {newListings.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
+          </div>
+        )}
+      </section>
+
+      {/* ── New Listings ─────────────────────────────────────────────────────── */}
+      {newListings.length > 0 && (
+        <section style={{ background: '#fff', borderTop: '1px solid var(--border)', padding: '28px clamp(16px, 4vw, 40px) 36px' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            <SectionHeader compact label="Recently added" title="New Retreats" cta={{ label: 'Browse all', href: `/${lang}/clinics` }} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+              {newListings.map((c) => <HomeClinicCard key={c.id} clinic={c} lang={lang} compact />)}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Conditions + Districts (two-col) ─────────────────────────────────── */}
       <section style={{ background: '#fff', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '48px' }}>
