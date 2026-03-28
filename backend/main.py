@@ -9,7 +9,7 @@ from api.admin import admin_router
 from api.auth import router as auth_router
 from api.booking import router as booking_router
 from api.clinics import router as clinics_router
-from api.packages import router as packages_router
+from api.retreats import router as retreats_router
 from api.search import router as search_router
 from api.users import router as users_router
 from db.database import async_session
@@ -99,7 +99,7 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(booking_router)
 app.include_router(clinics_router)
-app.include_router(packages_router)
+app.include_router(retreats_router)
 app.include_router(search_router)
 
 

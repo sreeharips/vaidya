@@ -86,8 +86,8 @@ export default function AdminDashboardPage() {
       color: "bg-bark-lt text-bark",
     },
     {
-      label: "Active packages",
-      value: stats?.active_packages ?? 0,
+      label: "Active retreats",
+      value: stats?.active_retreats ?? 0,
       color: "bg-forest-lt text-forest",
     },
   ];
@@ -129,7 +129,7 @@ export default function AdminDashboardPage() {
                         {booking.guest_name}
                       </p>
                       <p className="font-sans text-xs text-muted mt-0.5">
-                        {booking.package_name}
+                        {booking.retreat_name}
                       </p>
                       <p className="font-sans text-xs text-muted">
                         {new Date(booking.start_date).toLocaleDateString()} &ndash;{" "}
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
             <div className="p-4 space-y-2">
               {[
                 { label: "Edit clinic profile", href: "/admin/clinic" },
-                { label: "Manage packages", href: "/admin/packages" },
+                { label: "Manage retreats", href: "/admin/retreats" },
                 { label: "Manage team", href: "/admin/team" },
                 { label: "View all bookings", href: "/admin/bookings" },
               ].map((link) => (

@@ -55,6 +55,13 @@ class ClinicProfileOut(BaseModel):
     operating_hours: dict | None
     social_links: dict | None
     transport_info: str | None
+    established_year: int | None
+    highlights: list[str]
+    accommodation_types: list[str]
+    meal_options: list[str]
+    nearest_airport: str | None
+    nearest_railway: str | None
+    patient_capacity: int | None
     rating: float | None
     review_count: int
     is_active: bool
@@ -89,6 +96,13 @@ class ClinicUpdate(BaseModel):
     outcome_enrolled: bool | None = None
     operating_hours: dict | None = None
     social_links: dict | None = None
+    established_year: int | None = None
+    highlights: list[str] | None = None
+    accommodation_types: list[str] | None = None
+    meal_options: list[str] | None = None
+    nearest_airport: str | None = None
+    nearest_railway: str | None = None
+    patient_capacity: int | None = None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -126,6 +140,13 @@ def _clinic_to_out(c: ClinicFeatureStore) -> ClinicProfileOut:
         outcome_enrolled=c.outcome_enrolled,
         operating_hours=c.operating_hours,
         social_links=c.social_links,
+        established_year=c.established_year,
+        highlights=c.highlights or [],
+        accommodation_types=c.accommodation_types or [],
+        meal_options=c.meal_options or [],
+        nearest_airport=c.nearest_airport,
+        nearest_railway=c.nearest_railway,
+        patient_capacity=c.patient_capacity,
         rating=c.rating,
         review_count=c.review_count,
         is_active=c.is_active,

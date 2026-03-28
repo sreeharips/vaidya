@@ -17,7 +17,7 @@ const STATIC_SLUGS = [
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface Package {
+interface Retreat {
   id: string
   name: string
   description: string | null
@@ -60,6 +60,7 @@ interface ClinicDetail {
   rating: number | null
   review_count: number
   wellness_categories: string[]
+  specialisations: string[]
   languages: string[]
   pricing_min: number | null
   pricing_max: number | null
@@ -75,7 +76,18 @@ interface ClinicDetail {
   website_url: string | null
   lat: number | null
   lng: number | null
-  packages: Package[]
+  operating_hours: Record<string, string> | null
+  social_links: Record<string, string> | null
+  pickup_available: boolean
+  pickup_locations: string[]
+  established_year: number | null
+  highlights: string[]
+  accommodation_types: string[]
+  meal_options: string[]
+  nearest_airport: string | null
+  nearest_railway: string | null
+  patient_capacity: number | null
+  retreats: Retreat[]
   team: TeamMember[]
   reviews: Review[]
 }
@@ -118,7 +130,7 @@ export async function generateMetadata({
   const tierLabel = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   return {
     title: `${clinic.name} — ${tierLabel} Ayurveda Retreat ${clinic.district ?? 'Kerala'} | AyuRetreats`,
-    description: `${clinic.name} is a ${tierLabel} Ayurvedic wellness retreat in ${clinic.district ?? 'Kerala'}. ${clinic.packages.length} packages available. Book online.`,
+    description: `${clinic.name} is a ${tierLabel} Ayurvedic wellness retreat in ${clinic.district ?? 'Kerala'}. ${clinic.retreats.length} retreats available. Book online.`,
     alternates: {
       canonical: `https://ayuretreats.com/${params.lang}/clinics/${params.slug}`,
     },
@@ -225,11 +237,13 @@ export default async function ClinicPage({
           {/* Stats row */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
             {[
-              { value: clinic.packages.length,  label: 'Packages' },
+              { value: clinic.retreats.length,  label: 'Retreats' },
               { value: clinic.team.length,      label: 'Team members' },
               { value: clinic.review_count,     label: 'Reviews' },
               ...(clinic.rating ? [{ value: `${clinic.rating.toFixed(1)} ★`, label: 'Rating' }] : []),
               ...(priceDisplay ? [{ value: priceDisplay, label: 'Retreat pricing' }] : []),
+              ...(clinic.established_year ? [{ value: `Est. ${clinic.established_year}`, label: 'Established' }] : []),
+              ...(clinic.patient_capacity ? [{ value: clinic.patient_capacity, label: 'Max guests' }] : []),
             ].map(({ value, label }) => (
               <div key={label}>
                 <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--gold)', fontFamily: 'var(--serif)' }}>{value}</div>
@@ -243,6 +257,37 @@ export default async function ClinicPage({
       {/* ── Body ────────────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px 80px' }}>
 
+        {/* ── Photo gallery ────────────────────────────────────────────── */}
+        {(clinic.photos?.length ?? 0) > 0 && (
+          <section style={{ marginBottom: 56 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: clinic.photos.length === 1 ? '1fr' : 'repeat(3, 1fr)',
+                gap: 8,
+                borderRadius: 'var(--r-md)',
+                overflow: 'hidden',
+              }}
+            >
+              {clinic.photos.slice(0, 6).map((url, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={url}
+                  src={url}
+                  alt={`${clinic.name} photo ${i + 1}`}
+                  style={{
+                    width: '100%',
+                    height: i === 0 && clinic.photos.length > 1 ? 300 : 180,
+                    objectFit: 'cover',
+                    gridColumn: i === 0 && clinic.photos.length > 1 ? '1 / -1' : 'auto',
+                    display: 'block',
+                  }}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* ── About / Description ──────────────────────────────────────── */}
         {clinic.description && (
           <section style={{ marginBottom: 56 }}>
@@ -255,14 +300,78 @@ export default async function ClinicPage({
           </section>
         )}
 
-        {/* ── Wellness Packages ─────────────────────────────────────────── */}
-        {clinic.packages.length > 0 && (
+        {/* ── Highlights ───────────────────────────────────────────────── */}
+        {(clinic.highlights?.length ?? 0) > 0 && (
+          <section style={{ marginBottom: 56 }}>
+            <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 16 }}>
+              Why choose us
+            </h2>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {clinic.highlights.map((h, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 15, color: 'var(--slate)', lineHeight: 1.6 }}>
+                  <span style={{ color: 'var(--gold)', fontSize: 16, flexShrink: 0, marginTop: 2 }}>✦</span>
+                  {h}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* ── Specialisations + Languages + Wellness ───────────────────── */}
+        {((clinic.specialisations?.length ?? 0) > 0 || (clinic.wellness_categories?.length ?? 0) > 0 || (clinic.languages?.length ?? 0) > 0) && (
+          <section style={{ marginBottom: 56 }}>
+            <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 20 }}>
+              Expertise
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {(clinic.specialisations?.length ?? 0) > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 8 }}>Specialisations</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {clinic.specialisations.map((s) => (
+                      <span key={s} style={{ fontSize: 13, fontWeight: 500, padding: '5px 14px', borderRadius: 99, background: 'rgba(184,134,44,0.1)', color: 'var(--bark, #6b5a2e)' }}>
+                        {capitalize(s)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(clinic.wellness_categories?.length ?? 0) > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 8 }}>Wellness areas</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {clinic.wellness_categories.map((c) => (
+                      <span key={c} style={{ fontSize: 13, padding: '5px 14px', borderRadius: 99, background: 'var(--cream2)', color: 'var(--slate)' }}>
+                        {capitalize(c)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(clinic.languages?.length ?? 0) > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 8 }}>Languages spoken</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {clinic.languages.map((l) => (
+                      <span key={l} style={{ fontSize: 13, padding: '5px 14px', borderRadius: 99, background: 'var(--forest-lt)', color: 'var(--forest)' }}>
+                        {capitalize(l)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Retreats ──────────────────────────────────────────────────── */}
+        {clinic.retreats.length > 0 && (
           <section style={{ marginBottom: 56 }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 24 }}>
-              Wellness Packages
+              Retreats
             </h2>
             <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
-              {clinic.packages.map((pkg, i) => {
+              {clinic.retreats.map((pkg, i) => {
                 const durationLabel =
                   pkg.duration_min_days && pkg.duration_max_days
                     ? pkg.duration_min_days === pkg.duration_max_days
@@ -287,12 +396,17 @@ export default async function ClinicPage({
                 return (
                   <div
                     key={pkg.id}
-                    style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)', padding: '20px 20px' }}
+                    style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border)', padding: '20px 20px', position: 'relative' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--slate)' }}>{pkg.name}</div>
+                          <Link
+                            href={`/${params.lang}/retreats/${pkg.id}`}
+                            style={{ fontSize: 15, fontWeight: 600, color: 'var(--forest)', textDecoration: 'none' }}
+                          >
+                            {pkg.name}
+                          </Link>
                           {pkg.package_type && (
                             <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--forest-lt)', color: 'var(--forest2)', padding: '2px 8px', borderRadius: 99 }}>
                               {pkg.package_type}
@@ -354,7 +468,7 @@ export default async function ClinicPage({
                           <div style={{ fontSize: 12, color: 'var(--muted)' }}>Price on request</div>
                         )}
                         <Link
-                          href={`/${params.lang}/booking?clinic=${clinic.slug}&package=${pkg.id}`}
+                          href={`/${params.lang}/booking?clinic=${clinic.slug}&retreat=${pkg.id}`}
                           style={{ display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 600, color: 'var(--forest)', background: 'var(--forest-lt)', padding: '6px 14px', borderRadius: 99, textDecoration: 'none' }}
                         >
                           Book
@@ -434,8 +548,39 @@ export default async function ClinicPage({
           </section>
         )}
 
-        {/* ── Info strip (address / transport / accommodation) ──────────────── */}
-        {(clinic.address || clinic.transport_info || clinic.accommodation_available) && (
+        {/* ── Stay & Dining ────────────────────────────────────────────── */}
+        {((clinic.accommodation_types?.length ?? 0) > 0 || (clinic.meal_options?.length ?? 0) > 0 || clinic.accommodation_available) && (
+          <section style={{ marginBottom: 56 }}>
+            <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 20 }}>
+              Stay &amp; Dining
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+              {(clinic.accommodation_types?.length ?? 0) > 0 && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 10 }}>Accommodation types</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {clinic.accommodation_types.map((t) => (
+                      <span key={t} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'var(--forest-lt)', color: 'var(--forest)' }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(clinic.meal_options?.length ?? 0) > 0 && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 10 }}>Dining options</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {clinic.meal_options.map((m) => (
+                      <span key={m} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'rgba(184,134,44,0.1)', color: 'var(--bark, #6b5a2e)' }}>{m}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ── Getting Here ─────────────────────────────────────────────── */}
+        {(clinic.address || clinic.transport_info || clinic.nearest_airport || clinic.nearest_railway || clinic.pickup_available) && (
           <section style={{ marginBottom: 56 }}>
             <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 20 }}>
               Getting Here
@@ -447,16 +592,31 @@ export default async function ClinicPage({
                   <div style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>{clinic.address}</div>
                 </div>
               )}
+              {clinic.nearest_airport && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Nearest airport</div>
+                  <div style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>{clinic.nearest_airport}</div>
+                </div>
+              )}
+              {clinic.nearest_railway && (
+                <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Nearest railway</div>
+                  <div style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>{clinic.nearest_railway}</div>
+                </div>
+              )}
               {clinic.transport_info && (
                 <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 18 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Transport</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6 }}>Transport notes</div>
                   <div style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.6 }}>{clinic.transport_info}</div>
                 </div>
               )}
-              {clinic.accommodation_available && (
+              {clinic.pickup_available && (
                 <div style={{ background: 'var(--forest-lt)', border: '1px solid rgba(30,61,47,0.12)', borderRadius: 'var(--r-md)', padding: 18 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--forest2)', marginBottom: 6 }}>Accommodation</div>
-                  <div style={{ fontSize: 14, color: 'var(--forest)', lineHeight: 1.6 }}>On-site accommodation available for retreat guests.</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--forest2)', marginBottom: 6 }}>Airport pickup</div>
+                  <div style={{ fontSize: 14, color: 'var(--forest)', lineHeight: 1.6 }}>
+                    Pickup available
+                    {(clinic.pickup_locations?.length ?? 0) > 0 && ` from: ${clinic.pickup_locations.join(', ')}`}.
+                  </div>
                 </div>
               )}
             </div>
@@ -540,6 +700,44 @@ export default async function ClinicPage({
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>Next 3 weeks — live slot availability</p>
           <AvailabilityStrip slug={clinic.slug} />
         </section>
+
+        {/* ── Operating hours + Social links ───────────────────────────── */}
+        {(clinic.operating_hours || clinic.social_links) && (
+          <section style={{ marginBottom: 56, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+            {clinic.operating_hours && Object.keys(clinic.operating_hours).length > 0 && (
+              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 12 }}>Opening hours</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {Object.entries(clinic.operating_hours).map(([day, hours]) => (
+                    <div key={day} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--slate)' }}>
+                      <span style={{ color: 'var(--muted)' }}>{day}</span>
+                      <span style={{ fontWeight: 500 }}>{hours}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {clinic.social_links && Object.keys(clinic.social_links).length > 0 && (
+              <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 12 }}>Follow us</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {Object.entries(clinic.social_links).map(([platform, url]) => (
+                    <a
+                      key={platform}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 14, color: 'var(--forest)', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 72, textTransform: 'capitalize' }}>{platform}</span>
+                      <span style={{ color: 'var(--forest2)' }}>→</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ── CTA bar ──────────────────────────────────────────────────────── */}
         <section

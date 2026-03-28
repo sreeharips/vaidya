@@ -24,7 +24,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from db.database import get_db
 from db.models import (
-    BookingHistory,
+    Booking,
+    Retreat,
+    User,
     UserWatchlist,
 )
 
@@ -87,11 +89,12 @@ class WatchlistIn(BaseModel):
 
 class BookingHistoryOut(BaseModel):
     id: str
-    booking_id: str
     clinic_id: str
-    package_name: str
+    retreat_name: str
     start_date: str
     end_date: str
+    nights: int
+    guest_count: int
     total_paid: float | None
     status: str
     created_at: datetime
@@ -199,23 +202,30 @@ async def remove_from_watchlist(
 @router.get("/me/bookings", response_model=list[BookingHistoryOut])
 async def get_bookings(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = _require_auth(request)
-    result = await db.execute(
-        select(BookingHistory)
-        .where(BookingHistory.user_id == user_id)
-        .order_by(BookingHistory.created_at.desc())
-    )
-    rows = result.scalars().all()
+
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    rows = (await db.execute(
+        select(Booking, Retreat)
+        .outerjoin(Retreat, Booking.retreat_id == Retreat.id)
+        .where(Booking.guest_email == user.email)
+        .order_by(Booking.created_at.desc())
+    )).all()
+
     return [
         BookingHistoryOut(
-            id=str(r.id),
-            booking_id=str(r.booking_id),
-            clinic_id=str(r.clinic_id),
-            package_name=r.package_name,
-            start_date=str(r.start_date),
-            end_date=str(r.end_date),
-            total_paid=float(r.total_paid) if r.total_paid is not None else None,
-            status=r.status,
-            created_at=r.created_at,
+            id=str(b.id),
+            clinic_id=str(b.clinic_id),
+            retreat_name=r.name if r else "—",
+            start_date=str(b.start_date),
+            end_date=str(b.end_date),
+            nights=(b.end_date - b.start_date).days if b.end_date and b.start_date else 0,
+            guest_count=b.guest_count or 1,
+            total_paid=float(b.total_amount) if b.total_amount is not None else None,
+            status=b.status,
+            created_at=b.created_at,
         )
-        for r in rows
+        for b, r in rows
     ]

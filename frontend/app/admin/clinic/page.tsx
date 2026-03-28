@@ -617,11 +617,11 @@ export default function ClinicProfilePage() {
           </p>
         </Section>
 
-        {/* ── Packages ──────────────────────────────────────────────────────── */}
-        <Section title="Packages">
+        {/* ── Retreats ──────────────────────────────────────────────────────── */}
+        <Section title="Retreats">
           <p className="text-sm font-sans text-muted">
-            Manage your wellness packages.{" "}
-            <Link href="/admin/packages" className="text-forest underline">Go to Packages →</Link>
+            Manage your wellness retreats.{" "}
+            <Link href="/admin/retreats" className="text-forest underline">Go to Retreats →</Link>
           </p>
         </Section>
 

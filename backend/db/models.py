@@ -2,7 +2,7 @@
 Vaidya database models — SQLAlchemy 2.0 async (asyncpg).
 
 Clinic-based wellness retreat booking platform.
-Core entities: ClinicFeatureStore, WellnessPackage, PackageAvailability, ClinicTeam, Booking.
+Core entities: ClinicFeatureStore, Retreat, RetreatAvailability, ClinicTeam, Booking.
 """
 
 import uuid
@@ -95,10 +95,18 @@ class ClinicFeatureStore(Base):
     ecommerce_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     shipping_policy: Mapped[str | None] = mapped_column(Text)
     return_policy: Mapped[str | None] = mapped_column(Text)
+    # Enriched clinic detail fields
+    established_year: Mapped[int | None] = mapped_column(Integer)
+    highlights = mapped_column(ARRAY(String), default=list)
+    accommodation_types = mapped_column(ARRAY(String), default=list)
+    meal_options = mapped_column(ARRAY(String), default=list)
+    nearest_airport: Mapped[str | None] = mapped_column(String(255))
+    nearest_railway: Mapped[str | None] = mapped_column(String(255))
+    patient_capacity: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
 
-    packages: Mapped[list["WellnessPackage"]] = relationship(back_populates="clinic")
+    retreats: Mapped[list["Retreat"]] = relationship(back_populates="clinic")
     team_members: Mapped[list["ClinicTeam"]] = relationship(back_populates="clinic")
     reviews: Mapped[list["Review"]] = relationship(back_populates="clinic")
     blocked_dates: Mapped[list["ClinicBlockedDate"]] = relationship(back_populates="clinic")
@@ -133,10 +141,10 @@ class ClinicBlockedDate(Base):
 
 
 # ---------------------------------------------------------------------------
-# Wellness Packages
+# Retreats (child of ClinicFeatureStore)
 # ---------------------------------------------------------------------------
-class WellnessPackage(Base):
-    __tablename__ = "wellness_packages"
+class Retreat(Base):
+    __tablename__ = "retreats"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     clinic_id: Mapped[uuid.UUID] = mapped_column(
@@ -161,25 +169,34 @@ class WellnessPackage(Base):
     max_guests_per_slot: Mapped[int] = mapped_column(Integer, default=1)
     what_to_expect: Mapped[str | None] = mapped_column(Text)
     contraindications: Mapped[str | None] = mapped_column(Text)
+    highlights = mapped_column(ARRAY(String), default=list)
+    treatments_included = mapped_column(ARRAY(String), default=list)
+    ideal_for = mapped_column(ARRAY(String), default=list)
+    prakriti_tags = mapped_column(ARRAY(String), default=list)
+    photos = mapped_column(ARRAY(String), default=list)
+    daily_schedule: Mapped[str | None] = mapped_column(Text)
+    cancellation_policy: Mapped[str | None] = mapped_column(Text)
+    language_of_instruction = mapped_column(ARRAY(String), default=list)
+    min_age: Mapped[int | None] = mapped_column(Integer)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     display_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
 
-    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="packages")
-    availability: Mapped[list["PackageAvailability"]] = relationship(back_populates="package")
-    bookings: Mapped[list["Booking"]] = relationship(back_populates="package")
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="retreats")
+    availability: Mapped[list["RetreatAvailability"]] = relationship(back_populates="retreat")
+    bookings: Mapped[list["Booking"]] = relationship(back_populates="retreat")
 
 
 # ---------------------------------------------------------------------------
-# Package Availability
+# Retreat Availability
 # ---------------------------------------------------------------------------
-class PackageAvailability(Base):
-    __tablename__ = "package_availability"
+class RetreatAvailability(Base):
+    __tablename__ = "retreat_availability"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    package_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("wellness_packages.id", ondelete="CASCADE"), nullable=False, index=True
+    retreat_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("retreats.id", ondelete="CASCADE"), nullable=False, index=True
     )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     available_spots: Mapped[int] = mapped_column(Integer, default=1)
@@ -187,10 +204,10 @@ class PackageAvailability(Base):
     block_reason: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 
-    package: Mapped["WellnessPackage"] = relationship(back_populates="availability")
+    retreat: Mapped["Retreat"] = relationship(back_populates="availability")
 
     __table_args__ = (
-        UniqueConstraint("package_id", "date", name="uq_package_availability_date"),
+        UniqueConstraint("retreat_id", "date", name="uq_retreat_availability_date"),
     )
 
 
@@ -395,7 +412,7 @@ class Booking(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patient_pseudo_id: Mapped[str] = mapped_column(String(64), ForeignKey("patient_profiles.pseudo_id"), index=True)
     clinic_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True)
-    package_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("wellness_packages.id"), index=True)
+    retreat_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("retreats.id"), index=True)
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("guest_sessions.id")
     )
@@ -417,7 +434,7 @@ class Booking(Base):
 
     patient: Mapped["PatientProfile"] = relationship(back_populates="bookings", foreign_keys=[patient_pseudo_id])
     clinic: Mapped["ClinicFeatureStore"] = relationship()
-    package: Mapped["WellnessPackage"] = relationship(back_populates="bookings")
+    retreat: Mapped["Retreat"] = relationship(back_populates="bookings")
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
 
 

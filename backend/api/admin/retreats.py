@@ -1,5 +1,5 @@
 """
-api/admin/packages.py — Package management for clinic admins.
+api/admin/retreats.py — Retreat management for clinic admins.
 """
 
 import re
@@ -18,9 +18,11 @@ from db.models import Booking, ClinicFeatureStore, Retreat, RetreatAvailability
 router = APIRouter()
 
 
-class PackageOut(BaseModel):
+class RetreatOut(BaseModel):
     id: str
     name: str
+    name_display_en: str | None
+    description_en: str | None
     package_type: str
     wellness_categories: list[str]
     duration_min_days: int
@@ -31,10 +33,21 @@ class PackageOut(BaseModel):
     includes_meals: bool
     includes_transfers: bool
     max_guests_per_slot: int
+    what_to_expect: str | None
+    contraindications: str | None
+    highlights: list[str]
+    treatments_included: list[str]
+    ideal_for: list[str]
+    prakriti_tags: list[str]
+    photos: list[str]
+    daily_schedule: str | None
+    cancellation_policy: str | None
+    language_of_instruction: list[str]
+    min_age: int | None
     is_active: bool
     display_order: int
 
-class PackageCreate(BaseModel):
+class RetreatCreate(BaseModel):
     name: str
     name_display_en: str | None = None
     name_display_ar: str | None = None
@@ -66,7 +79,7 @@ class PackageCreate(BaseModel):
     is_active: bool = True
     display_order: int = 0
 
-class PackageUpdate(BaseModel):
+class RetreatUpdate(BaseModel):
     name: str | None = None
     name_display_en: str | None = None
     name_display_ar: str | None = None
@@ -114,20 +127,31 @@ class AvailabilityOut(BaseModel):
     block_reason: str | None
 
 
-def _package_out(p: Retreat) -> PackageOut:
-    return PackageOut(
-        id=str(p.id), name=p.name, package_type=p.package_type,
-        wellness_categories=p.wellness_categories or [],
-        duration_min_days=p.duration_min_days, duration_max_days=p.duration_max_days,
-        price_usd=float(p.price_usd), price_inr=float(p.price_inr) if p.price_inr else None,
-        includes_accommodation=p.includes_accommodation, includes_meals=p.includes_meals,
-        includes_transfers=p.includes_transfers, max_guests_per_slot=p.max_guests_per_slot,
-        is_active=p.is_active, display_order=p.display_order,
+def _retreat_out(r: Retreat) -> RetreatOut:
+    return RetreatOut(
+        id=str(r.id), name=r.name, name_display_en=r.name_display_en,
+        description_en=r.description_en, package_type=r.package_type,
+        wellness_categories=r.wellness_categories or [],
+        duration_min_days=r.duration_min_days, duration_max_days=r.duration_max_days,
+        price_usd=float(r.price_usd), price_inr=float(r.price_inr) if r.price_inr else None,
+        includes_accommodation=r.includes_accommodation, includes_meals=r.includes_meals,
+        includes_transfers=r.includes_transfers, max_guests_per_slot=r.max_guests_per_slot,
+        what_to_expect=r.what_to_expect, contraindications=r.contraindications,
+        highlights=r.highlights or [],
+        treatments_included=r.treatments_included or [],
+        ideal_for=r.ideal_for or [],
+        prakriti_tags=r.prakriti_tags or [],
+        photos=r.photos or [],
+        daily_schedule=r.daily_schedule,
+        cancellation_policy=r.cancellation_policy,
+        language_of_instruction=r.language_of_instruction or [],
+        min_age=r.min_age,
+        is_active=r.is_active, display_order=r.display_order,
     )
 
 
-@router.get("/packages", response_model=list[PackageOut])
-async def list_packages(
+@router.get("/retreats", response_model=list[RetreatOut])
+async def list_retreats(
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
@@ -135,16 +159,16 @@ async def list_packages(
         select(Retreat).where(Retreat.clinic_id == clinic.id)
         .order_by(Retreat.display_order, Retreat.name)
     )
-    return [_package_out(p) for p in result.scalars().all()]
+    return [_retreat_out(r) for r in result.scalars().all()]
 
 
-@router.post("/packages", response_model=PackageOut, status_code=201)
-async def create_package(
-    body: PackageCreate,
+@router.post("/retreats", response_model=RetreatOut, status_code=201)
+async def create_retreat(
+    body: RetreatCreate,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    pkg = Retreat(
+    retreat = Retreat(
         clinic_id=clinic.id,
         name=body.name,
         name_display_en=body.name_display_en,
@@ -177,60 +201,60 @@ async def create_package(
         is_active=body.is_active,
         display_order=body.display_order,
     )
-    db.add(pkg)
+    db.add(retreat)
     await db.commit()
-    await db.refresh(pkg)
-    return _package_out(pkg)
+    await db.refresh(retreat)
+    return _retreat_out(retreat)
 
 
-@router.patch("/packages/{package_id}", response_model=PackageOut)
-async def update_package(
-    package_id: str,
-    body: PackageUpdate,
+@router.patch("/retreats/{retreat_id}", response_model=RetreatOut)
+async def update_retreat(
+    retreat_id: str,
+    body: RetreatUpdate,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    pkg = await db.get(Retreat, uuid.UUID(package_id))
-    if not pkg or pkg.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Package not found")
+    retreat = await db.get(Retreat, uuid.UUID(retreat_id))
+    if not retreat or retreat.clinic_id != clinic.id:
+        raise HTTPException(status_code=404, detail="Retreat not found")
 
     for field, value in body.model_dump(exclude_unset=True).items():
-        setattr(pkg, field, value)
+        setattr(retreat, field, value)
 
     await db.commit()
-    await db.refresh(pkg)
-    return _package_out(pkg)
+    await db.refresh(retreat)
+    return _retreat_out(retreat)
 
 
-@router.delete("/packages/{package_id}")
-async def delete_package(
-    package_id: str,
+@router.delete("/retreats/{retreat_id}")
+async def delete_retreat(
+    retreat_id: str,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    pkg = await db.get(Retreat, uuid.UUID(package_id))
-    if not pkg or pkg.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Package not found")
+    retreat = await db.get(Retreat, uuid.UUID(retreat_id))
+    if not retreat or retreat.clinic_id != clinic.id:
+        raise HTTPException(status_code=404, detail="Retreat not found")
 
-    pkg.is_active = False
+    retreat.is_active = False
     await db.commit()
-    return {"id": package_id, "is_active": False}
+    return {"id": retreat_id, "is_active": False}
 
 
-@router.post("/packages/{package_id}/set-availability")
+@router.post("/retreats/{retreat_id}/set-availability")
 async def set_availability(
-    package_id: str,
+    retreat_id: str,
     body: SetAvailabilityBody,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    pkg = await db.get(Retreat, uuid.UUID(package_id))
-    if not pkg or pkg.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Package not found")
+    retreat = await db.get(Retreat, uuid.UUID(retreat_id))
+    if not retreat or retreat.clinic_id != clinic.id:
+        raise HTTPException(status_code=404, detail="Retreat not found")
 
     existing = (await db.execute(
         select(RetreatAvailability).where(
-            RetreatAvailability.retreat_id == pkg.id,
+            RetreatAvailability.retreat_id == retreat.id,
             RetreatAvailability.date == body.date,
         )
     )).scalar_one_or_none()
@@ -241,7 +265,7 @@ async def set_availability(
         existing.block_reason = None
     else:
         db.add(RetreatAvailability(
-            retreat_id=pkg.id, date=body.date,
+            retreat_id=retreat.id, date=body.date,
             available_spots=body.available_spots,
         ))
 
@@ -249,23 +273,23 @@ async def set_availability(
     return {"date": str(body.date), "available_spots": body.available_spots}
 
 
-@router.post("/packages/{package_id}/block-dates")
+@router.post("/retreats/{retreat_id}/block-dates")
 async def block_dates(
-    package_id: str,
+    retreat_id: str,
     body: BlockDatesBody,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    pkg = await db.get(Retreat, uuid.UUID(package_id))
-    if not pkg or pkg.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Package not found")
+    retreat = await db.get(Retreat, uuid.UUID(retreat_id))
+    if not retreat or retreat.clinic_id != clinic.id:
+        raise HTTPException(status_code=404, detail="Retreat not found")
 
     current = body.date_from
     blocked_count = 0
     while current <= body.date_to:
         existing = (await db.execute(
             select(RetreatAvailability).where(
-                RetreatAvailability.retreat_id == pkg.id,
+                RetreatAvailability.retreat_id == retreat.id,
                 RetreatAvailability.date == current,
             )
         )).scalar_one_or_none()
@@ -276,7 +300,7 @@ async def block_dates(
             existing.available_spots = 0
         else:
             db.add(RetreatAvailability(
-                retreat_id=pkg.id, date=current,
+                retreat_id=retreat.id, date=current,
                 available_spots=0, is_blocked=True, block_reason=body.reason,
             ))
         blocked_count += 1
@@ -286,16 +310,16 @@ async def block_dates(
     return {"blocked_dates": blocked_count, "from": str(body.date_from), "to": str(body.date_to)}
 
 
-@router.get("/packages/{package_id}/calendar", response_model=list[AvailabilityOut])
+@router.get("/retreats/{retreat_id}/calendar", response_model=list[AvailabilityOut])
 async def get_calendar(
-    package_id: str,
+    retreat_id: str,
     month: str = None,
     clinic: ClinicFeatureStore = Depends(get_admin_clinic),
     db: AsyncSession = Depends(get_db),
 ):
-    pkg = await db.get(Retreat, uuid.UUID(package_id))
-    if not pkg or pkg.clinic_id != clinic.id:
-        raise HTTPException(status_code=404, detail="Package not found")
+    retreat = await db.get(Retreat, uuid.UUID(retreat_id))
+    if not retreat or retreat.clinic_id != clinic.id:
+        raise HTTPException(status_code=404, detail="Retreat not found")
 
     if month:
         year, mon = map(int, month.split("-"))
@@ -307,7 +331,7 @@ async def get_calendar(
 
     rows = (await db.execute(
         select(RetreatAvailability).where(
-            RetreatAvailability.retreat_id == pkg.id,
+            RetreatAvailability.retreat_id == retreat.id,
             RetreatAvailability.date >= start,
             RetreatAvailability.date <= end,
         ).order_by(RetreatAvailability.date)

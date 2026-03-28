@@ -13,7 +13,7 @@ export interface ClinicSummary {
   wellness_categories: string[]
   languages: string[]
   pricing_min: number | null
-  package_count: number
+  retreat_count: number
   cheapest_price: number | null
   certifications: string[]
   outcome_enrolled: boolean
@@ -123,10 +123,10 @@ export default function HomeClinicCard({
                 Outcome tracked
               </span>
             )}
-            {clinic.package_count > 0 && (
+            {clinic.retreat_count > 0 && (
               <span style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 3 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
-                {clinic.package_count} package{clinic.package_count !== 1 ? 's' : ''}
+                {clinic.retreat_count} retreat{clinic.retreat_count !== 1 ? 's' : ''}
               </span>
             )}
           </div>

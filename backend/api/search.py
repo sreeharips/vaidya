@@ -14,7 +14,7 @@ from sqlalchemy import Float, Integer, String, cast, func, literal, select, unio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
-from db.models import ClinicFeatureStore, WellnessPackage, SearchEvent
+from db.models import ClinicFeatureStore, Retreat, SearchEvent
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 
@@ -81,14 +81,14 @@ async def full_text_search(
     # Search packages if requested
     if type in ("all", "package"):
         pkg_rows = (await db.execute(
-            select(WellnessPackage, ClinicFeatureStore)
-            .join(ClinicFeatureStore, WellnessPackage.clinic_id == ClinicFeatureStore.id)
+            select(Retreat, ClinicFeatureStore)
+            .join(ClinicFeatureStore, Retreat.clinic_id == ClinicFeatureStore.id)
             .where(
-                WellnessPackage.is_active.is_(True),
+                Retreat.is_active.is_(True),
                 ClinicFeatureStore.is_active.is_(True),
-                WellnessPackage.name.ilike(pattern) |
-                WellnessPackage.description_en.ilike(pattern)
-            ).order_by(WellnessPackage.price_usd.asc())
+                Retreat.name.ilike(pattern) |
+                Retreat.description_en.ilike(pattern)
+            ).order_by(Retreat.price_usd.asc())
         )).all()
 
         for p, c in pkg_rows:
@@ -129,9 +129,9 @@ async def autocomplete_suggestions(
     )).scalars().all()
 
     pkg_rows = (await db.execute(
-        select(WellnessPackage).where(
-            WellnessPackage.is_active.is_(True),
-            WellnessPackage.name.ilike(prefix)
+        select(Retreat).where(
+            Retreat.is_active.is_(True),
+            Retreat.name.ilike(prefix)
         ).limit(4)
     )).scalars().all()
 

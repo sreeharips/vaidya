@@ -30,6 +30,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  getAccessToken: () => string | null
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -86,6 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
   }, [])
 
+  const getAccessToken = useCallback(() => accessTokenRef.current, [])
+
   return (
     <AuthContext.Provider
       value={{
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: user !== null,
         login,
         logout,
+        getAccessToken,
       }}
     >
       {children}

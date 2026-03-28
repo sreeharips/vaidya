@@ -300,7 +300,7 @@ export default function SearchPage() {
             }}
           >
             <div style={{ fontFamily: 'var(--serif)', fontSize: '22px', fontWeight: 400, color: 'var(--forest)' }}>
-              {loading && clinics.length === 0
+              {loading && clinics?.length === 0
                 ? 'Searching…'
                 : `${clinicsTotal} result${clinicsTotal !== 1 ? 's' : ''}`}
               {filters.q && (
@@ -352,7 +352,7 @@ export default function SearchPage() {
 
           {/* Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {loading && clinics.length === 0
+            {loading && clinics?.length === 0
               ? Array.from({ length: 3 }).map((_, i) =>
                   <ClinicCardSkeleton key={i} />
                 )

@@ -150,8 +150,8 @@ export default function NavBar() {
   const dark = isHome
 
   const links = [
-    { href: `/${lang}/clinics`,              label: 'Clinics'  },
-    { href: `/${lang}/clinics?tab=packages`, label: 'Packages' },
+    { href: `/${lang}/clinics`, label: 'Clinics'  },
+    { href: `/${lang}/search`,  label: 'Search'   },
   ]
 
   async function handleLogout() {

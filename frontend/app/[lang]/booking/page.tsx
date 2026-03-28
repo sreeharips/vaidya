@@ -2,6 +2,7 @@
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -33,7 +34,7 @@ interface BookingResult {
   currency: string
   nights: number
   clinic_name: string
-  package_name: string
+  retreat_name: string
   start_date: string
   end_date: string
   guest_count: number
@@ -44,23 +45,33 @@ function BookingForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const lang = (params?.lang as string) || 'en'
+  const { user, getAccessToken } = useAuth()
 
   const clinicSlug = searchParams.get('clinic') || ''
-  const packageId = searchParams.get('package') || ''
+  const retreatId = searchParams.get('retreat') || ''
 
   const [clinic, setClinic] = useState<ClinicData | null>(null)
   const [pkg, setPkg] = useState<PackageData | null>(null)
   const [loadError, setLoadError] = useState('')
 
-  // Form state
-  const [guestName, setGuestName] = useState('')
-  const [email, setEmail] = useState('')
+  // Form state — pre-fill from logged-in user if available
+  const [guestName, setGuestName] = useState(user?.full_name ?? '')
+  const [email, setEmail] = useState(user?.email ?? '')
   const [startDate, setStartDate] = useState('')
   const [duration, setDuration] = useState(14)
   const [guestCount, setGuestCount] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<BookingResult | null>(null)
   const [submitError, setSubmitError] = useState('')
+
+  // Sync auth user into form fields once auth resolves
+  useEffect(() => {
+    if (user) {
+      if (!guestName && user.full_name) setGuestName(user.full_name)
+      if (!email && user.email) setEmail(user.email)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // Load clinic data
   useEffect(() => {
@@ -79,11 +90,11 @@ function BookingForm() {
 
   // Load package data
   useEffect(() => {
-    if (!packageId) return
+    if (!retreatId) return
 
-    fetch(`${API_BASE}/api/packages/${packageId}`)
+    fetch(`${API_BASE}/api/retreats/${retreatId}`)
       .then((r) => {
-        if (!r.ok) throw new Error('Package not found')
+        if (!r.ok) throw new Error('Retreat not found')
         return r.json()
       })
       .then((data: PackageData) => {
@@ -96,7 +107,7 @@ function BookingForm() {
       .catch(() => {
         // Package load failed — user can still submit without package details
       })
-  }, [packageId])
+  }, [retreatId])
 
   // Derived
   const endDate = (() => {
@@ -126,11 +137,15 @@ function BookingForm() {
     setSubmitError('')
 
     try {
+      const token = getAccessToken()
       const res = await fetch(`${API_BASE}/api/bookings/request`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
-          package_id: packageId || undefined,
+          retreat_id: retreatId || undefined,
           clinic_id: clinic.id,
           start_date: startDate,
           end_date: endDate,
@@ -191,7 +206,7 @@ function BookingForm() {
               marginBottom: 24,
             }}>
               {[
-                ['Package', result.package_name],
+                ['Retreat', result.retreat_name],
                 ['Dates', `${result.start_date} → ${result.end_date}`],
                 ['Duration', `${result.nights} nights`],
                 ['Guests', `${result.guest_count}`],
@@ -303,7 +318,7 @@ function BookingForm() {
               <label htmlFor="guest-email" className="booking-label" style={{ display: 'block', marginBottom: 6 }}>
                 Email address{' '}
                 <span style={{ fontWeight: 300, color: 'var(--muted)', fontSize: '11px', textTransform: 'none', letterSpacing: 0 }}>
-                  (for confirmation)
+                  {user ? '(your account email)' : '(for confirmation)'}
                 </span>
               </label>
               <input
@@ -314,7 +329,8 @@ function BookingForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                style={{ width: '100%' }}
+                readOnly={!!user}
+                style={{ width: '100%', ...(user ? { background: 'var(--cream)', cursor: 'default', color: 'var(--muted)' } : {}) }}
               />
             </div>
 

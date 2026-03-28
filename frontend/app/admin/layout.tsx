@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: "grid" },
   { label: "Clinic Profile", href: "/admin/clinic", icon: "building" },
   { label: "Images", href: "/admin/clinic/images", icon: "image" },
-  { label: "Packages", href: "/admin/packages", icon: "heart" },
+  { label: "Retreats", href: "/admin/retreats", icon: "heart" },
   { label: "Team", href: "/admin/team", icon: "users" },
   { label: "Bookings", href: "/admin/bookings", icon: "clipboard" },
   { label: "Users", href: "/admin/users", icon: "userCog" },

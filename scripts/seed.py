@@ -40,10 +40,10 @@ from db.models import (
     Booking,
     ClinicFeatureStore,
     ClinicTeam,
-    PackageAvailability,
+    RetreatAvailability,
     PatientProfile,
     Review,
-    WellnessPackage,
+    Retreat,
 )
 
 _raw_url = os.environ.get(
@@ -533,21 +533,21 @@ def seed_team(session: Session, clinic_ids: list) -> None:
     print(f"  ✓ Seeded {count} team members across {len(clinic_ids)} retreats")
 
 
-def seed_packages(session: Session, clinic_ids: list) -> list:
-    existing = session.execute(text("SELECT COUNT(*) FROM wellness_packages")).scalar()
+def seed_retreats(session: Session, clinic_ids: list) -> list:
+    existing = session.execute(text("SELECT COUNT(*) FROM retreats")).scalar()
     if existing and existing > 0:
-        print(f"  ✓ {existing} packages already exist, skipping")
-        return list(session.execute(text("SELECT id FROM wellness_packages")).scalars().all())
+        print(f"  ✓ {existing} retreats already exist, skipping")
+        return list(session.execute(text("SELECT id FROM retreats")).scalars().all())
 
-    package_ids = []
+    retreat_ids = []
     for cid in clinic_ids:
-        num_packages = RNG.randint(3, 6)
-        templates = RNG.sample(PACKAGE_TEMPLATES, min(num_packages, len(PACKAGE_TEMPLATES)))
+        num_retreats = RNG.randint(3, 6)
+        templates = RNG.sample(PACKAGE_TEMPLATES, min(num_retreats, len(PACKAGE_TEMPLATES)))
 
         for j, tmpl in enumerate(templates):
             pid = uuid.uuid4()
             price_variation = RNG.uniform(0.8, 1.3)
-            package = WellnessPackage(
+            package = Retreat(
                 id=pid,
                 clinic_id=cid,
                 name=tmpl["name"],
@@ -566,27 +566,27 @@ def seed_packages(session: Session, clinic_ids: list) -> list:
                 display_order=j,
             )
             session.add(package)
-            package_ids.append(pid)
+            retreat_ids.append(pid)
 
     session.flush()
-    print(f"  ✓ Seeded {len(package_ids)} packages across {len(clinic_ids)} retreats")
-    return package_ids
+    print(f"  ✓ Seeded {len(retreat_ids)} retreats across {len(clinic_ids)} clinics")
+    return retreat_ids
 
 
-def seed_availability(session: Session, package_ids: list) -> None:
-    existing = session.execute(text("SELECT COUNT(*) FROM package_availability")).scalar()
+def seed_availability(session: Session, retreat_ids: list) -> None:
+    existing = session.execute(text("SELECT COUNT(*) FROM retreat_availability")).scalar()
     if existing and existing > 0:
         print(f"  ✓ {existing} availability records already exist, skipping")
         return
 
     today = date.today()
     count = 0
-    for pid in package_ids:
+    for pid in retreat_ids:
         for day_offset in range(90):
             d = today + timedelta(days=day_offset)
             is_blocked = RNG.random() < 0.05
-            avail = PackageAvailability(
-                package_id=pid,
+            avail = RetreatAvailability(
+                retreat_id=pid,
                 date=d,
                 available_spots=0 if is_blocked else RNG.randint(1, 6),
                 is_blocked=is_blocked,
@@ -596,7 +596,7 @@ def seed_availability(session: Session, package_ids: list) -> None:
             count += 1
 
     session.flush()
-    print(f"  ✓ Seeded {count} availability records (90 days × {len(package_ids)} packages)")
+    print(f"  ✓ Seeded {count} availability records (90 days × {len(retreat_ids)} retreats)")
 
 
 def seed_patients(session: Session, count: int = 200) -> list:
@@ -624,7 +624,7 @@ def seed_patients(session: Session, count: int = 200) -> list:
 def seed_bookings(
     session: Session,
     clinic_ids: list,
-    package_ids: list,
+    retreat_ids: list,
     pseudo_ids: list,
     count: int = 300,
 ) -> list:
@@ -638,7 +638,7 @@ def seed_bookings(
 
     for i in range(count):
         cid = RNG.choice(clinic_ids)
-        pkg_id = RNG.choice(package_ids)
+        pkg_id = RNG.choice(retreat_ids)
         patient = RNG.choice(pseudo_ids)
         status = RNG.choice(statuses)
         lang = RNG.choice(LANGUAGES)
@@ -656,7 +656,7 @@ def seed_bookings(
             id=bid,
             patient_pseudo_id=patient,
             clinic_id=cid,
-            package_id=pkg_id,
+            retreat_id=pkg_id,
             guest_name=f"Guest {i + 1}",
             guest_email=f"guest{i + 1}@example.com" if RNG.random() > 0.3 else None,
             guest_count=guest_count,
@@ -713,14 +713,72 @@ def seed_reviews(
     print(f"  ✓ Seeded {seeded} reviews")
 
 
+def seed_test_user_bookings(
+    session: Session,
+    clinic_ids: list,
+    retreat_ids: list,
+    pseudo_ids: list,
+) -> None:
+    """Create a handful of bookings for known test-user emails so the
+    booking-history screen shows data when logged in as those accounts."""
+    TEST_USERS = [
+        "priya.nair@example.com",
+        "anitha.krishnan@example.com",
+        "thomas.weber@example.com",
+    ]
+    statuses = ["completed", "completed", "confirmed", "pending", "cancelled"]
+
+    for email in TEST_USERS:
+        existing = session.execute(
+            text("SELECT COUNT(*) FROM bookings WHERE guest_email = :e"),
+            {"e": email},
+        ).scalar()
+        if existing:
+            print(f"  ✓ Bookings for {email} already exist, skipping")
+            continue
+
+        rng = random.Random(email)  # deterministic per-email
+        for j in range(5):
+            status = rng.choice(statuses)
+            start = date.today() - timedelta(days=rng.randint(7, 365))
+            nights = rng.randint(5, 21)
+            end = start + timedelta(days=nights)
+            price_per_night = rng.uniform(80, 180)
+            guest_count = rng.randint(1, 2)
+            total = round(price_per_night * nights * guest_count, 2)
+
+            booking = Booking(
+                id=uuid.uuid4(),
+                patient_pseudo_id=rng.choice(pseudo_ids),
+                clinic_id=rng.choice(clinic_ids),
+                retreat_id=rng.choice(retreat_ids),
+                guest_name=email.split("@")[0].replace(".", " ").title(),
+                guest_email=email,
+                guest_count=guest_count,
+                start_date=start,
+                end_date=end,
+                status=status,
+                total_amount=total,
+                commission_amount=round(total * 0.12, 2),
+                currency="USD",
+                lang="en",
+                payment_ref=f"pi_test_{uuid.uuid4().hex[:16]}" if status in ("confirmed", "completed") else None,
+            )
+            session.add(booking)
+
+        print(f"  ✓ Seeded 5 bookings for {email}")
+
+    session.flush()
+
+
 def reset_seed_data(session: Session) -> None:
     print("  Resetting seed data...")
     # Must delete in FK-safe order: children before parents
     session.execute(text("DELETE FROM reviews"))
     session.execute(text("DELETE FROM bookings"))
     session.execute(text("DELETE FROM patient_profiles WHERE pseudo_id LIKE 'seed-patient-%'"))
-    session.execute(text("DELETE FROM package_availability"))
-    session.execute(text("DELETE FROM wellness_packages"))
+    session.execute(text("DELETE FROM retreat_availability"))
+    session.execute(text("DELETE FROM retreats"))
     session.execute(text("DELETE FROM clinic_team"))
     # Null out clinic FK on users rather than deleting user accounts
     session.execute(text("UPDATE users SET clinic_id = NULL WHERE clinic_id IS NOT NULL"))
@@ -745,10 +803,11 @@ def main():
 
         clinic_ids = seed_clinics(session)
         seed_team(session, clinic_ids)
-        package_ids = seed_packages(session, clinic_ids)
-        seed_availability(session, package_ids)
+        retreat_ids = seed_retreats(session, clinic_ids)
+        seed_availability(session, retreat_ids)
         pseudo_ids = seed_patients(session, count=200)
-        booking_ids = seed_bookings(session, clinic_ids, package_ids, pseudo_ids, count=300)
+        booking_ids = seed_bookings(session, clinic_ids, retreat_ids, pseudo_ids, count=300)
+        seed_test_user_bookings(session, clinic_ids, retreat_ids, pseudo_ids)
         seed_reviews(session, clinic_ids, booking_ids, pseudo_ids, count=200)
 
         session.commit()

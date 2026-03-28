@@ -8,10 +8,10 @@ import {
   declineBooking,
   completeBooking,
   createAdminBooking,
-  getPackages,
+  getRetreats,
   type Booking,
   type BookingStats,
-  type Package,
+  type Retreat,
   type AdminBookingCreate,
 } from "@/lib/admin-api";
 
@@ -33,6 +33,7 @@ export default function BookingsPage() {
   const [stats, setStats] = useState<BookingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Decline modal
   const [showDeclineModal, setShowDeclineModal] = useState<string | null>(null);
@@ -40,9 +41,9 @@ export default function BookingsPage() {
 
   // Create booking panel
   const [showCreate, setShowCreate] = useState(false);
-  const [packages, setPackages] = useState<Package[]>([]);
+  const [retreats, setRetreats] = useState<Retreat[]>([]);
   const [createForm, setCreateForm] = useState<AdminBookingCreate>({
-    package_id: "",
+    retreat_id: "",
     start_date: "",
     end_date: "",
     guest_name: "",
@@ -59,6 +60,7 @@ export default function BookingsPage() {
 
   const load = async (status: string) => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [b, s] = await Promise.all([
         getBookings({ status, limit: 50 }),
@@ -67,16 +69,16 @@ export default function BookingsPage() {
       setBookings(b.items);
       setTotal(b.total);
       setStats(s);
-    } catch {
-      // handled
+    } catch (err: unknown) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load bookings");
     }
     setLoading(false);
   };
 
   const loadPackages = async () => {
     try {
-      const pkgs = await getPackages();
-      setPackages(pkgs.filter((p) => p.is_active));
+      const pkgs = await getRetreats();
+      setRetreats(pkgs.filter((p) => p.is_active));
     } catch {
       // handled
     }
@@ -129,7 +131,7 @@ export default function BookingsPage() {
   };
 
   const handleCreate = async () => {
-    if (!createForm.package_id || !createForm.start_date || !createForm.end_date || !createForm.guest_name.trim()) {
+    if (!createForm.retreat_id || !createForm.start_date || !createForm.end_date || !createForm.guest_name.trim()) {
       setCreateError("Package, dates, and guest name are required.");
       return;
     }
@@ -139,7 +141,7 @@ export default function BookingsPage() {
       await createAdminBooking(createForm);
       setShowCreate(false);
       setCreateForm({
-        package_id: "",
+        retreat_id: "",
         start_date: "",
         end_date: "",
         guest_name: "",
@@ -159,7 +161,7 @@ export default function BookingsPage() {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  const selectedPackage = packages.find((p) => p.id === createForm.package_id);
+  const selectedPackage = retreats.find((r) => r.id === createForm.retreat_id);
 
   const nightsEstimate =
     createForm.start_date && createForm.end_date
@@ -177,7 +179,7 @@ export default function BookingsPage() {
         { label: "This Month", value: stats.bookings_this_month, color: "text-slate" },
         { label: "Revenue", value: `$${stats.revenue_this_month.toLocaleString()}`, color: "text-forest" },
         { label: "Pending", value: stats.pending_requests, color: "text-amber-600" },
-        { label: "Active Packages", value: stats.active_packages, color: "text-slate" },
+        { label: "Active Retreats", value: stats.active_retreats, color: "text-slate" },
       ]
     : [];
 
@@ -228,6 +230,15 @@ export default function BookingsPage() {
         <div className="flex items-center justify-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-forest border-t-transparent" />
         </div>
+      ) : loadError ? (
+        <div className="bg-red-50 border border-red-200 rounded-md p-6 text-center">
+          <p className="text-sm font-sans text-red-700">{loadError}</p>
+          {loadError.includes("clinic") && (
+            <p className="text-xs font-sans text-red-500 mt-2">
+              Your account may not be linked to a clinic. Contact a platform admin.
+            </p>
+          )}
+        </div>
       ) : bookings.length === 0 ? (
         <div className="bg-white rounded-md border border-cream2 p-10 text-center">
           <p className="text-sm font-sans text-muted">No {tab} bookings.</p>
@@ -255,7 +266,7 @@ export default function BookingsPage() {
                   </div>
 
                   <p className="text-sm font-sans text-slate">
-                    <span className="font-medium">{booking.package_name}</span>
+                    <span className="font-medium">{booking.retreat_name}</span>
                     {booking.guest_count > 1 && (
                       <span className="text-muted ml-2">
                         ({booking.guest_count} guest{booking.guest_count !== 1 ? "s" : ""})
@@ -367,14 +378,14 @@ export default function BookingsPage() {
                   Package <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={createForm.package_id}
+                  value={createForm.retreat_id}
                   onChange={(e) =>
-                    setCreateForm((p) => ({ ...p, package_id: e.target.value }))
+                    setCreateForm((p) => ({ ...p, retreat_id: e.target.value }))
                   }
                   className="w-full px-3 py-2.5 rounded-md border border-cream2 text-sm font-sans text-slate focus:outline-none focus:ring-2 focus:ring-forest/30 focus:border-forest bg-white"
                 >
-                  <option value="">Select package...</option>
-                  {packages.map((pkg) => (
+                  <option value="">Select retreat...</option>
+                  {retreats.map((pkg) => (
                     <option key={pkg.id} value={pkg.id}>
                       {pkg.name} ({pkg.package_type})
                       {pkg.duration_min_days ? ` — ${pkg.duration_min_days}–${pkg.duration_max_days} days` : ""}

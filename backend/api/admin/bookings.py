@@ -24,7 +24,7 @@ from db.models import (
     ClinicBlockedDate,
     ClinicFeatureStore,
     PatientProfile,
-    WellnessPackage,
+    Retreat,
 )
 from db.outcomes import append_outcome
 
@@ -44,8 +44,8 @@ class BookingListItem(BaseModel):
     guest_name: str | None
     guest_email: str | None
     clinic_id: str
-    package_id: str
-    package_name: str
+    retreat_id: str
+    retreat_name: str
     start_date: str
     end_date: str
     nights: int
@@ -64,7 +64,7 @@ class BookingsPage(BaseModel):
 
 
 class AdminBookingCreate(BaseModel):
-    package_id: str
+    retreat_id: str
     start_date: date
     end_date: date
     guest_name: str = Field(min_length=1, max_length=200)
@@ -89,7 +89,7 @@ class BookingStats(BaseModel):
     bookings_this_month: int
     revenue_this_month: float
     pending_requests: int
-    active_packages: int
+    active_retreats: int
 
 
 # ── Availability helpers ─────────────────────────────────────────────────────
@@ -165,15 +165,15 @@ async def list_bookings(
 
     items = []
     for b in results:
-        package = await db.get(WellnessPackage, b.package_id) if b.package_id else None
+        retreat = await db.get(Retreat, b.retreat_id) if b.retreat_id else None
         nights = (b.end_date - b.start_date).days if b.end_date and b.start_date else 0
         items.append(BookingListItem(
             id=str(b.id),
             guest_name=b.guest_name or f"Guest #{str(b.patient_pseudo_id)[:8]}",
             guest_email=b.guest_email,
             clinic_id=str(b.clinic_id),
-            package_id=str(b.package_id) if b.package_id else "",
-            package_name=package.name if package else "—",
+            retreat_id=str(b.retreat_id) if b.retreat_id else "",
+            retreat_name=retreat.name if retreat else "—",
             start_date=str(b.start_date),
             end_date=str(b.end_date),
             nights=nights,
@@ -202,18 +202,18 @@ async def create_booking(
     - Does not require payment up-front
     - Validates availability unless skip_availability_check is set
     """
-    package_uuid = uuid.UUID(body.package_id)
+    retreat_uuid = uuid.UUID(body.retreat_id)
 
-    # Validate package belongs to this clinic
-    package = (await db.execute(
-        select(WellnessPackage).where(
-            WellnessPackage.id == package_uuid,
-            WellnessPackage.clinic_id == clinic.id,
-            WellnessPackage.is_active.is_(True),
+    # Validate retreat belongs to this clinic
+    retreat = (await db.execute(
+        select(Retreat).where(
+            Retreat.id == retreat_uuid,
+            Retreat.clinic_id == clinic.id,
+            Retreat.is_active.is_(True),
         )
     )).scalar_one_or_none()
-    if not package:
-        raise HTTPException(status_code=422, detail="Package not found or inactive.")
+    if not retreat:
+        raise HTTPException(status_code=422, detail="Retreat not found or inactive.")
 
     # Check availability
     availability_warnings = []
@@ -231,7 +231,7 @@ async def create_booking(
 
     # Calculate financials
     nights = (body.end_date - body.start_date).days
-    total_amount = round(float(package.price_usd) * nights * body.guest_count, 2)
+    total_amount = round(float(retreat.price_usd) * nights * body.guest_count, 2)
     rate = _COMMISSION_INTERNATIONAL if body.lang in _INTERNATIONAL_LANGS else _COMMISSION_DOMESTIC
     commission_amount = round(total_amount * rate, 2)
 
@@ -244,7 +244,7 @@ async def create_booking(
         id=uuid.uuid4(),
         patient_pseudo_id=pseudo_id,
         clinic_id=clinic.id,
-        package_id=package_uuid,
+        retreat_id=retreat_uuid,
         guest_name=body.guest_name,
         guest_email=body.guest_email,
         guest_count=body.guest_count,
@@ -268,7 +268,7 @@ async def create_booking(
         scores={
             "total_amount": total_amount,
             "nights": nights,
-            "package_name": package.name,
+            "retreat_name": retreat.name,
             "lang": body.lang,
             "source": "admin_manual",
         },
@@ -279,7 +279,7 @@ async def create_booking(
     return {
         "id": str(booking.id),
         "status": "confirmed",
-        "package_name": package.name,
+        "retreat_name": retreat.name,
         "guest_name": body.guest_name,
         "guest_count": body.guest_count,
         "start_date": str(body.start_date),
@@ -384,11 +384,10 @@ async def get_booking_stats(
     revenue = sum(float(b.total_amount or 0) for b in month_bookings if b.status in ("confirmed", "completed", "payment_received"))
     pending_requests = sum(1 for b in month_bookings if b.status == "pending")
 
-    # Count active packages instead of active doctors
-    active_packages_count = (await db.execute(
-        select(func.count(WellnessPackage.id)).where(
-            WellnessPackage.clinic_id == clinic.id,
-            WellnessPackage.is_active.is_(True),
+    active_retreats_count = (await db.execute(
+        select(func.count(Retreat.id)).where(
+            Retreat.clinic_id == clinic.id,
+            Retreat.is_active.is_(True),
         )
     )).scalar_one()
 
@@ -396,5 +395,5 @@ async def get_booking_stats(
         bookings_this_month=bookings_this_month,
         revenue_this_month=round(revenue, 2),
         pending_requests=pending_requests,
-        active_packages=active_packages_count,
+        active_retreats=active_retreats_count,
     )

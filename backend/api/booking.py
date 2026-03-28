@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
-from db.models import Booking, ClinicFeatureStore, WellnessPackage, PackageAvailability, PatientProfile
+from db.models import Booking, ClinicFeatureStore, Retreat, RetreatAvailability, PatientProfile
 from db.outcomes import append_outcome
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ _COMMISSION_DOMESTIC = 0.07
 
 
 class BookingRequest(BaseModel):
-    package_id: str
+    retreat_id: str
     clinic_id: str
     start_date: date
     guest_count: int = Field(default=1, ge=1, le=10)
@@ -50,7 +50,7 @@ class BookingRequestResponse(BaseModel):
     currency: str
     nights: int
     clinic_name: str
-    package_name: str
+    retreat_name: str
     start_date: date
     end_date: date
 
@@ -70,8 +70,8 @@ class BookingDetail(BaseModel):
     patient_pseudo_id: str
     clinic_id: str
     clinic_name: str | None
-    package_id: str
-    package_name: str | None
+    retreat_id: str
+    retreat_name: str | None
     start_date: date
     end_date: date
     nights: int
@@ -99,9 +99,9 @@ async def _fetch_booking_with_relations(booking_id: str, db: AsyncSession):
         raise HTTPException(status_code=404, detail="Invalid booking ID.")
 
     row = (await db.execute(
-        select(Booking, ClinicFeatureStore, WellnessPackage)
+        select(Booking, ClinicFeatureStore, Retreat)
         .join(ClinicFeatureStore, Booking.clinic_id == ClinicFeatureStore.id)
-        .join(WellnessPackage, Booking.package_id == WellnessPackage.id)
+        .join(Retreat, Booking.retreat_id == Retreat.id)
         .where(Booking.id == bid)
     )).one_or_none()
 
@@ -117,20 +117,20 @@ async def request_booking(
 ):
     try:
         clinic_uuid = uuid.UUID(body.clinic_id)
-        package_uuid = uuid.UUID(body.package_id)
+        retreat_uuid = uuid.UUID(body.retreat_id)
     except ValueError:
-        raise HTTPException(status_code=422, detail="clinic_id and package_id must be valid UUIDs.")
+        raise HTTPException(status_code=422, detail="clinic_id and retreat_id must be valid UUIDs.")
 
     package = (await db.execute(
-        select(WellnessPackage).where(
-            WellnessPackage.id == package_uuid,
-            WellnessPackage.clinic_id == clinic_uuid,
-            WellnessPackage.is_active.is_(True),
+        select(Retreat).where(
+            Retreat.id == retreat_uuid,
+            Retreat.clinic_id == clinic_uuid,
+            Retreat.is_active.is_(True),
         )
     )).scalar_one_or_none()
 
     if package is None:
-        raise HTTPException(status_code=422, detail="Package not found or does not belong to this clinic.")
+        raise HTTPException(status_code=422, detail="Retreat not found or does not belong to this clinic.")
 
     clinic = (await db.execute(select(ClinicFeatureStore).where(ClinicFeatureStore.id == clinic_uuid))).scalar_one_or_none()
     if clinic is None:
@@ -138,10 +138,10 @@ async def request_booking(
 
     # Check availability
     avail = (await db.execute(
-        select(PackageAvailability).where(
-            PackageAvailability.package_id == package_uuid,
-            PackageAvailability.date == body.start_date,
-            PackageAvailability.is_blocked.is_(False),
+        select(RetreatAvailability).where(
+            RetreatAvailability.retreat_id == retreat_uuid,
+            RetreatAvailability.date == body.start_date,
+            RetreatAvailability.is_blocked.is_(False),
         )
     )).scalar_one_or_none()
 
@@ -169,7 +169,7 @@ async def request_booking(
         id=uuid.uuid4(),
         patient_pseudo_id=pseudo_id,
         clinic_id=clinic_uuid,
-        package_id=package_uuid,
+        retreat_id=retreat_uuid,
         guest_name=body.guest_name,
         guest_email=body.guest_email,
         guest_count=body.guest_count,
@@ -194,7 +194,7 @@ async def request_booking(
         booking_id=str(booking.id), status=booking.status,
         total_amount=total_amount, commission_amount=commission_amount,
         currency="USD", nights=nights, clinic_name=clinic.name,
-        package_name=package.name, start_date=body.start_date, end_date=end_date,
+        retreat_name=package.name, start_date=body.start_date, end_date=end_date,
     )
 
 
@@ -260,7 +260,7 @@ async def get_booking(
         id=str(booking.id), status=booking.status,
         patient_pseudo_id=booking.patient_pseudo_id,
         clinic_id=str(booking.clinic_id), clinic_name=clinic.name,
-        package_id=str(booking.package_id), package_name=package.name,
+        retreat_id=str(booking.retreat_id), retreat_name=package.name,
         start_date=booking.start_date, end_date=booking.end_date,
         nights=(booking.end_date - booking.start_date).days,
         guest_count=booking.guest_count,

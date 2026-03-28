@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.cache import cache_get, cache_set
 from db.database import get_db
-from db.models import ClinicFeatureStore, ClinicTeam, WellnessPackage, Review
+from db.models import ClinicFeatureStore, ClinicTeam, Retreat, Review
 
 router = APIRouter(prefix="/api/clinics", tags=["clinics"])
 
@@ -32,16 +32,19 @@ class TeamMemberOut(BaseModel):
     years_experience: int | None
     photo_url: str | None
 
-class PackageInline(BaseModel):
+class RetreatInline(BaseModel):
     id: str
     name: str
-    package_type: str
+    description: str | None
+    package_type: str | None
     wellness_categories: list[str]
-    duration_min_days: int
-    duration_max_days: int
-    price_usd: float
+    duration_min_days: int | None
+    duration_max_days: int | None
+    price_usd: float | None
     includes_accommodation: bool
     includes_meals: bool
+    includes_transfers: bool
+    max_guests_per_slot: int | None
 
 class ReviewOut(BaseModel):
     id: str
@@ -67,7 +70,7 @@ class ClinicSummary(BaseModel):
     outcome_enrolled: bool
     accommodation_available: bool
     photos: list[str]
-    package_count: int
+    retreat_count: int
     cheapest_price: float | None
 
 class ClinicDetail(BaseModel):
@@ -79,7 +82,10 @@ class ClinicDetail(BaseModel):
     rating: float | None
     review_count: int
     wellness_categories: list[str]
+    specialisations: list[str]
     languages: list[str]
+    pricing_min: float | None
+    pricing_max: float | None
     certifications: list[str]
     outcome_enrolled: bool
     accommodation_available: bool
@@ -92,8 +98,21 @@ class ClinicDetail(BaseModel):
     website_url: str | None
     lat: float | None
     lng: float | None
+    # Operational info
+    operating_hours: dict | None
+    social_links: dict | None
+    pickup_available: bool
+    pickup_locations: list[str]
+    # Enriched detail
+    established_year: int | None
+    highlights: list[str]
+    accommodation_types: list[str]
+    meal_options: list[str]
+    nearest_airport: str | None
+    nearest_railway: str | None
+    patient_capacity: int | None
     team: list[TeamMemberOut]
-    packages: list[PackageInline]
+    retreats: list[RetreatInline]
     reviews: list[ReviewOut]
 
 class ClinicListResponse(BaseModel):
@@ -144,9 +163,9 @@ async def list_clinics(
     items = []
     for c in clinics:
         # Get package count and cheapest price
-        pkg_stats = (await db.execute(
-            select(func.count(WellnessPackage.id), func.min(WellnessPackage.price_usd))
-            .where(WellnessPackage.clinic_id == c.id, WellnessPackage.is_active.is_(True))
+        retreat_stats = (await db.execute(
+            select(func.count(Retreat.id), func.min(Retreat.price_usd))
+            .where(Retreat.clinic_id == c.id, Retreat.is_active.is_(True))
         )).one()
 
         items.append(ClinicSummary(
@@ -161,8 +180,8 @@ async def list_clinics(
             outcome_enrolled=c.outcome_enrolled,
             accommodation_available=c.accommodation_available,
             photos=c.photos or [],
-            package_count=pkg_stats[0],
-            cheapest_price=float(pkg_stats[1]) if pkg_stats[1] is not None else None,
+            retreat_count=retreat_stats[0],
+            cheapest_price=float(retreat_stats[1]) if retreat_stats[1] is not None else None,
         ))
 
     return ClinicListResponse(items=items, total=total, limit=limit, offset=offset)
@@ -229,21 +248,23 @@ async def get_clinic(
         for t in team_rows
     ]
 
-    # Packages
-    pkg_rows = (await db.execute(
-        select(WellnessPackage).where(WellnessPackage.clinic_id == clinic.id, WellnessPackage.is_active.is_(True))
-        .order_by(WellnessPackage.display_order)
+    # Retreats
+    retreat_rows = (await db.execute(
+        select(Retreat).where(Retreat.clinic_id == clinic.id, Retreat.is_active.is_(True))
+        .order_by(Retreat.display_order)
     )).scalars().all()
 
-    packages = [
-        PackageInline(
-            id=str(p.id), name=p.name, package_type=p.package_type,
-            wellness_categories=p.wellness_categories or [],
-            duration_min_days=p.duration_min_days, duration_max_days=p.duration_max_days,
-            price_usd=float(p.price_usd),
-            includes_accommodation=p.includes_accommodation, includes_meals=p.includes_meals,
+    retreats = [
+        RetreatInline(
+            id=str(r.id), name=r.name, description=r.description_en,
+            package_type=r.package_type,
+            wellness_categories=r.wellness_categories or [],
+            duration_min_days=r.duration_min_days, duration_max_days=r.duration_max_days,
+            price_usd=float(r.price_usd) if r.price_usd is not None else None,
+            includes_accommodation=r.includes_accommodation, includes_meals=r.includes_meals,
+            includes_transfers=r.includes_transfers, max_guests_per_slot=r.max_guests_per_slot,
         )
-        for p in pkg_rows
+        for r in retreat_rows
     ]
 
     # Reviews
@@ -269,7 +290,10 @@ async def get_clinic(
         rating=float(clinic.rating) if clinic.rating is not None else None,
         review_count=clinic.review_count,
         wellness_categories=clinic.wellness_categories or [],
+        specialisations=clinic.specialisations or [],
         languages=clinic.languages or [],
+        pricing_min=float(clinic.pricing_min) if clinic.pricing_min is not None else None,
+        pricing_max=float(clinic.pricing_max) if clinic.pricing_max is not None else None,
         certifications=clinic.certifications or [],
         outcome_enrolled=clinic.outcome_enrolled,
         accommodation_available=clinic.accommodation_available,
@@ -277,7 +301,18 @@ async def get_clinic(
         address=clinic.address, transport_info=clinic.transport_info,
         description=description, phone=clinic.phone, email=clinic.email,
         website_url=clinic.website_url, lat=clinic.lat, lng=clinic.lng,
-        team=team, packages=packages, reviews=reviews,
+        operating_hours=clinic.operating_hours,
+        social_links=clinic.social_links,
+        pickup_available=clinic.pickup_available,
+        pickup_locations=clinic.pickup_locations or [],
+        established_year=clinic.established_year,
+        highlights=clinic.highlights or [],
+        accommodation_types=clinic.accommodation_types or [],
+        meal_options=clinic.meal_options or [],
+        nearest_airport=clinic.nearest_airport,
+        nearest_railway=clinic.nearest_railway,
+        patient_capacity=clinic.patient_capacity,
+        team=team, retreats=retreats, reviews=reviews,
     )
 
     await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)

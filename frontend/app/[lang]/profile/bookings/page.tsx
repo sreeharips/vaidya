@@ -9,11 +9,12 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 interface Booking {
   id: string
-  booking_id: string
   clinic_id: string
-  package_name: string
+  retreat_name: string
   start_date: string
   end_date: string
+  nights: number
+  guest_count: number
   total_paid: number | null
   status: string
   created_at: string
@@ -29,7 +30,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
 export default function BookingsPage() {
   const params = useParams()
   const lang = (params?.lang as string) || 'en'
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, getAccessToken } = useAuth()
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(false)
@@ -38,7 +39,7 @@ export default function BookingsPage() {
   useEffect(() => {
     if (!isAuthenticated || authLoading) return
     setLoading(true)
-    const token = localStorage.getItem('vaidya_refresh_token') // access token lives in memory — just use fetch with credentials for this
+    const token = getAccessToken()
     fetch(`${API}/api/users/me/bookings`, {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -225,10 +226,12 @@ export default function BookingsPage() {
                         marginBottom: '4px',
                       }}
                     >
-                      {b.package_name}
+                      {b.retreat_name}
                     </div>
-                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '4px' }}>
                       {b.start_date} — {b.end_date}
+                      {b.nights > 0 && <span style={{ marginLeft: 8 }}>· {b.nights} nights</span>}
+                      {b.guest_count > 1 && <span style={{ marginLeft: 8 }}>· {b.guest_count} guests</span>}
                     </div>
                     {b.total_paid != null && (
                       <div

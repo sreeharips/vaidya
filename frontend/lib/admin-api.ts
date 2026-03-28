@@ -27,37 +27,8 @@ export async function adminFetch<T = unknown>(
       headers,
     });
   } catch (e: unknown) {
-    // #region agent log
-    fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
-      body: JSON.stringify({
-        sessionId: "ee0189",
-        location: "admin-api.ts:adminFetch",
-        message: "fetch network error",
-        data: { path, apiBase: API_BASE, err: e instanceof Error ? e.message : String(e) },
-        timestamp: Date.now(),
-        hypothesisId: "H3",
-      }),
-    }).catch(() => {});
-    // #endregion
     throw e;
   }
-
-  // #region agent log
-  fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
-    body: JSON.stringify({
-      sessionId: "ee0189",
-      location: "admin-api.ts:adminFetch",
-      message: "fetch response",
-      data: { path, status: res.status, ok: res.ok, apiBase: API_BASE },
-      timestamp: Date.now(),
-      hypothesisId: "H3-H5",
-    }),
-  }).catch(() => {});
-  // #endregion
 
   if (res.status === 401) {
     if (typeof window !== "undefined") {
@@ -70,25 +41,6 @@ export async function adminFetch<T = unknown>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    // #region agent log
-    fetch("http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ee0189" },
-      body: JSON.stringify({
-        sessionId: "ee0189",
-        location: "admin-api.ts:adminFetch",
-        message: "api error body",
-        data: {
-          path,
-          status: res.status,
-          detail: (body as { detail?: string }).detail,
-          message: (body as { message?: string }).message,
-        },
-        timestamp: Date.now(),
-        hypothesisId: "H1-H2",
-      }),
-    }).catch(() => {});
-    // #endregion
     throw new Error(body.detail || body.message || `API error ${res.status}`);
   }
 
@@ -260,48 +212,48 @@ export function uploadTeamPhoto(id: string, formData: FormData) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Packages                                                           */
+/*  Retreats                                                           */
 /* ------------------------------------------------------------------ */
 
-export function getPackages() {
-  return adminFetch<Package[]>("/api/admin/packages");
+export function getRetreats() {
+  return adminFetch<Retreat[]>("/api/admin/retreats");
 }
 
-export function createPackage(data: Partial<Package>) {
-  return adminFetch<Package>("/api/admin/packages", {
+export function createRetreat(data: Partial<Retreat>) {
+  return adminFetch<Retreat>("/api/admin/retreats", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export function updatePackage(id: string, data: Partial<Package>) {
-  return adminFetch<Package>(`/api/admin/packages/${id}`, {
+export function updateRetreat(id: string, data: Partial<Retreat>) {
+  return adminFetch<Retreat>(`/api/admin/retreats/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
 }
 
-export function deletePackage(id: string) {
-  return adminFetch<void>(`/api/admin/packages/${id}`, { method: "DELETE" });
+export function deleteRetreat(id: string) {
+  return adminFetch<void>(`/api/admin/retreats/${id}`, { method: "DELETE" });
 }
 
-export function setPackageAvailability(id: string, data: { dates: PackageAvailabilityDay[] }) {
-  return adminFetch<PackageAvailabilityDay[]>(`/api/admin/packages/${id}/set-availability`, {
+export function setRetreatAvailability(id: string, data: { dates: RetreatAvailabilityDay[] }) {
+  return adminFetch<RetreatAvailabilityDay[]>(`/api/admin/retreats/${id}/set-availability`, {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export function blockPackageDates(id: string, data: { date_from: string; date_to: string; reason?: string }) {
-  return adminFetch<void>(`/api/admin/packages/${id}/block-dates`, {
+export function blockRetreatDates(id: string, data: { date_from: string; date_to: string; reason?: string }) {
+  return adminFetch<void>(`/api/admin/retreats/${id}/block-dates`, {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export function getPackageCalendar(id: string, month: string) {
+export function getRetreatCalendar(id: string, month: string) {
   const qs = new URLSearchParams({ month });
-  return adminFetch<PackageAvailabilityDay[]>(`/api/admin/packages/${id}/calendar?${qs}`);
+  return adminFetch<RetreatAvailabilityDay[]>(`/api/admin/retreats/${id}/calendar?${qs}`);
 }
 
 /* ------------------------------------------------------------------ */
@@ -339,7 +291,7 @@ export function createAdminBooking(data: AdminBookingCreate) {
   return adminFetch<{
     id: string;
     status: string;
-    package_name: string;
+    retreat_name: string;
     guest_name: string;
     guest_count: number;
     start_date: string;
@@ -518,7 +470,7 @@ export interface TeamMember {
   is_active: boolean;
 }
 
-export interface Package {
+export interface Retreat {
   id: string;
   name: string;
   name_display_en: string | null;
@@ -539,11 +491,27 @@ export interface Package {
   max_guests_per_slot: number;
   what_to_expect: string | null;
   contraindications: string | null;
+  highlights: string[];
+  treatments_included: string[];
+  ideal_for: string[];
+  prakriti_tags: string[];
+  photos: string[];
+  daily_schedule: string | null;
+  cancellation_policy: string | null;
+  language_of_instruction: string[];
+  min_age: number | null;
   is_active: boolean;
   display_order: number;
 }
 
-export interface PackageAvailabilityDay {
+// Legacy alias — packages/page.tsx uses these names
+export type Package = Retreat;
+export const getPackages = getRetreats;
+export const createPackage = createRetreat;
+export const updatePackage = updateRetreat;
+export const deletePackage = deleteRetreat;
+
+export interface RetreatAvailabilityDay {
   date: string;
   available_spots: number;
   is_blocked: boolean;
@@ -556,8 +524,8 @@ export interface Booking {
   guest_email: string;
   guest_count: number;
   clinic_id: string;
-  package_id: string | null;
-  package_name: string;
+  retreat_id: string | null;
+  retreat_name: string;
   start_date: string;
   end_date: string;
   nights: number;
@@ -570,7 +538,7 @@ export interface Booking {
 }
 
 export interface AdminBookingCreate {
-  package_id: string;
+  retreat_id: string;
   guest_count: number;
   start_date: string;
   end_date: string;
@@ -586,7 +554,7 @@ export interface BookingStats {
   bookings_this_month: number;
   revenue_this_month: number;
   pending_requests: number;
-  active_packages: number;
+  active_retreats: number;
 }
 
 export interface PlatformClinic {
@@ -594,7 +562,7 @@ export interface PlatformClinic {
   name: string;
   district: string;
   tier: number;
-  packages_count: number;
+  retreats_count: number;
   bookings_count: number;
   revenue: number;
   is_active: boolean;
@@ -621,5 +589,5 @@ export interface PlatformStats {
   tier2_clinics: number;
   total_bookings: number;
   total_revenue: number;
-  active_packages: number;
+  active_retreats: number;
 }
