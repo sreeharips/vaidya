@@ -3,6 +3,7 @@
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useDisplayCurrency } from '@/contexts/DisplayCurrencyContext'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -15,6 +16,8 @@ interface PackageData {
   duration_min_days: number | null
   duration_max_days: number | null
   price_usd: number | null
+  /** Canonical effective price in INR */
+  price_inr?: number
   includes_accommodation: boolean
   includes_meals: boolean
   includes_transfers: boolean
@@ -46,6 +49,7 @@ function BookingForm() {
   const router = useRouter()
   const lang = (params?.lang as string) || 'en'
   const { user, getAccessToken } = useAuth()
+  const { formatFromInr } = useDisplayCurrency()
 
   const clinicSlug = searchParams.get('clinic') || ''
   const retreatId = searchParams.get('retreat') || ''
@@ -98,7 +102,10 @@ function BookingForm() {
         return r.json()
       })
       .then((data: PackageData) => {
-        setPkg(data)
+        setPkg({
+          ...data,
+          price_inr: typeof data.price_inr === 'number' ? data.price_inr : 0,
+        })
         // Set initial duration to package minimum
         if (data.duration_min_days) {
           setDuration(data.duration_min_days)
@@ -117,10 +124,12 @@ function BookingForm() {
     return d.toISOString().split('T')[0]
   })()
 
-  const pricePerNight = pkg?.price_usd && pkg?.duration_min_days
-    ? Math.round(pkg.price_usd / pkg.duration_min_days)
-    : 0
-  const estimatedTotal = Math.round(pricePerNight * duration * guestCount)
+  const pkgInr = pkg ? (pkg.price_inr ?? 0) : 0
+  const pricePerNightInr =
+    pkg && pkgInr > 0 && pkg.duration_min_days
+      ? Math.round(pkgInr / pkg.duration_min_days)
+      : 0
+  const estimatedTotalInr = Math.round(pricePerNightInr * duration * guestCount)
 
   const minDuration = pkg?.duration_min_days ?? 7
   const maxDuration = pkg?.duration_max_days ?? 28
@@ -210,7 +219,7 @@ function BookingForm() {
                 ['Dates', `${result.start_date} → ${result.end_date}`],
                 ['Duration', `${result.nights} nights`],
                 ['Guests', `${result.guest_count}`],
-                ['Estimated total', `${result.currency} ${result.total_amount.toFixed(2)}`],
+                ['Estimated total', formatFromInr(Math.round(result.total_amount))],
                 ['Status', 'Pending clinic confirmation'],
               ].map(([label, value]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
@@ -278,9 +287,9 @@ function BookingForm() {
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', fontWeight: 400, lineHeight: 1.25, marginBottom: 6 }}>
             {pkg ? pkg.name : 'Request a booking'}
           </h1>
-          {pkg && pricePerNight > 0 && (
+          {pkg && pricePerNightInr > 0 && (
             <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)' }}>
-              from ${pricePerNight}/night · {minDuration}–{maxDuration} days
+              from {formatFromInr(pricePerNightInr)}/night · {minDuration}–{maxDuration} days
             </p>
           )}
         </div>
@@ -405,9 +414,9 @@ function BookingForm() {
                   {new Date(endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   {guestCount > 1 && ` · ${guestCount} guests`}
                 </span>
-                {estimatedTotal > 0 && (
+                {estimatedTotalInr > 0 && (
                   <span style={{ fontWeight: 600, color: 'var(--forest)' }}>
-                    Est. ${estimatedTotal.toLocaleString()}
+                    Est. {formatFromInr(estimatedTotalInr)}
                   </span>
                 )}
               </div>

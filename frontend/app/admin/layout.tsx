@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { AdminUser } from "@/lib/admin-api";
+import { DisplayCurrencyProvider } from "@/contexts/DisplayCurrencyContext";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: "grid" },
@@ -121,6 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
+    <DisplayCurrencyProvider initialCurrency="INR" locale="en" forceInr>
     <div className="flex min-h-screen bg-cream">
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -218,5 +220,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </DisplayCurrencyProvider>
   );
 }

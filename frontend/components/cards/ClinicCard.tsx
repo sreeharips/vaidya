@@ -1,5 +1,6 @@
 'use client'
 
+import { useDisplayCurrency } from '@/contexts/DisplayCurrencyContext'
 import TierBadge from './TierBadge'
 import StarRating from './StarRating'
 
@@ -28,6 +29,7 @@ interface ClinicCardProps {
 }
 
 export default function ClinicCard({ clinic, onClick }: ClinicCardProps) {
+  const { formatFromInr } = useDisplayCurrency()
   const coverPhoto = clinic.photos?.[0]
 
   return (
@@ -180,7 +182,7 @@ export default function ClinicCard({ clinic, onClick }: ClinicCardProps) {
           <div>
             {clinic.pricing_min != null && (
               <div style={{ fontFamily: 'var(--serif)', fontSize: '17px', color: 'var(--forest)' }}>
-                From ${clinic.pricing_min}{' '}
+                From {formatFromInr(clinic.pricing_min)}{' '}
                 <span style={{ fontFamily: 'var(--sans)', fontSize: '12px', fontWeight: 300, color: 'var(--muted)' }}>
                   / day
                 </span>

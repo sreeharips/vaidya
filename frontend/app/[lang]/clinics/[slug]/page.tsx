@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import AvailabilityStrip from '@/components/clinics/AvailabilityStrip'
+import { formatInrForVisitor } from '@/lib/currency/server'
 
 export const revalidate = 3600
 
@@ -26,6 +27,8 @@ interface Retreat {
   duration_min_days: number | null
   duration_max_days: number | null
   price_usd: number | null
+  /** Effective package price in INR (API canonical). */
+  price_inr: number
   includes_accommodation: boolean
   includes_meals: boolean
   includes_transfers: boolean
@@ -150,10 +153,11 @@ export default async function ClinicPage({
   const tierLabel    = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   const tierColor    = clinic.tier === 2 ? 'var(--gold)' : 'var(--forest2)'
   const tierBg       = clinic.tier === 2 ? 'var(--gold-lt)' : 'var(--forest-lt)'
+  const { lang } = params
   const priceDisplay = clinic.pricing_min
     ? clinic.pricing_max
-      ? `$${clinic.pricing_min.toLocaleString()} – $${clinic.pricing_max.toLocaleString()} / night`
-      : `From $${clinic.pricing_min.toLocaleString()} / night`
+      ? `${formatInrForVisitor(clinic.pricing_min, lang)} – ${formatInrForVisitor(clinic.pricing_max, lang)} / night`
+      : `From ${formatInrForVisitor(clinic.pricing_min, lang)} / night`
     : null
 
   // JSON-LD structured data
@@ -384,8 +388,8 @@ export default async function ClinicPage({
                         : null
 
                 const pricePerNight =
-                  pkg.price_usd && pkg.duration_min_days
-                    ? Math.round(pkg.price_usd / pkg.duration_min_days)
+                  pkg.price_inr > 0 && pkg.duration_min_days
+                    ? Math.round(pkg.price_inr / pkg.duration_min_days)
                     : null
 
                 const includes: string[] = []
@@ -453,14 +457,14 @@ export default async function ClinicPage({
                         )}
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        {pkg.price_usd ? (
+                        {pkg.price_inr > 0 ? (
                           <div>
                             <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--forest)' }}>
-                              ${pkg.price_usd.toLocaleString()}
+                              {formatInrForVisitor(Math.round(pkg.price_inr), lang)}
                             </div>
-                            {pricePerNight && (
+                            {pricePerNight != null && pricePerNight > 0 && (
                               <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                                ~${pricePerNight}/night
+                                ~{formatInrForVisitor(pricePerNight, lang)}/night
                               </div>
                             )}
                           </div>
@@ -767,12 +771,12 @@ export default async function ClinicPage({
             >
               Book a retreat
             </Link>
-            <Link
+            {/*<Link
               href={`/${params.lang}/assessment`}
               style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: 14, fontWeight: 500, padding: '12px 24px', borderRadius: 99, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.2)' }}
             >
               Get personalised matches
-            </Link>
+            </Link>*/}
           </div>
         </section>
       </div>

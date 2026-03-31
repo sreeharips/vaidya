@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatMoney } from "@/lib/currency";
 import {
   getPlatformClinics,
   getPlatformStats,
@@ -58,8 +59,8 @@ export default function PlatformPage() {
         { label: "Tier 1 (Verified)", value: stats.tier1_clinics },
         { label: "Tier 2 (Certified)", value: stats.tier2_clinics },
         { label: "Total Bookings", value: stats.total_bookings.toLocaleString() },
-        { label: "Total Revenue", value: `$${stats.total_revenue.toLocaleString()}` },
-        { label: "Active Doctors", value: stats.active_doctors },
+        { label: "Total Revenue", value: formatMoney(stats.total_revenue, "INR", "en-IN") },
+        { label: "Active Retreats", value: stats.active_retreats },
       ]
     : [];
 
@@ -91,7 +92,7 @@ export default function PlatformPage() {
                 <th className="text-left px-4 py-3 text-muted font-medium">Clinic Name</th>
                 <th className="text-left px-4 py-3 text-muted font-medium">District</th>
                 <th className="text-left px-4 py-3 text-muted font-medium">Tier</th>
-                <th className="text-left px-4 py-3 text-muted font-medium hidden md:table-cell">Doctors</th>
+                <th className="text-left px-4 py-3 text-muted font-medium hidden md:table-cell">Retreats</th>
                 <th className="text-left px-4 py-3 text-muted font-medium hidden md:table-cell">Bookings</th>
                 <th className="text-left px-4 py-3 text-muted font-medium hidden lg:table-cell">Revenue</th>
                 <th className="text-left px-4 py-3 text-muted font-medium">Status</th>
@@ -121,10 +122,10 @@ export default function PlatformPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-muted hidden md:table-cell">{clinic.doctors_count}</td>
+                    <td className="px-4 py-3 text-muted hidden md:table-cell">{clinic.retreats_count}</td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{clinic.bookings_count}</td>
                     <td className="px-4 py-3 text-muted hidden lg:table-cell">
-                      ${clinic.revenue.toLocaleString()}
+                      {formatMoney(clinic.revenue, "INR", "en-IN")}
                     </td>
                     <td className="px-4 py-3">
                       <span

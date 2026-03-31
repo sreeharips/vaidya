@@ -11,9 +11,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import any_, func, select
+from sqlalchemy import any_, cast, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.types import Float
 
+from core.pricing import INR_PER_USD_FALLBACK, retreat_effective_inr
 from db.cache import cache_get, cache_set
 from db.database import get_db
 from db.models import ClinicFeatureStore, ClinicTeam, Retreat, Review
@@ -41,6 +43,9 @@ class RetreatInline(BaseModel):
     duration_min_days: int | None
     duration_max_days: int | None
     price_usd: float | None
+    """Legacy USD list price from DB (optional reference)."""
+    price_inr: float
+    """Effective package price in INR (listed INR or converted from USD)."""
     includes_accommodation: bool
     includes_meals: bool
     includes_transfers: bool
@@ -72,6 +77,7 @@ class ClinicSummary(BaseModel):
     photos: list[str]
     retreat_count: int
     cheapest_price: float | None
+    """Minimum active retreat price in INR (canonical for guests)."""
 
 class ClinicDetail(BaseModel):
     id: str
@@ -160,14 +166,30 @@ async def list_clinics(
         .limit(limit).offset(offset)
     )).scalars().all()
 
+    _eff_inr = func.coalesce(
+        Retreat.price_inr,
+        cast(Retreat.price_usd, Float) * literal(INR_PER_USD_FALLBACK),
+    )
+    cheap_rows = (
+        await db.execute(
+            select(Retreat.clinic_id, func.min(_eff_inr))
+            .where(Retreat.is_active.is_(True))
+            .group_by(Retreat.clinic_id)
+        )
+    ).all()
+    cheapest_by_clinic = {row[0]: float(row[1]) for row in cheap_rows if row[1] is not None}
+
+    retreat_counts = (
+        await db.execute(
+            select(Retreat.clinic_id, func.count(Retreat.id))
+            .where(Retreat.is_active.is_(True))
+            .group_by(Retreat.clinic_id)
+        )
+    ).all()
+    count_by_clinic = {row[0]: int(row[1]) for row in retreat_counts}
+
     items = []
     for c in clinics:
-        # Get package count and cheapest price
-        retreat_stats = (await db.execute(
-            select(func.count(Retreat.id), func.min(Retreat.price_usd))
-            .where(Retreat.clinic_id == c.id, Retreat.is_active.is_(True))
-        )).one()
-
         items.append(ClinicSummary(
             id=str(c.id), slug=c.slug, name=c.name, tier=c.tier,
             district=c.district,
@@ -180,8 +202,8 @@ async def list_clinics(
             outcome_enrolled=c.outcome_enrolled,
             accommodation_available=c.accommodation_available,
             photos=c.photos or [],
-            retreat_count=retreat_stats[0],
-            cheapest_price=float(retreat_stats[1]) if retreat_stats[1] is not None else None,
+            retreat_count=count_by_clinic.get(c.id, 0),
+            cheapest_price=cheapest_by_clinic.get(c.id),
         ))
 
     return ClinicListResponse(items=items, total=total, limit=limit, offset=offset)
@@ -261,6 +283,10 @@ async def get_clinic(
             wellness_categories=r.wellness_categories or [],
             duration_min_days=r.duration_min_days, duration_max_days=r.duration_max_days,
             price_usd=float(r.price_usd) if r.price_usd is not None else None,
+            price_inr=retreat_effective_inr(
+                float(r.price_inr) if r.price_inr is not None else None,
+                float(r.price_usd) if r.price_usd is not None else None,
+            ),
             includes_accommodation=r.includes_accommodation, includes_meals=r.includes_meals,
             includes_transfers=r.includes_transfers, max_guests_per_slot=r.max_guests_per_slot,
         )

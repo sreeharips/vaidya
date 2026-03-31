@@ -13,6 +13,8 @@ export interface SearchFilters {
   q: string
   tier: number[]
   category: string
+  /** Client-side / URL only until clinic list supports dosha filter */
+  prakriti: string
   budgetMax: number
   duration: string
   language: string
@@ -24,6 +26,7 @@ const DEFAULT_FILTERS: SearchFilters = {
   q: '',
   tier: [1, 2],
   category: '',
+  prakriti: '',
   budgetMax: 500,
   duration: '',
   language: '',
@@ -58,7 +61,6 @@ function mapClinic(c: any): Clinic {
     outcome_enrolled: c.outcome_enrolled ?? false,
     accommodation_available: c.accommodation_available ?? false,
     photos: c.photos ?? [],
-    wellness_categories: c.wellness_categories ?? [],
   }
 }
 
@@ -74,7 +76,6 @@ function mapSearchClinic(r: any): Clinic {
     pricing_min: null, pricing_max: null,
     certifications: [], outcome_enrolled: false,
     accommodation_available: false, photos: [],
-    wellness_categories: r.wellness_categories ?? [],
   }
 }
 
@@ -124,6 +125,7 @@ export default function SearchPage() {
       q:            sp.get('q') ?? '',
       tier:         tierArr,
       category:     sp.get('category') ?? '',
+      prakriti:     sp.get('prakriti') ?? '',
       budgetMax:    sp.get('budget') ? Number(sp.get('budget')) : 500,
       duration:     sp.get('duration') ?? '',
       language:     sp.get('language') ?? '',
@@ -189,6 +191,7 @@ export default function SearchPage() {
     if (f.q)                          p.set('q', f.q)
     if (f.tier.length === 1)          p.set('tier', String(f.tier[0]))
     if (f.category)                   p.set('category', f.category)
+    if (f.prakriti)                   p.set('prakriti', f.prakriti)
     if (f.budgetMax < 500)            p.set('budget', String(f.budgetMax))
     if (f.duration)                   p.set('duration', f.duration)
     if (f.language)                   p.set('language', f.language)
@@ -227,28 +230,9 @@ export default function SearchPage() {
       >
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.8)', maxWidth: '500px', margin: 0 }}>
           <strong style={{ color: '#fff' }}>Get personalised matches.</strong>{' '}
-          Take the 8-minute Prakriti assessment to see which clinics and packages best match your constitution.
+          
         </p>
-        <Link href={`/${lang}/assessment`}>
-          <button
-            style={{
-              fontFamily: 'var(--sans)',
-              fontSize: '13px',
-              fontWeight: 500,
-              padding: '9px 22px',
-              borderRadius: 'var(--r-xl)',
-              background: 'var(--gold)',
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'all var(--transition)',
-            }}
-          >
-            Take assessment →
-          </button>
-        </Link>
+ 
       </div>
 
       {/* ── Results layout ────────────────────────────────────────────────────── */}
@@ -425,7 +409,7 @@ export default function SearchPage() {
 function buildClinicUrl(f: SearchFilters, fetchOffset: number): string {
   const p = new URLSearchParams()
   if (f.tier.length === 1)  p.set('tier', String(f.tier[0]))
-  if (f.category)           p.set('category', f.category)
+  if (f.category)           p.set('wellness_category', f.category)
   if (f.language)           p.set('language', f.language)
   if (f.ratingMin > 0)      p.set('rating_min', String(f.ratingMin))
   if (f.budgetMax < 500)    p.set('budget_max', String(f.budgetMax))

@@ -18,6 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.admin_auth import get_admin_clinic
+from core.pricing import retreat_effective_inr
 from db.database import get_db
 from db.models import (
     Booking,
@@ -229,9 +230,15 @@ async def create_booking(
                 },
             )
 
-    # Calculate financials
-    nights = (body.end_date - body.start_date).days
-    total_amount = round(float(retreat.price_usd) * nights * body.guest_count, 2)
+    # Calculate financials (INR — same retreat list price basis as public API)
+    nights = max((body.end_date - body.start_date).days, 1)
+    pkg_inr = retreat_effective_inr(
+        float(retreat.price_inr) if retreat.price_inr is not None else None,
+        float(retreat.price_usd) if retreat.price_usd is not None else None,
+    )
+    dn = retreat.duration_min_days or 1
+    night_inr = pkg_inr / float(dn)
+    total_amount = round(night_inr * nights * body.guest_count, 2)
     rate = _COMMISSION_INTERNATIONAL if body.lang in _INTERNATIONAL_LANGS else _COMMISSION_DOMESTIC
     commission_amount = round(total_amount * rate, 2)
 
@@ -253,7 +260,7 @@ async def create_booking(
         status="confirmed",
         total_amount=total_amount,
         commission_amount=commission_amount,
-        currency="USD",
+        currency="INR",
         lang=body.lang,
         cancellation_policy="Admin-created booking — cancellation at clinic discretion.",
     )
@@ -287,7 +294,7 @@ async def create_booking(
         "nights": nights,
         "total_amount": total_amount,
         "commission_amount": commission_amount,
-        "currency": "USD",
+        "currency": "INR",
         "availability_warnings": availability_warnings,
     }
 

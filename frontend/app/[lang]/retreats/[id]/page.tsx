@@ -1,10 +1,41 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { formatInrForVisitor } from '@/lib/currency/server'
 
 export const revalidate = 3600
 
-const API_BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+/** Empty env vars are common in .env (`NEXT_PUBLIC_API_URL=`) — `??` keeps `''` and breaks server fetch (Invalid URL). */
+function resolveApiBase(): string {
+  for (const v of [process.env.API_URL, process.env.NEXT_PUBLIC_API_URL]) {
+    if (v != null && String(v).trim() !== '') return String(v).trim().replace(/\/$/, '')
+  }
+  return 'http://127.0.0.1:8000'
+}
+
+const API_BASE = resolveApiBase()
+
+// #region agent log
+function dbgRetreat(
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+  hypothesisId: string,
+) {
+  fetch('http://127.0.0.1:7770/ingest/72da58e2-dd69-45c1-a02a-44fb01af9698', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'ee0189' },
+    body: JSON.stringify({
+      sessionId: 'ee0189',
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+      hypothesisId,
+    }),
+  }).catch(() => {})
+}
+// #endregion
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -34,7 +65,7 @@ interface RetreatDetail {
   duration_min_days: number
   duration_max_days: number
   price_usd: number
-  price_inr: number | null
+  price_inr: number
   includes_accommodation: boolean
   includes_meals: boolean
   includes_transfers: boolean
@@ -54,16 +85,57 @@ interface RetreatDetail {
   availability: AvailabilityDay[]
 }
 
+function normalizeRetreatDetail(data: RetreatDetail): RetreatDetail {
+  const c = data.clinic
+  return {
+    ...data,
+    wellness_categories: data.wellness_categories ?? [],
+    availability: Array.isArray(data.availability) ? data.availability : [],
+    highlights: data.highlights ?? [],
+    treatments_included: data.treatments_included ?? [],
+    ideal_for: data.ideal_for ?? [],
+    prakriti_tags: data.prakriti_tags ?? [],
+    photos: data.photos ?? [],
+    language_of_instruction: data.language_of_instruction ?? [],
+    clinic: c ? { ...c, photos: c.photos ?? [] } : data.clinic,
+  }
+}
+
 // ── Data fetch ────────────────────────────────────────────────────────────────
 
 async function fetchRetreat(id: string): Promise<RetreatDetail | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/retreats/${id}`, {
+    const url = `${API_BASE}/api/retreats/${id}`
+    const res = await fetch(url, {
       next: { revalidate: 3600 },
     })
+    // #region agent log
+    dbgRetreat('retreats/[id]/page.tsx:fetchRetreat', 'fetch response', {
+      id,
+      apiBase: API_BASE,
+      status: res.status,
+      ok: res.ok,
+    }, 'H1')
+    // #endregion
     if (!res.ok) return null
-    return res.json()
-  } catch {
+    const json = (await res.json()) as unknown
+    // #region agent log
+    const j = json as Record<string, unknown>
+    dbgRetreat('retreats/[id]/page.tsx:fetchRetreat', 'parsed json shape', {
+      hasClinic: j != null && typeof j === 'object' && 'clinic' in j,
+      availabilityType: j?.availability != null ? typeof j.availability : 'missing',
+      isArrayAvailability: Array.isArray(j?.availability),
+      priceInr: j?.price_inr,
+    }, 'H2-H4-H5')
+    // #endregion
+    return normalizeRetreatDetail(json as RetreatDetail)
+  } catch (e) {
+    // #region agent log
+    dbgRetreat('retreats/[id]/page.tsx:fetchRetreat', 'fetch threw', {
+      id,
+      err: e instanceof Error ? e.message : String(e),
+    }, 'H1')
+    // #endregion
     return null
   }
 }
@@ -83,6 +155,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const retreat = await fetchRetreat(params.id)
   if (!retreat) return { title: 'Retreat not found | AyuRetreats' }
+  // #region agent log
+  dbgRetreat('retreats/[id]/page.tsx:generateMetadata', 'metadata retreat shape', {
+    id: params.id,
+    hasClinic: !!retreat.clinic,
+    clinicName: retreat.clinic?.name,
+  }, 'H4')
+  // #endregion
   const duration =
     retreat.duration_min_days === retreat.duration_max_days
       ? `${retreat.duration_min_days}-day`
@@ -109,6 +188,17 @@ export default async function RetreatPage({
   if (!retreat) notFound()
 
   const { lang } = params
+  // #region agent log
+  dbgRetreat('retreats/[id]/page.tsx:RetreatPage', 'before formatInrForVisitor', {
+    id: params.id,
+    lang,
+    price_inr: retreat.price_inr,
+    clinicKeys: retreat.clinic ? Object.keys(retreat.clinic) : 'no-clinic',
+    availabilityIsArray: Array.isArray(retreat.availability),
+  }, 'H2-H4-H5')
+  const priceLabel = formatInrForVisitor(Math.round(Number(retreat.price_inr)), lang)
+  dbgRetreat('retreats/[id]/page.tsx:RetreatPage', 'after formatInrForVisitor', { ok: true }, 'H3-H5')
+  // #endregion
   const tierLabel = retreat.clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   const durationLabel =
     retreat.duration_min_days === retreat.duration_max_days
@@ -120,6 +210,12 @@ export default async function RetreatPage({
   if (retreat.includes_meals) includes.push('Meals')
   if (retreat.includes_transfers) includes.push('Transfers')
 
+  // #region agent log
+  dbgRetreat('retreats/[id]/page.tsx:RetreatPage', 'before availability.filter', {
+    availabilityIsArray: Array.isArray(retreat.availability),
+    availabilityLen: Array.isArray(retreat.availability) ? retreat.availability.length : null,
+  }, 'H2')
+  // #endregion
   const availableSlots = retreat.availability.filter(
     (a) => !a.is_blocked && a.available_spots > 0,
   )
@@ -213,7 +309,7 @@ export default async function RetreatPage({
               <div
                 style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 600, color: 'var(--gold)' }}
               >
-                ${retreat.price_usd.toLocaleString()}
+                {priceLabel}
               </div>
               <div
                 style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}
@@ -609,13 +705,8 @@ export default async function RetreatPage({
             <div
               style={{ fontFamily: 'var(--serif)', fontSize: 30, fontWeight: 500, color: 'var(--forest)', marginBottom: 4 }}
             >
-              ${retreat.price_usd.toLocaleString()}
+              {priceLabel}
             </div>
-            {retreat.price_inr && (
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>
-                ≈ ₹{retreat.price_inr.toLocaleString()} INR
-              </div>
-            )}
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               {durationLabel} · up to {retreat.max_guests_per_slot} guest
               {retreat.max_guests_per_slot !== 1 ? 's' : ''} per slot

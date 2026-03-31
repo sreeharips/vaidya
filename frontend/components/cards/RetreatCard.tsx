@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useDisplayCurrency } from '@/contexts/DisplayCurrencyContext'
 
 export interface RetreatSummary {
   id: string
@@ -10,6 +11,8 @@ export interface RetreatSummary {
   duration_min_days: number
   duration_max_days: number
   price_usd: number
+  /** Canonical list price in INR (from API) */
+  price_inr: number
   includes_accommodation: boolean
   includes_meals: boolean
   photos: string[]
@@ -25,6 +28,7 @@ function capitalize(s: string) {
 }
 
 export default function RetreatCard({ retreat, lang, featured }: { retreat: RetreatSummary; lang: string; featured?: boolean }) {
+  const { formatFromInr } = useDisplayCurrency()
   const durationText = retreat.duration_min_days === retreat.duration_max_days
     ? `${retreat.duration_min_days} days`
     : `${retreat.duration_min_days}\u2013${retreat.duration_max_days} days`
@@ -126,7 +130,9 @@ export default function RetreatCard({ retreat, lang, featured }: { retreat: Retr
           <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <span style={{ fontSize: 11, color: 'var(--muted)' }}>From </span>
-              <span style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', fontWeight: 500 }}>${Math.round(retreat.price_usd).toLocaleString()}</span>
+              <span style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', fontWeight: 500 }}>
+                {formatFromInr(Math.round(retreat.price_inr))}
+              </span>
             </div>
             <span style={{ fontSize: 12, fontWeight: 600, color: featured ? '#fff' : 'var(--forest)', background: featured ? 'var(--forest)' : 'var(--forest-lt)', padding: '6px 14px', borderRadius: 99 }}>
               View →

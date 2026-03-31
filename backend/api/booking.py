@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.pricing import retreat_effective_inr
 from db.database import get_db
 from db.models import Booking, ClinicFeatureStore, Retreat, RetreatAvailability, PatientProfile
 from db.outcomes import append_outcome
@@ -148,11 +149,14 @@ async def request_booking(
     if avail and avail.available_spots < body.guest_count:
         raise HTTPException(status_code=409, detail="Not enough spots available on the selected date.")
 
-    # Financials
+    # Financials — canonical totals in INR (payment processor may settle in AED/USD later)
     nights = package.duration_min_days
     end_date = body.start_date + __import__('datetime').timedelta(days=nights)
-    price = float(package.price_usd)
-    total_amount = round(price * body.guest_count, 2)
+    price_inr = retreat_effective_inr(
+        float(package.price_inr) if package.price_inr is not None else None,
+        float(package.price_usd) if package.price_usd is not None else None,
+    )
+    total_amount = round(price_inr * body.guest_count, 2)
     rate = _commission_rate(body.lang)
     commission_amount = round(total_amount * rate, 2)
 
@@ -178,7 +182,7 @@ async def request_booking(
         status="pending",
         total_amount=total_amount,
         commission_amount=commission_amount,
-        currency="USD",
+        currency="INR",
         lang=body.lang,
         cancellation_policy="Free cancellation up to 14 days before arrival. 50% charge within 14-7 days. No refund within 7 days.",
     )
@@ -193,7 +197,7 @@ async def request_booking(
     return BookingRequestResponse(
         booking_id=str(booking.id), status=booking.status,
         total_amount=total_amount, commission_amount=commission_amount,
-        currency="USD", nights=nights, clinic_name=clinic.name,
+        currency="INR", nights=nights, clinic_name=clinic.name,
         retreat_name=package.name, start_date=body.start_date, end_date=end_date,
     )
 

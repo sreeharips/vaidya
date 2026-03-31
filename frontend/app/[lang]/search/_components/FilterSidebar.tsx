@@ -35,7 +35,7 @@ export default function FilterSidebar({ filters, onChange, onClear }: FilterSide
 
   function toggleTreatment(t: string) {
     const slug = t.toLowerCase().replace(/\s+/g, '-')
-    onChange({ specialisation: filters.specialisation === slug ? '' : slug })
+    onChange({ category: filters.category === slug ? '' : slug })
   }
 
   function togglePrakriti(d: string) {
@@ -130,7 +130,7 @@ export default function FilterSidebar({ filters, onChange, onClear }: FilterSide
           return (
             <FilterOption
               key={t}
-              checked={filters.specialisation === slug}
+              checked={filters.category === slug}
               onClick={() => toggleTreatment(t)}
               label={t}
             />

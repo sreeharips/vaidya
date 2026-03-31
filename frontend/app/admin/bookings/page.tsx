@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatMoney, effectiveInrListing } from "@/lib/currency";
 import {
   getBookings,
   getBookingStats,
@@ -177,7 +178,11 @@ export default function BookingsPage() {
   const statCards = stats
     ? [
         { label: "This Month", value: stats.bookings_this_month, color: "text-slate" },
-        { label: "Revenue", value: `$${stats.revenue_this_month.toLocaleString()}`, color: "text-forest" },
+        {
+          label: "Revenue",
+          value: formatMoney(stats.revenue_this_month, "INR", "en-IN"),
+          color: "text-forest",
+        },
         { label: "Pending", value: stats.pending_requests, color: "text-amber-600" },
         { label: "Active Retreats", value: stats.active_retreats, color: "text-slate" },
       ]
@@ -283,10 +288,11 @@ export default function BookingsPage() {
                       {booking.nights} night{booking.nights !== 1 ? "s" : ""}
                     </span>
                     <span className="font-semibold text-slate">
-                      ${booking.total_amount.toLocaleString()} {booking.currency}
+                      {formatMoney(booking.total_amount, "INR", "en-IN")}{" "}
+                      {(booking.currency || "INR").toUpperCase()}
                     </span>
                     <span className="text-gold">
-                      Commission: ${booking.commission_amount.toLocaleString()}
+                      Commission: {formatMoney(booking.commission_amount, "INR", "en-IN")}
                     </span>
                   </div>
 
@@ -389,7 +395,9 @@ export default function BookingsPage() {
                     <option key={pkg.id} value={pkg.id}>
                       {pkg.name} ({pkg.package_type})
                       {pkg.duration_min_days ? ` — ${pkg.duration_min_days}–${pkg.duration_max_days} days` : ""}
-                      {pkg.price_usd ? ` — $${pkg.price_usd}` : ""}
+                      {effectiveInrListing(pkg.price_inr, pkg.price_usd) > 0
+                        ? ` — ${formatMoney(effectiveInrListing(pkg.price_inr, pkg.price_usd), "INR", "en-IN")}`
+                        : ""}
                     </option>
                   ))}
                 </select>
@@ -434,8 +442,15 @@ export default function BookingsPage() {
                         </span>
                       )}
                     </span>
-                    {selectedPackage.price_usd && (
-                      <span className="font-semibold text-slate">${selectedPackage.price_usd} USD</span>
+                    {effectiveInrListing(selectedPackage.price_inr, selectedPackage.price_usd) > 0 && (
+                      <span className="font-semibold text-slate">
+                        {formatMoney(
+                          effectiveInrListing(selectedPackage.price_inr, selectedPackage.price_usd),
+                          "INR",
+                          "en-IN",
+                        )}{" "}
+                        INR
+                      </span>
                     )}
                   </div>
                 </div>

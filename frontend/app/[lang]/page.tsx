@@ -33,6 +33,7 @@ async function fetchRetreats(params = ''): Promise<RetreatSummary[]> {
       duration_min_days: r.duration_min_days,
       duration_max_days: r.duration_max_days,
       price_usd: r.price_usd,
+      price_inr: typeof r.price_inr === 'number' ? r.price_inr : 0,
       includes_accommodation: r.includes_accommodation,
       includes_meals: r.includes_meals,
       photos: r.photos ?? [],

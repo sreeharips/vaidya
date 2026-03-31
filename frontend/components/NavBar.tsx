@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import CurrencySwitcher from '@/components/currency/CurrencySwitcher'
 
 function UserMenu({ user, lang, onLogout }: {
   user: { full_name: string | null; email: string }
@@ -220,8 +221,9 @@ export default function NavBar() {
         })}
       </div>
 
-      {/* Auth */}
+      {/* Currency + auth */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <CurrencySwitcher variant={dark ? 'dark' : 'light'} />
         {isAuthenticated && user ? (
           <UserMenu user={user} lang={lang} onLogout={handleLogout} />
         ) : (

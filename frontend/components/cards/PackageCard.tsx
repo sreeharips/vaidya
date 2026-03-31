@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useDisplayCurrency } from '@/contexts/DisplayCurrencyContext'
+import { effectiveInrListing } from '@/lib/currency'
 
 export interface PackageSummary {
   id: string
@@ -10,6 +12,7 @@ export interface PackageSummary {
   duration_min_days: number
   duration_max_days: number
   price_usd: number
+  price_inr?: number | null
   includes_accommodation: boolean
   includes_meals: boolean
   clinic_name: string
@@ -21,6 +24,8 @@ function capitalize(s: string) {
 }
 
 export default function PackageCard({ pkg, lang }: { pkg: PackageSummary; lang: string }) {
+  const { formatFromInr } = useDisplayCurrency()
+  const listInr = effectiveInrListing(pkg.price_inr, pkg.price_usd)
   const durationText = pkg.duration_min_days === pkg.duration_max_days
     ? `${pkg.duration_min_days} days`
     : `${pkg.duration_min_days}\u2013${pkg.duration_max_days} days`
@@ -92,7 +97,9 @@ export default function PackageCard({ pkg, lang }: { pkg: PackageSummary; lang: 
         <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <span style={{ fontSize: 11, color: 'var(--muted)' }}>From </span>
-            <span style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', fontWeight: 500 }}>${pkg.price_usd.toLocaleString()}</span>
+            <span style={{ fontFamily: 'var(--serif)', fontSize: 18, color: 'var(--forest)', fontWeight: 500 }}>
+              {listInr > 0 ? formatFromInr(Math.round(listInr)) : '—'}
+            </span>
             <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 3 }}>/night</span>
           </div>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--forest)', background: 'var(--forest-lt)', padding: '7px 16px', borderRadius: 99 }}>

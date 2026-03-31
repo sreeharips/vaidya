@@ -12,9 +12,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func, select, any_
+from sqlalchemy import any_, cast, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.types import Float
 
+from core.pricing import INR_PER_USD_FALLBACK, retreat_effective_inr
 from db.database import get_db
 from db.models import ClinicFeatureStore, Retreat, RetreatAvailability
 
@@ -40,6 +42,7 @@ class RetreatCard(BaseModel):
     duration_min_days: int
     duration_max_days: int
     price_usd: float
+    price_inr: float
     includes_accommodation: bool
     includes_meals: bool
     is_active: bool
@@ -67,7 +70,8 @@ class RetreatDetail(BaseModel):
     duration_min_days: int
     duration_max_days: int
     price_usd: float
-    price_inr: float | None
+    price_inr: float
+    """Effective price in INR (listed INR or converted from USD)."""
     includes_accommodation: bool
     includes_meals: bool
     includes_transfers: bool
@@ -121,10 +125,14 @@ async def list_retreats(
         stmt = stmt.where(wellness_category == any_(Retreat.wellness_categories))
     if package_type:
         stmt = stmt.where(Retreat.package_type == package_type)
+    eff_inr = func.coalesce(
+        Retreat.price_inr,
+        cast(Retreat.price_usd, Float) * literal(INR_PER_USD_FALLBACK),
+    )
     if price_min is not None:
-        stmt = stmt.where(Retreat.price_usd >= price_min)
+        stmt = stmt.where(eff_inr >= price_min)
     if price_max is not None:
-        stmt = stmt.where(Retreat.price_usd <= price_max)
+        stmt = stmt.where(eff_inr <= price_max)
     if duration_days is not None:
         stmt = stmt.where(Retreat.duration_min_days <= duration_days, Retreat.duration_max_days >= duration_days)
     if district:
@@ -136,7 +144,7 @@ async def list_retreats(
     total = (await db.execute(count_stmt)).scalar_one()
 
     rows = (await db.execute(
-        stmt.order_by(ClinicFeatureStore.tier.desc(), Retreat.price_usd.asc())
+        stmt.order_by(ClinicFeatureStore.tier.desc(), eff_inr.asc())
         .limit(limit).offset(offset)
     )).all()
 
@@ -145,7 +153,12 @@ async def list_retreats(
             id=str(r.id), name=r.name, package_type=r.package_type,
             wellness_categories=r.wellness_categories or [],
             duration_min_days=r.duration_min_days, duration_max_days=r.duration_max_days,
-            price_usd=float(r.price_usd), includes_accommodation=r.includes_accommodation,
+            price_usd=float(r.price_usd),
+            price_inr=retreat_effective_inr(
+                float(r.price_inr) if r.price_inr is not None else None,
+                float(r.price_usd) if r.price_usd is not None else None,
+            ),
+            includes_accommodation=r.includes_accommodation,
             includes_meals=r.includes_meals, is_active=r.is_active,
             photos=r.photos or [],
             clinic=_clinic_inline(c),
@@ -196,7 +209,11 @@ async def get_retreat(
         description_en=r.description_en, package_type=r.package_type,
         wellness_categories=r.wellness_categories or [],
         duration_min_days=r.duration_min_days, duration_max_days=r.duration_max_days,
-        price_usd=float(r.price_usd), price_inr=float(r.price_inr) if r.price_inr else None,
+        price_usd=float(r.price_usd),
+        price_inr=retreat_effective_inr(
+            float(r.price_inr) if r.price_inr is not None else None,
+            float(r.price_usd) if r.price_usd is not None else None,
+        ),
         includes_accommodation=r.includes_accommodation, includes_meals=r.includes_meals,
         includes_transfers=r.includes_transfers, max_guests_per_slot=r.max_guests_per_slot,
         what_to_expect=r.what_to_expect, contraindications=r.contraindications,

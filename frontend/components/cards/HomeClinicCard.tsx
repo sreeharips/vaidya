@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useDisplayCurrency } from '@/contexts/DisplayCurrencyContext'
 
 export interface ClinicSummary {
   id: string
@@ -38,6 +39,7 @@ export default function HomeClinicCard({
   /** Taller image + gold accent border for featured section */
   featured?: boolean
 }) {
+  const { formatFromInr } = useDisplayCurrency()
   const tierLabel = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   const tierBg    = clinic.tier === 2 ? 'rgba(184,134,44,0.85)' : 'rgba(30,61,47,0.85)'
   const imgH = featured ? 200 : compact ? 120 : 180
@@ -134,8 +136,10 @@ export default function HomeClinicCard({
           <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             {clinic.cheapest_price != null ? (
               <div>
-                <span style={{ fontFamily: 'var(--serif)', fontSize: compact ? 15 : 17, color: 'var(--forest)', fontWeight: 500 }}>${clinic.cheapest_price.toLocaleString()}</span>
-                <span style={{ fontSize: compact ? 10 : 11, color: 'var(--muted)', marginLeft: 3 }}>/night</span>
+                <span style={{ fontSize: compact ? 10 : 11, color: 'var(--muted)', marginRight: 4 }}>from</span>
+                <span style={{ fontFamily: 'var(--serif)', fontSize: compact ? 15 : 17, color: 'var(--forest)', fontWeight: 500 }}>
+                  {formatFromInr(clinic.cheapest_price)}
+                </span>
               </div>
             ) : (
               <span style={{ fontSize: compact ? 11 : 12, color: 'var(--muted)' }}>Price on request</span>
