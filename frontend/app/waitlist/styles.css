@@ -1,0 +1,255 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.wl-root {
+  min-height: 100svh;
+  background: #0d1f17;
+  font-family: 'Inter', sans-serif;
+  color: #f5efe6;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Ambient background ───────────────────────────────────────────────── */
+.wl-bg-glow {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(180,130,40,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(30,80,50,0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(15,40,25,0.8) 0%, transparent 100%);
+}
+
+/* ── Mandala rings ────────────────────────────────────────────────────── */
+.wl-mandala {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(193,155,60,0.15);
+  pointer-events: none;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+.wl-inner {
+  position: relative; z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* ── Brand ────────────────────────────────────────────────────────────── */
+.wl-brand {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 56px;
+}
+.wl-brand-leaf { width: 28px; height: 28px; color: #c9a84c; }
+.wl-brand-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f5efe6;
+}
+
+/* ── Badge ────────────────────────────────────────────────────────────── */
+.wl-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid rgba(193,155,60,0.4);
+  border-radius: 100px;
+  padding: 6px 18px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a84c;
+  margin-bottom: 32px;
+}
+.wl-badge-dot {
+  width: 6px; height: 6px;
+  background: #c9a84c;
+  border-radius: 50%;
+  animation: wl-pulse 2s ease-in-out infinite;
+}
+@keyframes wl-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* ── Headline ─────────────────────────────────────────────────────────── */
+.wl-headline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(42px, 8vw, 68px);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: #f5efe6;
+  margin-bottom: 8px;
+}
+.wl-headline em { font-style: italic; color: #c9a84c; }
+.wl-headline-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(245,239,230,0.55);
+  margin-bottom: 28px;
+  line-height: 1.3;
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────── */
+.wl-divider {
+  display: flex; align-items: center; gap: 16px;
+  width: 100%; max-width: 320px;
+  margin: 0 auto 32px;
+}
+.wl-divider-line { flex: 1; height: 1px; background: rgba(193,155,60,0.25); }
+.wl-divider-icon { color: #c9a84c; font-size: 14px; }
+
+/* ── Sub-copy ─────────────────────────────────────────────────────────── */
+.wl-copy {
+  font-size: 16px; font-weight: 300;
+  line-height: 1.75;
+  color: rgba(245,239,230,0.65);
+  max-width: 520px;
+  margin-bottom: 44px;
+}
+.wl-copy strong { color: rgba(245,239,230,0.9); font-weight: 400; }
+
+/* ── Form ─────────────────────────────────────────────────────────────── */
+.wl-form { width: 100%; max-width: 480px; margin-bottom: 48px; }
+.wl-input-row {
+  display: flex; gap: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(193,155,60,0.3);
+  border-radius: 100px;
+  padding: 6px 6px 6px 24px;
+  transition: border-color 0.2s;
+}
+.wl-input-row:focus-within {
+  border-color: rgba(193,155,60,0.7);
+  box-shadow: 0 0 0 3px rgba(193,155,60,0.08);
+}
+.wl-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 300;
+  color: #f5efe6;
+  min-width: 0;
+}
+.wl-input::placeholder { color: rgba(245,239,230,0.35); }
+.wl-btn {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #c9a84c 0%, #a8873c 100%);
+  color: #0d1f17;
+  border: none; cursor: pointer;
+  border-radius: 100px;
+  padding: 12px 28px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+.wl-btn:hover:not(:disabled) { opacity: 0.88; transform: scale(0.98); }
+.wl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Success card ─────────────────────────────────────────────────────── */
+.wl-success-card {
+  width: 100%; max-width: 480px;
+  background: rgba(193,155,60,0.08);
+  border: 1px solid rgba(193,155,60,0.3);
+  border-radius: 20px;
+  padding: 32px 28px;
+  margin-bottom: 48px;
+  animation: wl-fadeUp 0.5s ease;
+}
+@keyframes wl-fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.wl-success-icon {
+  width: 52px; height: 52px;
+  background: rgba(193,155,60,0.15);
+  border: 1px solid rgba(193,155,60,0.4);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 22px;
+}
+.wl-success-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 400;
+  color: #c9a84c;
+  margin-bottom: 8px;
+}
+.wl-success-body {
+  font-size: 14px; color: rgba(245,239,230,0.65); line-height: 1.7;
+}
+.wl-success-position {
+  display: inline-block;
+  margin-top: 16px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-style: italic;
+  color: rgba(245,239,230,0.5);
+}
+.wl-error-msg {
+  font-size: 13px; color: #f87171;
+  margin-top: 10px; text-align: center;
+}
+
+/* ── Features grid ────────────────────────────────────────────────────── */
+.wl-features {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 56px;
+}
+@media (max-width: 520px) { .wl-features { grid-template-columns: 1fr; } }
+
+.wl-feature {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+}
+.wl-feature:hover {
+  border-color: rgba(193,155,60,0.25);
+  background: rgba(193,155,60,0.04);
+}
+.wl-feature-icon { font-size: 18px; color: #c9a84c; margin-bottom: 10px; display: block; }
+.wl-feature-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px; font-weight: 500;
+  color: #f5efe6;
+  margin-bottom: 4px;
+}
+.wl-feature-desc {
+  font-size: 12px; font-weight: 300;
+  color: rgba(245,239,230,0.5);
+  line-height: 1.6;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+.wl-footer {
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 32px;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.wl-footer-tagline {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px; font-style: italic;
+  color: rgba(245,239,230,0.35);
+  letter-spacing: 0.04em;
+}
+.wl-footer-note {
+  font-size: 11px;
+  color: rgba(245,239,230,0.2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

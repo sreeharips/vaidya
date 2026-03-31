@@ -514,6 +514,17 @@ class ClinicImage(Base):
 # Outcomes Log
 # APPEND-ONLY — never UPDATE or DELETE any row. This is the AI training corpus.
 # ---------------------------------------------------------------------------
+class WaitlistEmail(Base):
+    """Pre-launch waitlist. Drop this table and remove the route after launch."""
+
+    __tablename__ = "waitlist_emails"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    source: Mapped[str | None] = mapped_column(String(50))   # e.g. "landing", "social"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+
 class OutcomesLog(Base):
     """APPEND-ONLY — never UPDATE or DELETE any row. This is the AI training corpus."""
 

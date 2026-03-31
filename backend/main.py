@@ -7,6 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.admin import admin_router
 from api.auth import router as auth_router
+from api.waitlist import router as waitlist_router
 from api.booking import router as booking_router
 from api.clinics import router as clinics_router
 from api.retreats import router as retreats_router
@@ -94,6 +95,7 @@ app.add_middleware(
 # are set even if the session middleware short-circuits.
 app.add_middleware(GuestSessionMiddleware)
 
+app.include_router(waitlist_router)
 app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(users_router)

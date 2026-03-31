@@ -47,6 +47,6 @@ export default function middleware(request: NextRequest) {
 // Exclude static assets and favicon so /favicon.ico is not handled as app/[lang] (lang="favicon.ico" → 500).
 export const config = {
   matcher: [
-    '/((?!api|_next|_vercel|admin|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|svg|gif|webp|txt|xml)$).*)',
+    '/((?!api|_next|_vercel|admin|waitlist|favicon.ico|.*\\.(?:ico|png|jpg|jpeg|svg|gif|webp|txt|xml)$).*)',
   ],
 }
