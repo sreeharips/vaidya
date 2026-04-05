@@ -462,4 +462,74 @@ docker compose -f docker-compose.prod.yml ps
 
 ---
 
+---
+
+## Part 7 — Automatic Deploys with GitHub Actions
+
+Every push to `main` triggers `.github/workflows/deploy.yml`, which:
+1. Detects whether frontend, backend, or infra files changed
+2. Rebuilds only the affected Docker images (faster deploys)
+3. Restarts containers and runs migrations
+4. Runs a health check — fails the deploy if `/health` doesn't respond
+
+### 7.1 Add GitHub Secrets
+
+Go to your GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**
+
+Add these three secrets:
+
+| Secret name | Value |
+|---|---|
+| `SERVER_IP` | Your EC2 Elastic IP address |
+| `SERVER_USER` | `ubuntu` |
+| `SERVER_SSH_KEY` | Contents of your `.pem` private key file |
+
+**To get the SSH key value:**
+```bash
+cat /path/to/your-key.pem
+```
+Copy the entire output including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`.
+
+### 7.2 Allow GitHub to SSH into your server
+
+On the EC2 instance, add GitHub Actions' public key to authorized keys:
+
+```bash
+ssh vaidya   # connect to your server
+
+# The SSH action uses the private key you stored in the secret.
+# The matching public key needs to be in authorized_keys.
+# If you used the same key pair as your own SSH access, you're already done.
+# To verify:
+cat ~/.ssh/authorized_keys   # should show your key
+```
+
+If you want a dedicated deploy key (recommended):
+
+```bash
+# On your Mac — generate a new key pair just for deploys
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/vaidya_deploy
+
+# Copy the PUBLIC key to the server
+ssh-copy-id -i ~/.ssh/vaidya_deploy.pub ubuntu@<SERVER_IP>
+
+# Add the PRIVATE key contents to the SERVER_SSH_KEY GitHub secret
+cat ~/.ssh/vaidya_deploy
+```
+
+### 7.3 Push to trigger a deploy
+
+```bash
+git add .
+git commit -m "your changes"
+git push origin main
+```
+
+Watch it run: **GitHub repo → Actions tab → Deploy to Production**
+
+### 7.4 Optional: Slack notifications on failure
+
+Add a `SLACK_WEBHOOK` secret with your Slack incoming webhook URL.
+The workflow will post a message with a link to the failed run whenever a deploy fails.
+
 *Last updated: April 2026 · AyuRetreats MVP v1.0*

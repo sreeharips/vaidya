@@ -1,0 +1,125 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+  # Allow triggering manually from the GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Check out code (needed for changed-files detection) ──────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # need previous commit to detect changed files
+
+      # ── 2. Detect which parts of the repo changed ──────────────────────────
+      - name: Detect changes
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "$CHANGED"
+
+          if echo "$CHANGED" | grep -q "^frontend/"; then
+            echo "frontend=true" >> $GITHUB_OUTPUT
+          else
+            echo "frontend=false" >> $GITHUB_OUTPUT
+          fi
+
+          if echo "$CHANGED" | grep -q "^backend/"; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Always redeploy on first run (workflow_dispatch) or infra changes
+          if echo "$CHANGED" | grep -qE "^(docker-compose|nginx|Makefile|\.env)"; then
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "backend=true"  >> $GITHUB_OUTPUT
+          fi
+
+      # ── 3. SSH into server and deploy ──────────────────────────────────────
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:        ${{ secrets.SERVER_IP }}
+          username:    ${{ secrets.SERVER_USER }}
+          key:         ${{ secrets.SERVER_SSH_KEY }}
+          timeout:     15m
+          script: |
+            set -e
+            cd ~/vaidya
+
+            echo "──────────────────────────────────────"
+            echo "  Pulling latest code"
+            echo "──────────────────────────────────────"
+            git pull origin main
+
+            echo "──────────────────────────────────────"
+            echo "  Building changed services"
+            echo "──────────────────────────────────────"
+
+            REBUILD_ARGS=""
+
+            if [ "${{ steps.changes.outputs.frontend }}" = "true" ]; then
+              echo "→ Rebuilding frontend"
+              REBUILD_ARGS="$REBUILD_ARGS frontend"
+            fi
+
+            if [ "${{ steps.changes.outputs.backend }}" = "true" ]; then
+              echo "→ Rebuilding backend"
+              REBUILD_ARGS="$REBUILD_ARGS backend"
+            fi
+
+            if [ -n "$REBUILD_ARGS" ]; then
+              docker compose -f docker-compose.prod.yml --env-file .env.production \
+                build --no-cache $REBUILD_ARGS
+            else
+              echo "→ No frontend/backend changes — skipping image rebuild"
+            fi
+
+            echo "──────────────────────────────────────"
+            echo "  Restarting containers"
+            echo "──────────────────────────────────────"
+            docker compose -f docker-compose.prod.yml --env-file .env.production \
+              up -d
+
+            echo "──────────────────────────────────────"
+            echo "  Running DB migrations"
+            echo "──────────────────────────────────────"
+            docker compose -f docker-compose.prod.yml exec -T backend \
+              alembic upgrade head
+
+            echo "──────────────────────────────────────"
+            echo "  Cleaning up old Docker images"
+            echo "──────────────────────────────────────"
+            docker image prune -f
+
+            echo "──────────────────────────────────────"
+            echo "  Health check"
+            echo "──────────────────────────────────────"
+            sleep 5
+            curl --fail --silent --show-error http://localhost/health \
+              && echo "✓ Health check passed" \
+              || (echo "✗ Health check FAILED" && exit 1)
+
+      # ── 4. Notify on failure (optional — needs SLACK_WEBHOOK secret) ────────
+      - name: Notify Slack on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "❌ *AyuRetreats deploy FAILED* on `${{ github.ref_name }}`\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true   # don't fail the job if Slack is not configured
