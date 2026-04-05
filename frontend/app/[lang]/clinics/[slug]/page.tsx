@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { setRequestLocale } from 'next-intl/server'
 import AvailabilityStrip from '@/components/clinics/AvailabilityStrip'
 import { formatInrForVisitor } from '@/lib/currency/server'
 
@@ -128,6 +129,7 @@ export async function generateMetadata({
 }: {
   params: { lang: string; slug: string }
 }): Promise<Metadata> {
+  setRequestLocale(params.lang)
   const clinic = await fetchClinic(params.slug, params.lang)
   if (!clinic) return { title: 'Retreat not found | AyuRetreats' }
   const tierLabel = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
@@ -147,6 +149,7 @@ export default async function ClinicPage({
 }: {
   params: { lang: string; slug: string }
 }) {
+  setRequestLocale(params.lang)
   const clinic = await fetchClinic(params.slug, params.lang)
   if (!clinic) notFound()
 

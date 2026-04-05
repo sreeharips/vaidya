@@ -1,4 +1,4 @@
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import HeroSearch from '@/components/search/HeroSearch'
@@ -76,6 +76,7 @@ const CONDITIONS = [
 ]
 
 export async function generateMetadata({ params: { lang } }: { params: { lang: string } }): Promise<Metadata> {
+  setRequestLocale(lang)
   const t = await getTranslations({ locale: lang, namespace: 'home.meta' })
   return {
     title: t('title'),
@@ -94,6 +95,7 @@ export async function generateMetadata({ params: { lang } }: { params: { lang: s
 }
 
 export default async function HomePage({ params: { lang } }: { params: { lang: string } }) {
+  setRequestLocale(lang)
   const t = await getTranslations({ locale: lang, namespace: 'home' })
   const isRtl = lang === 'ar'
   const [featuredRetreats, popularRetreats, popularClinics, newListings] = await Promise.all([

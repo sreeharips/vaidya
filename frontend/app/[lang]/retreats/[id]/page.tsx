@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { formatInrForVisitor } from '@/lib/currency/server'
+import { setRequestLocale } from 'next-intl/server'
 
 export const revalidate = 3600
 
@@ -153,6 +154,7 @@ export async function generateMetadata({
 }: {
   params: { lang: string; id: string }
 }): Promise<Metadata> {
+  setRequestLocale(params.lang)
   const retreat = await fetchRetreat(params.id)
   if (!retreat) return { title: 'Retreat not found | AyuRetreats' }
   // #region agent log
@@ -184,6 +186,7 @@ export default async function RetreatPage({
 }: {
   params: { lang: string; id: string }
 }) {
+  setRequestLocale(params.lang)
   const retreat = await fetchRetreat(params.id)
   if (!retreat) notFound()
 

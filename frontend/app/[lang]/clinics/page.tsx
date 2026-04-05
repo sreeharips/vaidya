@@ -1,5 +1,6 @@
 import type React from 'react'
 import { Metadata } from 'next'
+import { setRequestLocale } from 'next-intl/server'
 import HomeClinicCard, { type ClinicSummary } from '@/components/cards/HomeClinicCard'
 import ListingFilterBar from '@/components/clinics/ListingFilterBar'
 import SearchBar from '@/components/search/SearchBar'
@@ -30,6 +31,7 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params: { lang } }: PageProps): Promise<Metadata> {
+  setRequestLocale(lang)
   return {
     title: 'Ayurveda Wellness Retreats in Kerala — Browse & Filter | AyuRetreats',
     description: 'Discover credentialed Ayurveda wellness retreats in Kerala. Filter by wellness goal, district, budget, language, and more.',
@@ -49,6 +51,7 @@ async function fetchClinics(params: URLSearchParams): Promise<{ items: ClinicSum
 }
 
 export default async function ClinicsPage({ params: { lang }, searchParams }: PageProps) {
+  setRequestLocale(lang)
   const tier       = searchParams.tier
   const category   = searchParams.category
   const district   = searchParams.district
