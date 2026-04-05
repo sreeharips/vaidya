@@ -146,6 +146,7 @@ export default function NavBar() {
   const path = usePathname() ?? ''
   const router = useRouter()
   const { user, isAuthenticated, logout } = useAuth()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const isHome = path === `/${lang}` || path === `/${lang}/`
   const dark = isHome
@@ -158,6 +159,7 @@ export default function NavBar() {
   async function handleLogout() {
     await logout()
     router.push(`/${lang}`)
+    setMobileOpen(false)
   }
 
   return (
@@ -169,12 +171,12 @@ export default function NavBar() {
         display:        'flex',
         alignItems:     'center',
         justifyContent: 'space-between',
-        padding:        '0 48px',
+        padding:        '0 clamp(16px, 4vw, 48px)',
         height:         '56px',
         background:     dark ? '#0f2218' : 'rgba(247,243,237,0.92)',
         backdropFilter: dark ? 'none' : 'blur(12px)',
         borderBottom:   dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid var(--border)',
-        gap:            '16px',
+        gap:            '12px',
       }}
     >
       {/* Logo */}
@@ -182,7 +184,7 @@ export default function NavBar() {
         href={`/${lang}`}
         style={{
           fontFamily:    'var(--serif)',
-          fontSize:      '22px',
+          fontSize:      '20px',
           fontWeight:    600,
           color:         dark ? '#FDFAF6' : 'var(--forest)',
           letterSpacing: '-0.02em',
@@ -196,8 +198,8 @@ export default function NavBar() {
         <span style={{ color: 'var(--gold)' }}>✦</span> AyuRetreats
       </Link>
 
-      {/* Nav links */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, justifyContent: 'center' }}>
+      {/* Nav links — hidden on mobile */}
+      <div className="nav-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1, justifyContent: 'center' }}>
         {links.map(({ href, label }) => {
           const active = path.startsWith(href.split('?')[0])
           return (
@@ -221,9 +223,11 @@ export default function NavBar() {
         })}
       </div>
 
-      {/* Currency + auth */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-        <CurrencySwitcher variant={dark ? 'dark' : 'light'} />
+      {/* Currency + auth — hidden currency on mobile */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <span className="nav-currency">
+          <CurrencySwitcher variant={dark ? 'dark' : 'light'} />
+        </span>
         {isAuthenticated && user ? (
           <UserMenu user={user} lang={lang} onLogout={handleLogout} />
         ) : (
@@ -233,7 +237,7 @@ export default function NavBar() {
                 fontFamily:    'var(--sans)',
                 fontSize:      '13px',
                 fontWeight:    500,
-                padding:       '7px 16px',
+                padding:       '7px 14px',
                 borderRadius:  'var(--r-xl)',
                 border:        dark ? '1px solid rgba(253,250,246,0.2)' : '1.5px solid var(--border2)',
                 background:    'transparent',
@@ -255,6 +259,42 @@ export default function NavBar() {
             </button>
           </Link>
         )}
+
+        {/* Hamburger — mobile only */}
+        <button
+          className="nav-mobile-btn"
+          aria-label="Menu"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((o) => !o)}
+          style={{ color: dark ? 'rgba(253,250,246,0.8)' : 'var(--slate)' }}
+        >
+          {mobileOpen ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="16" x2="21" y2="16" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile dropdown */}
+      <div className={`nav-mobile-overlay${dark ? ' dark-bg' : ''}${mobileOpen ? ' open' : ''}`}>
+        {links.map(({ href, label }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`nav-mobile-link${dark ? ' dark-link' : ''}`}
+            onClick={() => setMobileOpen(false)}
+          >
+            {label}
+          </Link>
+        ))}
+        <div style={{ padding: '10px 20px 4px', borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'var(--border)'}`, marginTop: 4 }}>
+          <CurrencySwitcher variant={dark ? 'dark' : 'light'} />
+        </div>
       </div>
     </nav>
   )

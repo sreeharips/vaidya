@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react'
 import type { SearchFilters } from '../page'
 
 interface FilterSidebarProps {
   filters: SearchFilters
   onChange: (updates: Partial<SearchFilters>) => void
   onClear: () => void
+  onClose?: () => void
 }
 
 const TREATMENTS = ['Panchakarma', 'Shirodhara', 'Abhyanga', 'Basti', 'Kati Basti']
@@ -24,7 +26,7 @@ const DURATIONS = [
   { value: '14-21', label: '14–21 days' },
 ]
 
-export default function FilterSidebar({ filters, onChange, onClear }: FilterSidebarProps) {
+export default function FilterSidebar({ filters, onChange, onClear, onClose }: FilterSidebarProps) {
   function toggleTier(tier: number) {
     const current = filters.tier
     const next = current.includes(tier)
@@ -82,21 +84,37 @@ export default function FilterSidebar({ filters, onChange, onClear }: FilterSide
         }}
       >
         <em>Filters</em>
-        <button
-          onClick={onClear}
-          style={{
-            fontFamily: 'var(--sans)',
-            fontSize: '12px',
-            color: 'var(--gold)',
-            cursor: 'pointer',
-            fontWeight: 400,
-            border: 'none',
-            background: 'transparent',
-            padding: 0,
-          }}
-        >
-          Clear all
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={onClear}
+            style={{
+              fontFamily: 'var(--sans)',
+              fontSize: '12px',
+              color: 'var(--gold)',
+              cursor: 'pointer',
+              fontWeight: 400,
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+            }}
+          >
+            Clear all
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              aria-label="Close filters"
+              className="mobile-close-btn"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--muted)', fontSize: 22, lineHeight: 1,
+                padding: '2px 4px', display: 'none',
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Tier ── */}
@@ -215,7 +233,7 @@ export default function FilterSidebar({ filters, onChange, onClear }: FilterSide
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function FilterGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div style={{ marginBottom: '28px' }}>
       <p
@@ -243,8 +261,8 @@ function FilterOption({
 }: {
   checked: boolean
   onClick: () => void
-  label: React.ReactNode
-  badge?: React.ReactNode
+  label: ReactNode
+  badge?: ReactNode
 }) {
   return (
     <label className="filter-option-row" onClick={onClick}>

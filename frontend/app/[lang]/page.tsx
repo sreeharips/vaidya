@@ -219,8 +219,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       )}
 
       {/* ── Conditions + Districts (two-col) ─────────────────────────────────── */}
-      <section style={{ background: '#fff', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '48px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px' }}>
+      <section className="home-section-full-pad" style={{ background: '#fff', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '48px' }}>
+        <div className="home-two-col" style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px' }}>
 
           {/* Conditions */}
           <div>
@@ -263,7 +263,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       </section>
 
       {/* ── How it works + CTA (side by side) ───────────────────────────────── */}
-      <section style={{ padding: '48px', maxWidth: 1200, margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
+      <section className="home-section-full-pad home-two-col" style={{ padding: '48px', maxWidth: 1200, margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
 
         {/* How it works */}
         <div>

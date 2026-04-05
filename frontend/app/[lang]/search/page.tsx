@@ -211,6 +211,8 @@ export default function SearchPage() {
     await fetchResults(filters, next, true)
   }
 
+  const [filterOpen, setFilterOpen] = useState(false)
+
   // ── Derived ──────────────────────────────────────────────────────────────────
   const displayClinics   = sortClinics(clinics, filters.sort)
 
@@ -219,6 +221,7 @@ export default function SearchPage() {
 
       {/* ── Assessment nudge bar ──────────────────────────────────────────────── */}
       <div
+        className="search-nudge-bar"
         style={{
           background: 'var(--forest)',
           padding: '14px 40px',
@@ -230,18 +233,36 @@ export default function SearchPage() {
       >
         <p style={{ fontSize: '14px', color: 'rgba(255,255,255,.8)', maxWidth: '500px', margin: 0 }}>
           <strong style={{ color: '#fff' }}>Get personalised matches.</strong>{' '}
-          
+
         </p>
- 
+
       </div>
 
       {/* ── Results layout ────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flex: 1 }}>
+      <div style={{ display: 'flex', flex: 1, position: 'relative' }}>
 
-        <FilterSidebar filters={filters} onChange={updateFilters} onClear={clearFilters} />
+        {/* Backdrop for mobile filter panel */}
+        {filterOpen && (
+          <div
+            className="mobile-filter-backdrop"
+            style={{ display: 'block' }}
+            onClick={() => setFilterOpen(false)}
+            aria-hidden
+          />
+        )}
+
+        {/* Filter sidebar */}
+        <div className={`search-sidebar-panel${filterOpen ? ' open' : ''}`}>
+          <FilterSidebar
+            filters={filters}
+            onChange={updateFilters}
+            onClear={clearFilters}
+            onClose={() => setFilterOpen(false)}
+          />
+        </div>
 
         {/* ── Main ──────────────────────────────────────────────────────────── */}
-        <main style={{ flex: 1, padding: '32px 40px', minWidth: 0 }}>
+        <main className="search-main-pad" style={{ flex: 1, padding: '32px 40px', minWidth: 0 }}>
 
           {/* Inline refine search bar */}
           <form
@@ -281,17 +302,30 @@ export default function SearchPage() {
               marginBottom: '24px',
               paddingBottom: '20px',
               borderBottom: '1px solid var(--border)',
+              flexWrap: 'wrap',
+              gap: '10px',
             }}
           >
-            <div style={{ fontFamily: 'var(--serif)', fontSize: '22px', fontWeight: 400, color: 'var(--forest)' }}>
-              {loading && clinics?.length === 0
-                ? 'Searching…'
-                : `${clinicsTotal} result${clinicsTotal !== 1 ? 's' : ''}`}
-              {filters.q && (
-                <span style={{ color: 'var(--muted)', fontSize: '15px', fontFamily: 'var(--sans)', fontWeight: 300 }}>
-                  {' '}for &ldquo;{filters.q}&rdquo;
-                </span>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {/* Mobile filter toggle — shown via CSS on small screens */}
+              <button className="mobile-filter-btn" onClick={() => setFilterOpen(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="8" y1="12" x2="20" y2="12" />
+                  <line x1="12" y1="17" x2="20" y2="17" />
+                </svg>
+                Filters
+              </button>
+              <div style={{ fontFamily: 'var(--serif)', fontSize: '22px', fontWeight: 400, color: 'var(--forest)' }}>
+                {loading && clinics?.length === 0
+                  ? 'Searching…'
+                  : `${clinicsTotal} result${clinicsTotal !== 1 ? 's' : ''}`}
+                {filters.q && (
+                  <span style={{ color: 'var(--muted)', fontSize: '15px', fontFamily: 'var(--sans)', fontWeight: 300 }}>
+                    {' '}for &ldquo;{filters.q}&rdquo;
+                  </span>
+                )}
+              </div>
             </div>
 
             <select

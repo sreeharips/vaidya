@@ -577,6 +577,179 @@ input[type='range'] {
   .booking-card { position: static; }
 }
 
+/* ─── MOBILE NAV ─────────────────────────────────────────── */
+.nav-mobile-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  transition: background var(--transition);
+  padding: 0;
+}
+.nav-mobile-btn:hover { background: rgba(128,128,128,0.1); }
+
+.nav-mobile-overlay {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow2);
+  z-index: 99;
+  padding: 8px 0 12px;
+}
+.nav-mobile-overlay.dark-bg { background: #0f2218; }
+.nav-mobile-overlay.open { display: block; }
+
+.nav-mobile-link {
+  display: block;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-family: var(--sans);
+  color: var(--slate);
+  text-decoration: none;
+  transition: background var(--transition);
+}
+.nav-mobile-link:hover { background: var(--cream); }
+.nav-mobile-link.dark-link { color: rgba(253,250,246,0.85); }
+.nav-mobile-link.dark-link:hover { background: rgba(255,255,255,0.06); }
+
+/* ─── MOBILE FILTER TOGGLE ───────────────────────────────── */
+.mobile-filter-btn {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #fff;
+  border: 1.5px solid var(--border2);
+  border-radius: var(--r-xl);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate);
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+.mobile-filter-btn:hover { border-color: var(--forest); color: var(--forest); }
+
+/* Mobile filter drawer backdrop */
+.mobile-filter-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 299;
+}
+
+/* ─── RESPONSIVE BREAKPOINTS ─────────────────────────────── */
+@media (max-width: 768px) {
+  /* ── Sidebar close button (mobile only) ── */
+  .mobile-close-btn { display: flex !important; }
+  .mobile-sidebar-header { padding: 16px 20px 0 !important; }
+
+  /* ── Navbar ── */
+  .nav-desktop-links { display: none !important; }
+  .nav-currency { display: none !important; }
+  .nav-mobile-btn { display: flex !important; }
+
+  /* ── Home page two-column grid sections ── */
+  .home-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+  .home-section-full-pad {
+    padding: 32px 16px !important;
+  }
+
+  /* ── Clinics listing page ── */
+  .clinics-header-pad {
+    padding: 24px 16px 20px !important;
+  }
+  .clinics-body-layout {
+    flex-direction: column !important;
+    padding: 20px 16px 48px !important;
+    gap: 0 !important;
+  }
+  .clinics-sidebar-panel {
+    width: 88vw !important;
+    max-width: 320px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: -100% !important;
+    height: 100vh !important;
+    z-index: 300 !important;
+    overflow-y: auto !important;
+    background: var(--white) !important;
+    padding: 20px !important;
+    box-shadow: var(--shadow2) !important;
+    transition: left 0.28s cubic-bezier(0.4,0,0.2,1) !important;
+  }
+  .clinics-sidebar-panel.open {
+    left: 0 !important;
+  }
+  .mobile-filter-btn { display: flex !important; }
+  .mobile-filter-backdrop { display: block; }
+
+  /* ── Search page ── */
+  .search-sidebar-panel {
+    position: fixed !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 88vw !important;
+    max-width: 320px !important;
+    height: 100vh !important;
+    z-index: 300 !important;
+    overflow-y: auto !important;
+    background: var(--white) !important;
+    box-shadow: var(--shadow2) !important;
+    transition: left 0.28s cubic-bezier(0.4,0,0.2,1) !important;
+  }
+  .search-sidebar-panel.open {
+    left: 0 !important;
+  }
+  /* Make inner aside fill the mobile panel */
+  .search-sidebar-panel > aside {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    position: static !important;
+    border-right: none !important;
+  }
+  .search-main-pad {
+    padding: 20px 16px !important;
+  }
+  .search-nudge-bar {
+    padding: 12px 16px !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .nav-mobile-btn { display: none !important; }
+  .clinics-sidebar-panel { left: 0 !important; position: sticky !important; }
+  .search-sidebar-panel { left: 0 !important; position: sticky !important; }
+  .mobile-filter-backdrop { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  /* Single-column cards on very small screens */
+  .clinics-grid-auto {
+    grid-template-columns: 1fr !important;
+  }
+  /* Tighter font on home hero for very small screens */
+  .home-two-col > div {
+    padding: 0 !important;
+  }
+}
+
 /* ─── PRAKRITI ASSESSMENT ────────────────────────────────── */
 .assessment-wrap {
   max-width: 640px;

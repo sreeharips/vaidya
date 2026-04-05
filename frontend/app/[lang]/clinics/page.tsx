@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import HomeClinicCard, { type ClinicSummary } from '@/components/cards/HomeClinicCard'
 import ListingFilterBar from '@/components/clinics/ListingFilterBar'
 import SearchBar from '@/components/search/SearchBar'
+import MobileFilterWrapper from './_components/MobileFilterWrapper'
 
 export const revalidate = 120
 
@@ -85,7 +86,7 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
 
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid var(--border)', padding: '40px 48px 32px' }}>
+      <div className="clinics-header-pad" style={{ background: '#fff', borderBottom: '1px solid var(--border)', padding: '40px 48px 32px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: 8 }}>
             Kerala, India
@@ -102,10 +103,10 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 48px 64px', display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+      <div className="clinics-body-layout" style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 48px 64px', display: 'flex', gap: 32, alignItems: 'flex-start' }}>
 
-        {/* Sidebar */}
-        <aside style={{ width: 240, flexShrink: 0, position: 'sticky', top: 24 }}>
+        {/* Sidebar — wrapped for mobile collapse */}
+        <MobileFilterWrapper>
           <ListingFilterBar
             basePath={`/${lang}/clinics`}
             current={{ tier, category, district, language, budgetMax, ratingMin }}
@@ -116,7 +117,7 @@ export default async function ClinicsPage({ params: { lang }, searchParams }: Pa
               budgetLabel: 'Max budget ($/night)',
             }}
           />
-        </aside>
+        </MobileFilterWrapper>
 
         {/* Results */}
         <div style={{ flex: 1, minWidth: 0 }}>
