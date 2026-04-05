@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
+import { getMessages, setRequestLocale } from 'next-intl/server'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { DisplayCurrencyProvider } from '@/contexts/DisplayCurrencyContext'
 import NavBar from '@/components/NavBar'
@@ -14,6 +14,7 @@ export default async function LocaleLayout({
   children: React.ReactNode
   params: { lang: string }
 }) {
+  setRequestLocale(lang)
   const messages = await getMessages()
   const raw = cookies().get(COOKIE_DISPLAY_CURRENCY)?.value
   const initialCurrency: DisplayCurrencyCode = isDisplayCurrencyCode(raw) ? raw : 'INR'
