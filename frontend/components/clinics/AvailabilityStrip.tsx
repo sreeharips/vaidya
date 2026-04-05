@@ -22,6 +22,7 @@ export default function AvailabilityStrip({ slug }: { slug: string }) {
       .then(data => {
         if (data) setSlots(data.slots ?? [])
       })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [slug])
 
