@@ -1,5 +1,7 @@
-.PHONY: up down logs db migrate seed seed-reset shell reset lint test
+.PHONY: up down logs db migrate seed seed-reset shell reset lint test \
+        prod-up prod-down prod-build prod-logs prod-migrate prod-deploy
 
+# ── Development ───────────────────────────────────────────────────────────────
 up:
 	docker compose up --build
 
@@ -27,7 +29,6 @@ shell:
 reset:
 	docker compose down -v && docker compose up --build
 
-# Dev helpers
 ps:
 	docker compose ps
 
@@ -42,3 +43,28 @@ backend-logs:
 
 frontend-logs:
 	docker compose logs -f frontend
+
+# ── Production ────────────────────────────────────────────────────────────────
+prod-up:
+	docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+
+prod-down:
+	docker compose -f docker-compose.prod.yml --env-file .env.production down
+
+prod-build:
+	docker compose -f docker-compose.prod.yml --env-file .env.production build --no-cache
+
+prod-logs:
+	docker compose -f docker-compose.prod.yml logs -f
+
+prod-migrate:
+	docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
+
+prod-restart:
+	docker compose -f docker-compose.prod.yml --env-file .env.production restart
+
+# Full deploy: rebuild images, restart containers, run migrations
+prod-deploy:
+	docker compose -f docker-compose.prod.yml --env-file .env.production build --no-cache
+	docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+	docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
