@@ -19,16 +19,20 @@ export default function WellnessGoalGrid({
   compact?: boolean
 }) {
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: compact
-        ? 'repeat(auto-fill, minmax(200px, 1fr))'
-        : 'repeat(auto-fill, minmax(240px, 1fr))',
-      gap: compact ? '8px' : '12px',
-    }}>
+    <div
+      className="wellness-goal-grid"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: compact
+          ? 'repeat(auto-fill, minmax(200px, 1fr))'
+          : 'repeat(auto-fill, minmax(240px, 1fr))',
+        gap: compact ? '8px' : '12px',
+      }}
+    >
       {goals.map((goal) => (
         <Link key={goal.label} href={`/${lang}${goal.href}`} style={{ textDecoration: 'none' }}>
           <div
+            className="wellness-goal-item"
             style={{
               padding: compact ? '12px 14px' : '20px 22px',
               background: '#fff',
@@ -55,26 +59,41 @@ export default function WellnessGoalGrid({
               el.style.boxShadow = 'none'
             }}
           >
-            <div style={{
-              width: compact ? '36px' : '44px',
-              height: compact ? '36px' : '44px',
-              borderRadius: compact ? '10px' : '12px',
-              background: 'var(--forest-lt)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: compact ? '15px' : '18px',
-              color: 'var(--forest)',
-              flexShrink: 0,
-              fontFamily: 'var(--serif)',
-            }}>
+            <div
+              className="wellness-goal-icon"
+              style={{
+                width: compact ? '36px' : '44px',
+                height: compact ? '36px' : '44px',
+                borderRadius: compact ? '10px' : '12px',
+                background: 'var(--forest-lt)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: compact ? '15px' : '18px',
+                color: 'var(--forest)',
+                flexShrink: 0,
+                fontFamily: 'var(--serif)',
+              }}
+            >
               {goal.icon}
             </div>
             <div>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: compact ? '14px' : '16px', color: 'var(--forest)', fontWeight: 500, marginBottom: '2px' }}>
+              <div
+                className="wellness-goal-label"
+                style={{
+                  fontFamily: 'var(--serif)',
+                  fontSize: compact ? '14px' : '16px',
+                  color: 'var(--forest)',
+                  fontWeight: 500,
+                  marginBottom: '2px',
+                }}
+              >
                 {goal.label}
               </div>
-              <div style={{ fontSize: compact ? '10px' : '11px', color: 'var(--muted)', lineHeight: 1.35 }}>
+              <div
+                className="wellness-goal-desc"
+                style={{ fontSize: compact ? '10px' : '11px', color: 'var(--muted)', lineHeight: 1.35 }}
+              >
                 {goal.desc}
               </div>
             </div>

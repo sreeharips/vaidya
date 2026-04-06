@@ -750,6 +750,40 @@ input[type='range'] {
   }
 }
 
+/* ── Wellness Goal Grid — mobile horizontal scroll ───────── */
+@media (max-width: 768px) {
+  .wellness-goal-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 8px !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .wellness-goal-grid::-webkit-scrollbar { display: none; }
+  .wellness-goal-item {
+    flex-shrink: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 8px 12px !important;
+    gap: 8px !important;
+  }
+  .wellness-goal-desc { display: none !important; }
+  .wellness-goal-icon {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    font-size: 13px !important;
+    border-radius: 8px !important;
+  }
+  .wellness-goal-label {
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    margin-bottom: 0 !important;
+  }
+}
+
 /* ─── PRAKRITI ASSESSMENT ────────────────────────────────── */
 .assessment-wrap {
   max-width: 640px;
