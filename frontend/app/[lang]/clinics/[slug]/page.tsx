@@ -9,14 +9,6 @@ export const revalidate = 3600
 
 const API_BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-const STATIC_SLUGS = [
-  'somatheeram-ayurveda-village',
-  'arya-vaidya-sala-kottakkal',
-  'mekosha-ayurveda-retreat',
-  'vaidyaratnam-thrissur',
-  'kairali-ayurvedic-health-village',
-]
-
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface Retreat {
@@ -117,10 +109,6 @@ async function fetchClinic(slug: string, lang: string): Promise<ClinicDetail | n
 }
 
 // ── Static params ─────────────────────────────────────────────────────────────
-
-export async function generateStaticParams() {
-  return STATIC_SLUGS.map((slug) => ({ slug }))
-}
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
