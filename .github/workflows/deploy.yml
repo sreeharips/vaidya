@@ -111,15 +111,15 @@ jobs:
               && echo "✓ Health check passed" \
               || (echo "✗ Health check FAILED" && exit 1)
 
-      # ── 4. Notify on failure (optional — needs SLACK_WEBHOOK secret) ────────
-      - name: Notify Slack on failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1.26.0
-        with:
-          payload: |
-            {
-              "text": "❌ *AyuRetreats deploy FAILED* on `${{ github.ref_name }}`\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-        continue-on-error: true   # don't fail the job if Slack is not configured
+      # ── 4. Slack notifications — re-enable by adding SLACK_WEBHOOK secret ───
+      # - name: Notify Slack on failure
+      #   if: failure()
+      #   uses: slackapi/slack-github-action@v1.26.0
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "❌ *AyuRetreats deploy FAILED* on `${{ github.ref_name }}`\nCommit: ${{ github.sha }}\nBy: ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      #   continue-on-error: true
