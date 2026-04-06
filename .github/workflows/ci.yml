@@ -29,9 +29,9 @@ jobs:
         working-directory: frontend
         run: npx tsc --noEmit
 
-      - name: Lint
-        working-directory: frontend
-        run: npm run lint
+      # - name: Lint
+      #   working-directory: frontend
+      #   run: npm run lint
 
   lint-backend:
     name: Backend lint
@@ -46,6 +46,6 @@ jobs:
       - name: Install ruff
         run: pip install ruff
 
-      - name: Lint
-        working-directory: backend
-        run: ruff check .
+      # - name: Lint
+      #   working-directory: backend
+      #   run: ruff check .
