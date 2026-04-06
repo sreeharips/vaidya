@@ -159,7 +159,7 @@ export default function WaitlistPage() {
         {/* Footer */}
         <div className="wl-footer">
           <p className="wl-footer-tagline">&ldquo;Ārogyam paramam bhāgyam&rdquo; — Health is the greatest fortune</p>
-          <p className="wl-footer-note">© 2026 AyurRetreats · Kerala, India · No spam, ever</p>
+          <p className="wl-footer-note">© 2026 AyurRetreats · Build with love from Kerala, India · No spam, ever</p>
         </div>
 
       </div>
