@@ -31,6 +31,14 @@ const WELLNESS_CATEGORIES = [
 ];
 const LANGUAGE_OPTIONS = ["English", "Malayalam", "Hindi", "Arabic", "German", "French"];
 
+const ATMOSPHERE_OPTIONS = [
+  { value: "backwaters",   label: "Backwaters",    desc: "Alappuzha / Kuttanad area" },
+  { value: "hill-station", label: "Hill Station",  desc: "Munnar / Wayanad / Idukki" },
+  { value: "coastal",      label: "Coastal",       desc: "Varkala / Kovalam / Bekal" },
+  { value: "forest",       label: "Forest",        desc: "Thekkady / Silent Valley" },
+  { value: "city",         label: "City",          desc: "Urban clinic" },
+];
+
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DAY_LABELS: Record<string, string> = {
   monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu",
@@ -504,6 +512,25 @@ export default function ClinicProfilePage() {
         {/* ── Tags & Credentials ────────────────────────────────────────────── */}
         <Section title="Tags & Credentials">
           <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-sans text-slate mb-2">Atmosphere / Setting</label>
+              <p className="text-xs text-muted mb-2">Select all that describe your clinic's natural environment. Used in search filters and the home page.</p>
+              <div className="flex flex-wrap gap-2">
+                {ATMOSPHERE_OPTIONS.map(a => (
+                  <label key={a.value} className={`flex flex-col px-3 py-2 rounded-md text-xs font-sans cursor-pointer transition-colors border ${
+                    clinic.atmosphere?.includes(a.value)
+                      ? "bg-forest text-white border-forest"
+                      : "bg-cream text-slate hover:bg-cream2 border-cream2"
+                  }`}>
+                    <input type="checkbox" checked={clinic.atmosphere?.includes(a.value) ?? false}
+                      onChange={() => toggleArr("atmosphere", a.value)} className="sr-only" />
+                    <span className="font-medium">{a.label}</span>
+                    <span className={`text-[10px] mt-0.5 ${clinic.atmosphere?.includes(a.value) ? "text-white/70" : "text-muted"}`}>{a.desc}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-sans text-slate mb-2">Specialisations</label>
               <div className="flex flex-wrap gap-2">

@@ -66,19 +66,19 @@ const ATMOSPHERES = [
   {
     label: 'Backwaters',
     desc: 'Serene water-based healing for fluid balance.',
-    href: '/clinics?district=alappuzha',
+    href: '/search?atmosphere=backwaters',
     img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAUYyGsQ6rEf1NHLcW3zHhy2KYeWPW1X4_xzmMbwOLOhQhkmH2M7WlUUzCBjWE3_Rpi9mnpKpNaVS4I7vO1PE6yBkxwghm7W6R8bnk2OEycvadrPDUUxNQSDL6j5SqDUfu25gUikJjZY2s7SfG5IdmuiNyyvdfhGC_DPp_pq9Rmw9XmVGzsCOIIg6raVmDibsorhGeIyy5IM86E6EsZdGdYLJbuqsMLhT093XxaCl_ZngjvgSeeCBymPiWDDFMoGNhSbHIEBTgWv98',
   },
   {
     label: 'Hill Stations',
     desc: 'Cool mountain air for clarity and vigour.',
-    href: '/clinics?district=wayanad',
+    href: '/search?atmosphere=hill-station',
     img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCiwmbyhj1Rdr9KHJIqODEGP3RV6tiCiC1fYoc3K7p5Puf66HSCOqO5OwspQDePUiwCjVtgEZaXfAuLkY9bQIrlCZZrLd47RPBqSGFbAEEj7yHb9Aaaoa-mRhUIc4HGwtIfFGrU5nP_tFDEu4VC8luOzezRY6N3wr4HJQJhfVGYCoOzP4v1MXWrohuBTG1v-l8Fhfk8o2KRmBdt4mQsHPqevh_nCePZTD_Z91pZh8MXyimCMycll0wU1BKJn2hvlmwgg68kcJgp6jw',
   },
   {
     label: 'Coastal Cliffs',
     desc: 'Ocean energy and sea mineral restoration.',
-    href: '/clinics?district=thiruvananthapuram',
+    href: '/search?atmosphere=coastal',
     img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWftxBxhmDLf719G08UCwPvrDI5ApE6dGlc18nMd8VQywGWDbGONRKTPZWbBlNAXegmrLr18A3PAo9atKCoDmH0ThlQkeXte6o6RD7gDrABbMGqYjE-62ql8XNDqlkr9WpwbHz9LOR9_7VOvxRR15Y2BCDDxkKF3OWSlAMI-OBN3djueLRJCpEF4HoUx3XD6qrxsxyQPZIhtN8DcZD-o0y6fJQAkmK7RrCzPPtSzxcxvFFth8N6QC0sxKQuOl9BNBQShQv8e7ZyJI',
   },
 ]

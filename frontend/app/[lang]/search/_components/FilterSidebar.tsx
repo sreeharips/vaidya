@@ -15,6 +15,14 @@ const LANGUAGES = [
   { code: 'de', label: 'German' },
   { code: 'ml', label: 'Malayalam' },
 ]
+const ATMOSPHERES = [
+  { value: 'backwaters',   label: 'Backwaters',   icon: '🌊' },
+  { value: 'hill-station', label: 'Hill Station', icon: '⛰️' },
+  { value: 'coastal',      label: 'Coastal',      icon: '🏖️' },
+  { value: 'forest',       label: 'Forest',       icon: '🌿' },
+  { value: 'city',         label: 'City',         icon: '🏙️' },
+]
+
 const DOSHAS = [
   { value: 'vata',  label: 'Vata',  dot: '#8B6E5A' },
   { value: 'pitta', label: 'Pitta', dot: '#1E3D2F' },
@@ -33,6 +41,10 @@ export default function FilterSidebar({ filters, onChange, onClear, onClose }: F
       ? current.filter(t => t !== tier)
       : [...current, tier]
     onChange({ tier: next.length === 0 ? [1, 2] : next })
+  }
+
+  function toggleAtmosphere(v: string) {
+    onChange({ atmosphere: filters.atmosphere === v ? '' : v })
   }
 
   function toggleTreatment(t: string) {
@@ -189,6 +201,23 @@ export default function FilterSidebar({ filters, onChange, onClear, onClose }: F
             </button>
           )}
         </div>
+      </FilterGroup>
+
+      {/* ── Atmosphere ── */}
+      <FilterGroup title="Atmosphere">
+        {ATMOSPHERES.map(a => (
+          <FilterOption
+            key={a.value}
+            checked={filters.atmosphere === a.value}
+            onClick={() => toggleAtmosphere(a.value)}
+            label={
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{a.icon}</span>
+                {a.label}
+              </span>
+            }
+          />
+        ))}
       </FilterGroup>
 
       {/* ── Tier ── */}

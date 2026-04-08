@@ -100,6 +100,7 @@ class ClinicFeatureStore(Base):
     highlights = mapped_column(ARRAY(String), default=list)
     accommodation_types = mapped_column(ARRAY(String), default=list)
     meal_options = mapped_column(ARRAY(String), default=list)
+    atmosphere = mapped_column(ARRAY(String), default=list)
     nearest_airport: Mapped[str | None] = mapped_column(String(255))
     nearest_railway: Mapped[str | None] = mapped_column(String(255))
     patient_capacity: Mapped[int | None] = mapped_column(Integer)

@@ -22,6 +22,7 @@ export interface SearchFilters {
   sort: string
   checkIn: string   // YYYY-MM-DD
   checkOut: string  // YYYY-MM-DD
+  atmosphere: string
 }
 
 const DEFAULT_FILTERS: SearchFilters = {
@@ -36,6 +37,7 @@ const DEFAULT_FILTERS: SearchFilters = {
   sort: 'best',
   checkIn: '',
   checkOut: '',
+  atmosphere: '',
 }
 
 // ── API config ────────────────────────────────────────────────────────────────
@@ -137,6 +139,7 @@ export default function SearchPage() {
       sort:         sp.get('sort') ?? 'best',
       checkIn:      sp.get('check_in') ?? '',
       checkOut:     sp.get('check_out') ?? '',
+      atmosphere:   sp.get('atmosphere') ?? '',
     }
     setFilters(init)
     setRefineQuery(init.q)
@@ -205,6 +208,7 @@ export default function SearchPage() {
     if (f.sort !== 'best')            p.set('sort', f.sort)
     if (f.checkIn)                    p.set('check_in', f.checkIn)
     if (f.checkOut)                   p.set('check_out', f.checkOut)
+    if (f.atmosphere)                 p.set('atmosphere', f.atmosphere)
     router.push(`/${lang}/search${p.toString() ? '?' + p.toString() : ''}`, { scroll: false })
   }
 
@@ -458,6 +462,7 @@ function buildClinicUrl(f: SearchFilters, fetchOffset: number): string {
   if (f.duration)           p.set('duration', f.duration)
   if (f.checkIn)            p.set('check_in', f.checkIn)
   if (f.checkOut)           p.set('check_out', f.checkOut)
+  if (f.atmosphere)         p.set('atmosphere', f.atmosphere)
   p.set('limit', String(LIMIT))
   p.set('offset', String(fetchOffset))
   return `${API_BASE}/api/clinics?${p}`

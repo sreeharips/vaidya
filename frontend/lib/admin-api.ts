@@ -413,6 +413,7 @@ export interface Clinic {
   specialisations: string[];
   wellness_categories: string[];
   certifications: string[];
+  atmosphere: string[];
   // Pricing
   pricing_min: number | null;
   pricing_max: number | null;

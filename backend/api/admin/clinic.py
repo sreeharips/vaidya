@@ -46,6 +46,7 @@ class ClinicProfileOut(BaseModel):
     specialisations: list[str]
     wellness_categories: list[str]
     certifications: list[str]
+    atmosphere: list[str]
     pricing_min: float | None
     pricing_max: float | None
     accommodation_available: bool
@@ -86,6 +87,7 @@ class ClinicUpdate(BaseModel):
     languages: list[str] | None = None
     specialisations: list[str] | None = None
     wellness_categories: list[str] | None = None
+    atmosphere: list[str] | None = None
     pricing_min: float | None = None
     pricing_max: float | None = None
     certifications: list[str] | None = None
@@ -131,6 +133,7 @@ def _clinic_to_out(c: ClinicFeatureStore) -> ClinicProfileOut:
         specialisations=c.specialisations or [],
         wellness_categories=c.wellness_categories or [],
         certifications=c.certifications or [],
+        atmosphere=c.atmosphere or [],
         pricing_min=float(c.pricing_min) if c.pricing_min else None,
         pricing_max=float(c.pricing_max) if c.pricing_max else None,
         accommodation_available=c.accommodation_available,

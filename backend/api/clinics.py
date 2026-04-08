@@ -72,6 +72,7 @@ class ClinicSummary(BaseModel):
     languages: list[str]
     pricing_min: float | None
     certifications: list[str]
+    atmosphere: list[str]
     outcome_enrolled: bool
     accommodation_available: bool
     photos: list[str]
@@ -93,6 +94,7 @@ class ClinicDetail(BaseModel):
     pricing_min: float | None
     pricing_max: float | None
     certifications: list[str]
+    atmosphere: list[str]
     outcome_enrolled: bool
     accommodation_available: bool
     photos: list[str]
@@ -140,6 +142,7 @@ async def list_clinics(
     language: str | None = Query(default=None),
     tier: int | None = Query(default=None, ge=1, le=2),
     rating_min: float | None = Query(default=None, ge=1.0, le=5.0),
+    atmosphere: str | None = Query(default=None),
     check_in: date | None = Query(default=None),
     check_out: date | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
@@ -159,6 +162,8 @@ async def list_clinics(
         base = base.where(ClinicFeatureStore.district.ilike(f"%{district}%"))
     if rating_min is not None:
         base = base.where(ClinicFeatureStore.rating >= rating_min)
+    if atmosphere:
+        base = base.where(atmosphere == any_(ClinicFeatureStore.atmosphere))
     if check_in is not None:
         # Keep only clinics that have at least one retreat with an available slot
         # on or after check_in (and on or before check_out if provided).
@@ -218,6 +223,7 @@ async def list_clinics(
             languages=c.languages or [],
             pricing_min=float(c.pricing_min) if c.pricing_min is not None else None,
             certifications=c.certifications or [],
+            atmosphere=c.atmosphere or [],
             outcome_enrolled=c.outcome_enrolled,
             accommodation_available=c.accommodation_available,
             photos=c.photos or [],
@@ -340,6 +346,7 @@ async def get_clinic(
         pricing_min=float(clinic.pricing_min) if clinic.pricing_min is not None else None,
         pricing_max=float(clinic.pricing_max) if clinic.pricing_max is not None else None,
         certifications=clinic.certifications or [],
+        atmosphere=clinic.atmosphere or [],
         outcome_enrolled=clinic.outcome_enrolled,
         accommodation_available=clinic.accommodation_available,
         photos=clinic.photos or [],
