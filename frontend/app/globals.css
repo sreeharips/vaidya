@@ -750,6 +750,19 @@ input[type='range'] {
   }
 }
 
+/* ── Atmosphere cards ────────────────────────────────────── */
+.atmosphere-img {
+  transition: transform 0.5s ease;
+}
+.atmosphere-card:hover .atmosphere-img {
+  transform: scale(1.06);
+}
+@media (max-width: 640px) {
+  .atmosphere-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ── Wellness Goal Grid — mobile horizontal scroll ───────── */
 @media (max-width: 768px) {
   .wellness-goal-grid {

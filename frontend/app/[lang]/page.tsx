@@ -62,6 +62,27 @@ const KERALA_DISTRICTS = [
   'Thrissur', 'Palakkad', 'Kozhikode', 'Kannur', 'Wayanad', 'Alappuzha',
 ]
 
+const ATMOSPHERES = [
+  {
+    label: 'Backwaters',
+    desc: 'Serene water-based healing for fluid balance.',
+    href: '/clinics?district=alappuzha',
+    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAUYyGsQ6rEf1NHLcW3zHhy2KYeWPW1X4_xzmMbwOLOhQhkmH2M7WlUUzCBjWE3_Rpi9mnpKpNaVS4I7vO1PE6yBkxwghm7W6R8bnk2OEycvadrPDUUxNQSDL6j5SqDUfu25gUikJjZY2s7SfG5IdmuiNyyvdfhGC_DPp_pq9Rmw9XmVGzsCOIIg6raVmDibsorhGeIyy5IM86E6EsZdGdYLJbuqsMLhT093XxaCl_ZngjvgSeeCBymPiWDDFMoGNhSbHIEBTgWv98',
+  },
+  {
+    label: 'Hill Stations',
+    desc: 'Cool mountain air for clarity and vigour.',
+    href: '/clinics?district=wayanad',
+    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCiwmbyhj1Rdr9KHJIqODEGP3RV6tiCiC1fYoc3K7p5Puf66HSCOqO5OwspQDePUiwCjVtgEZaXfAuLkY9bQIrlCZZrLd47RPBqSGFbAEEj7yHb9Aaaoa-mRhUIc4HGwtIfFGrU5nP_tFDEu4VC8luOzezRY6N3wr4HJQJhfVGYCoOzP4v1MXWrohuBTG1v-l8Fhfk8o2KRmBdt4mQsHPqevh_nCePZTD_Z91pZh8MXyimCMycll0wU1BKJn2hvlmwgg68kcJgp6jw',
+  },
+  {
+    label: 'Coastal Cliffs',
+    desc: 'Ocean energy and sea mineral restoration.',
+    href: '/clinics?district=thiruvananthapuram',
+    img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWftxBxhmDLf719G08UCwPvrDI5ApE6dGlc18nMd8VQywGWDbGONRKTPZWbBlNAXegmrLr18A3PAo9atKCoDmH0ThlQkeXte6o6RD7gDrABbMGqYjE-62ql8XNDqlkr9WpwbHz9LOR9_7VOvxRR15Y2BCDDxkKF3OWSlAMI-OBN3djueLRJCpEF4HoUx3XD6qrxsxyQPZIhtN8DcZD-o0y6fJQAkmK7RrCzPPtSzxcxvFFth8N6QC0sxKQuOl9BNBQShQv8e7ZyJI',
+  },
+]
+
 const CONDITIONS = [
   { label: 'Back & Spine Pain',   href: '/search?condition=back-pain' },
   { label: 'Stress & Anxiety',    href: '/search?condition=stress' },
@@ -164,6 +185,35 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       <section style={{ padding: '14px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
         <SectionHeader compact label="Find your treatment" title="Browse by Wellness Goal" cta={{ label: 'All clinics', href: `/${lang}/clinics` }} />
         <WellnessGoalGrid goals={WELLNESS_GOALS} lang={lang} compact />
+      </section>
+
+      {/* ── Choose Your Atmosphere ───────────────────────────────────────────── */}
+      <section style={{ padding: '28px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        <SectionHeader compact label="The environment is part of the medicine" title="Choose Your Atmosphere" cta={{ label: 'Browse all', href: `/${lang}/clinics` }} />
+        <div className="atmosphere-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          {ATMOSPHERES.map(a => (
+            <Link key={a.label} href={`/${lang}${a.href}`} style={{ textDecoration: 'none', display: 'block' }}>
+              <div className="atmosphere-card" style={{ position: 'relative', height: 200, borderRadius: 'var(--r-md)', overflow: 'hidden', cursor: 'pointer' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={a.img}
+                  alt={a.label}
+                  className="atmosphere-img"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to top, rgba(6,22,14,0.72) 0%, rgba(6,22,14,0.15) 55%, transparent 100%)',
+                  display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                  padding: '18px 20px',
+                }}>
+                  <p style={{ fontFamily: 'var(--serif)', fontSize: '18px', fontWeight: 400, color: '#fff', margin: 0, lineHeight: 1.2 }}>{a.label}</p>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', margin: '4px 0 0', lineHeight: 1.4 }}>{a.desc}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* ── Featured Retreats ────────────────────────────────────────────────── */}
