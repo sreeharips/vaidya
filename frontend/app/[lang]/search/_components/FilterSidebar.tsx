@@ -117,6 +117,80 @@ export default function FilterSidebar({ filters, onChange, onClear, onClose }: F
         </div>
       </div>
 
+      {/* ── Travel dates ── */}
+      <FilterGroup title="Travel dates">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div>
+            <label style={{ fontSize: '11px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+              Check-in
+            </label>
+            <input
+              type="date"
+              value={filters.checkIn}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={e => {
+                const newCheckIn = e.target.value
+                // If check-out is before new check-in, clear it
+                const checkOut = filters.checkOut && filters.checkOut < newCheckIn ? '' : filters.checkOut
+                onChange({ checkIn: newCheckIn, checkOut })
+              }}
+              style={{
+                width: '100%',
+                fontFamily: 'var(--sans)',
+                fontSize: '13px',
+                color: 'var(--slate)',
+                border: '1px solid var(--border2)',
+                borderRadius: 'var(--r-sm)',
+                padding: '8px 10px',
+                background: 'var(--white)',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '11px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
+              Check-out
+            </label>
+            <input
+              type="date"
+              value={filters.checkOut}
+              min={filters.checkIn || new Date().toISOString().split('T')[0]}
+              onChange={e => onChange({ checkOut: e.target.value })}
+              style={{
+                width: '100%',
+                fontFamily: 'var(--sans)',
+                fontSize: '13px',
+                color: 'var(--slate)',
+                border: '1px solid var(--border2)',
+                borderRadius: 'var(--r-sm)',
+                padding: '8px 10px',
+                background: 'var(--white)',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          {(filters.checkIn || filters.checkOut) && (
+            <button
+              onClick={() => onChange({ checkIn: '', checkOut: '' })}
+              style={{
+                alignSelf: 'flex-start',
+                fontSize: '11px',
+                color: 'var(--gold)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                fontFamily: 'var(--sans)',
+              }}
+            >
+              Clear dates
+            </button>
+          )}
+        </div>
+      </FilterGroup>
+
       {/* ── Tier ── */}
       <FilterGroup title="Credentialing tier">
         <FilterOption

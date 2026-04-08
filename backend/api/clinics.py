@@ -6,7 +6,7 @@ GET /api/clinics/{slug} — full profile with team, packages, reviews
 GET /api/clinics/search?q=&lang=en — full-text search
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,7 +18,7 @@ from sqlalchemy.types import Float
 from core.pricing import INR_PER_USD_FALLBACK, retreat_effective_inr
 from db.cache import cache_get, cache_set
 from db.database import get_db
-from db.models import ClinicFeatureStore, ClinicTeam, Retreat, Review
+from db.models import ClinicFeatureStore, ClinicTeam, Retreat, RetreatAvailability, Review
 
 router = APIRouter(prefix="/api/clinics", tags=["clinics"])
 
@@ -140,6 +140,8 @@ async def list_clinics(
     language: str | None = Query(default=None),
     tier: int | None = Query(default=None, ge=1, le=2),
     rating_min: float | None = Query(default=None, ge=1.0, le=5.0),
+    check_in: date | None = Query(default=None),
+    check_out: date | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -157,6 +159,23 @@ async def list_clinics(
         base = base.where(ClinicFeatureStore.district.ilike(f"%{district}%"))
     if rating_min is not None:
         base = base.where(ClinicFeatureStore.rating >= rating_min)
+    if check_in is not None:
+        # Keep only clinics that have at least one retreat with an available slot
+        # on or after check_in (and on or before check_out if provided).
+        avail_subq = (
+            select(Retreat.clinic_id)
+            .join(RetreatAvailability, RetreatAvailability.retreat_id == Retreat.id)
+            .where(
+                Retreat.is_active.is_(True),
+                RetreatAvailability.is_blocked.is_(False),
+                RetreatAvailability.available_spots > 0,
+                RetreatAvailability.date >= check_in,
+                *([RetreatAvailability.date <= check_out] if check_out else []),
+            )
+            .distinct()
+            .subquery()
+        )
+        base = base.where(ClinicFeatureStore.id.in_(select(avail_subq)))
 
     count_stmt = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_stmt)).scalar_one()

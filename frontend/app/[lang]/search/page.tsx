@@ -20,6 +20,8 @@ export interface SearchFilters {
   language: string
   ratingMin: number
   sort: string
+  checkIn: string   // YYYY-MM-DD
+  checkOut: string  // YYYY-MM-DD
 }
 
 const DEFAULT_FILTERS: SearchFilters = {
@@ -32,6 +34,8 @@ const DEFAULT_FILTERS: SearchFilters = {
   language: '',
   ratingMin: 0,
   sort: 'best',
+  checkIn: '',
+  checkOut: '',
 }
 
 // ── API config ────────────────────────────────────────────────────────────────
@@ -131,6 +135,8 @@ export default function SearchPage() {
       language:     sp.get('language') ?? '',
       ratingMin:    sp.get('rating') ? Number(sp.get('rating')) : 0,
       sort:         sp.get('sort') ?? 'best',
+      checkIn:      sp.get('check_in') ?? '',
+      checkOut:     sp.get('check_out') ?? '',
     }
     setFilters(init)
     setRefineQuery(init.q)
@@ -197,6 +203,8 @@ export default function SearchPage() {
     if (f.language)                   p.set('language', f.language)
     if (f.ratingMin > 0)              p.set('rating', String(f.ratingMin))
     if (f.sort !== 'best')            p.set('sort', f.sort)
+    if (f.checkIn)                    p.set('check_in', f.checkIn)
+    if (f.checkOut)                   p.set('check_out', f.checkOut)
     router.push(`/${lang}/search${p.toString() ? '?' + p.toString() : ''}`, { scroll: false })
   }
 
@@ -448,6 +456,8 @@ function buildClinicUrl(f: SearchFilters, fetchOffset: number): string {
   if (f.ratingMin > 0)      p.set('rating_min', String(f.ratingMin))
   if (f.budgetMax < 500)    p.set('budget_max', String(f.budgetMax))
   if (f.duration)           p.set('duration', f.duration)
+  if (f.checkIn)            p.set('check_in', f.checkIn)
+  if (f.checkOut)           p.set('check_out', f.checkOut)
   p.set('limit', String(LIMIT))
   p.set('offset', String(fetchOffset))
   return `${API_BASE}/api/clinics?${p}`
