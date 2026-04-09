@@ -202,11 +202,11 @@ export default async function ClinicPage({
           <h1
             style={{
               fontFamily: 'var(--serif)',
-              fontSize: 'clamp(2rem, 5vw, 3rem)',
+              fontSize: 'clamp(1.25rem, 2.5vw, 1.75rem)',
               fontWeight: 400,
               color: '#fff',
               lineHeight: 1.2,
-              marginBottom: 16,
+              marginBottom: 12,
             }}
           >
             {clinic.name}
