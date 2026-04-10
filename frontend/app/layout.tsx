@@ -1,3 +1,4 @@
+import type { Viewport } from 'next'
 import { Cormorant_Garamond, DM_Sans } from 'next/font/google'
 import './globals.css'
 
@@ -15,6 +16,11 @@ const fontSans = DM_Sans({
   variable: '--font-dm-sans',
   display: 'swap',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
 // Root layout — global CSS and fonts load once for every route.
 // Per-locale metadata lives under app/[lang]/.

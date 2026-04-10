@@ -60,7 +60,7 @@ body {
 .home-hero {
   position: relative;
   background: linear-gradient(165deg, #0f2218 0%, #1a3529 45%, #264a38 100%);
-  overflow: hidden;
+  overflow: visible;
 }
 .home-hero::before {
   content: '';
