@@ -8,6 +8,12 @@ GET    /api/admin/platform/clinics
 POST   /api/admin/platform/clinics
 GET    /api/admin/platform/clinics/{id}
 PATCH  /api/admin/platform/clinics/{id}
+...
+GET    /api/admin/platform/tags
+POST   /api/admin/platform/tags
+PATCH  /api/admin/platform/tags/{id}
+DELETE /api/admin/platform/tags/{id}
+POST   /api/admin/platform/tags/reorder
 PATCH  /api/admin/platform/clinics/{id}/tier
 PATCH  /api/admin/platform/clinics/{id}/activate
 PATCH  /api/admin/platform/clinics/{id}/deactivate
@@ -26,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.admin_auth import require_platform_admin
 from db.database import get_db
-from db.models import Booking, ClinicFeatureStore, ClinicImage, ClinicTeam, Retreat, User
+from db.models import Booking, ClinicFeatureStore, ClinicImage, ClinicTeam, PlatformTag, Retreat, User
 
 router = APIRouter(prefix="/platform")
 
@@ -575,3 +581,119 @@ async def invite_clinic_admin(
         "role": admin.role,
         "clinic_id": clinic_id,
     }
+
+
+# ── Platform Tag Management ───────────────────────────────────────────────────
+
+class PlatformTagOut(BaseModel):
+    id: str
+    type: str
+    value: str
+    is_active: bool
+    sort_order: int
+
+
+class PlatformTagCreate(BaseModel):
+    type: str  # 'specialisation' | 'certification'
+    value: str
+
+
+class PlatformTagUpdate(BaseModel):
+    value: str | None = None
+    is_active: bool | None = None
+
+
+class ReorderBody(BaseModel):
+    ids: list[str]  # ordered list of tag ids
+
+
+@router.get("/tags", response_model=list[PlatformTagOut])
+async def list_tags(
+    type: str | None = None,
+    user: User = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    q = select(PlatformTag).order_by(PlatformTag.sort_order, PlatformTag.value)
+    if type:
+        q = q.where(PlatformTag.type == type)
+    tags = (await db.execute(q)).scalars().all()
+    return [PlatformTagOut(id=str(t.id), type=t.type, value=t.value, is_active=t.is_active, sort_order=t.sort_order) for t in tags]
+
+
+@router.post("/tags", response_model=PlatformTagOut, status_code=201)
+async def create_tag(
+    body: PlatformTagCreate,
+    user: User = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.type not in ("specialisation", "certification"):
+        raise HTTPException(status_code=400, detail="type must be 'specialisation' or 'certification'")
+
+    existing = (await db.execute(
+        select(PlatformTag).where(PlatformTag.type == body.type, PlatformTag.value == body.value.strip())
+    )).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail=f"'{body.value}' already exists in {body.type}s")
+
+    max_order = (await db.execute(
+        select(func.max(PlatformTag.sort_order)).where(PlatformTag.type == body.type)
+    )).scalar_one() or 0
+
+    tag = PlatformTag(
+        id=uuid.uuid4(),
+        type=body.type,
+        value=body.value.strip(),
+        is_active=True,
+        sort_order=max_order + 1,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(tag)
+    await db.commit()
+    await db.refresh(tag)
+    return PlatformTagOut(id=str(tag.id), type=tag.type, value=tag.value, is_active=tag.is_active, sort_order=tag.sort_order)
+
+
+@router.patch("/tags/{tag_id}", response_model=PlatformTagOut)
+async def update_tag(
+    tag_id: str,
+    body: PlatformTagUpdate,
+    user: User = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    tag = await db.get(PlatformTag, uuid.UUID(tag_id))
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    if body.value is not None:
+        tag.value = body.value.strip()
+    if body.is_active is not None:
+        tag.is_active = body.is_active
+    await db.commit()
+    await db.refresh(tag)
+    return PlatformTagOut(id=str(tag.id), type=tag.type, value=tag.value, is_active=tag.is_active, sort_order=tag.sort_order)
+
+
+@router.delete("/tags/{tag_id}", status_code=204)
+async def delete_tag(
+    tag_id: str,
+    user: User = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    tag = await db.get(PlatformTag, uuid.UUID(tag_id))
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    await db.delete(tag)
+    await db.commit()
+
+
+@router.post("/tags/reorder")
+async def reorder_tags(
+    body: ReorderBody,
+    user: User = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    for i, tag_id in enumerate(body.ids):
+        tag = await db.get(PlatformTag, uuid.UUID(tag_id))
+        if tag:
+            tag.sort_order = i
+    await db.commit()
+    return {"reordered": len(body.ids)}

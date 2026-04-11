@@ -1,18 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createPlatformClinic, type ClinicCreateInput } from "@/lib/admin-api";
+import { createPlatformClinic, getSpecialisations, getCertifications, type ClinicCreateInput } from "@/lib/admin-api";
 
 const DISTRICTS = [
   "Thiruvananthapuram", "Kollam", "Pathanamthitta", "Alappuzha",
   "Kottayam", "Idukki", "Ernakulam", "Thrissur", "Palakkad",
   "Malappuram", "Kozhikode", "Wayanad", "Kannur", "Kasaragod",
-];
-
-const SPECIALISATIONS = [
-  "Panchakarma", "Shirodhara", "Abhyanga", "Basti", "Kati Basti",
-  "Nasyam", "Pizhichil", "Njavara Kizhi", "Udvartana", "Rasayana",
 ];
 
 const ATMOSPHERE_OPTIONS = [
@@ -29,15 +24,6 @@ const LANGUAGE_OPTIONS = [
   { value: "ar", label: "Arabic" },
   { value: "de", label: "German" },
   { value: "hi", label: "Hindi" },
-];
-
-const CERTIFICATION_OPTIONS = [
-  "NABH Accredited",
-  "Govt of Kerala AYUSH Certified",
-  "ISO 9001:2015",
-  "Kerala Ayurvedic Medicine Board",
-  "AYUSH Ministry Certified",
-  "International Ayurvedic Medical Association",
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -88,6 +74,13 @@ export default function NewClinicPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [specialisations, setSpecialisations] = useState<string[]>([]);
+  const [certifications, setCertifications] = useState<string[]>([]);
+
+  useEffect(() => {
+    getSpecialisations().then(s => setSpecialisations(s.map(x => x.name_en)));
+    getCertifications().then(c => setCertifications(c.map(x => x.value)));
+  }, []);
 
   const [form, setForm] = useState<ClinicCreateInput>({
     name: "",
@@ -268,7 +261,7 @@ export default function NewClinicPage() {
       <Section title="Tags & Credentials">
         <Field label="Specialisations">
           <div className="flex flex-wrap gap-2 mt-1">
-            {SPECIALISATIONS.map(s => (
+            {specialisations.map(s => (
               <TogglePill
                 key={s} label={s}
                 active={form.specialisations.includes(s)}
@@ -304,7 +297,7 @@ export default function NewClinicPage() {
 
         <Field label="Certifications">
           <div className="flex flex-wrap gap-2 mt-1">
-            {CERTIFICATION_OPTIONS.map(c => (
+            {certifications.map(c => (
               <TogglePill
                 key={c} label={c}
                 active={form.certifications.includes(c)}

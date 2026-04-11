@@ -544,3 +544,23 @@ class OutcomesLog(Base):
     __table_args__ = (
         CheckConstraint("event_type IS NOT NULL", name="ck_outcomes_log_append_only_marker"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Platform Tags (super admin managed — specialisations & certifications)
+# ---------------------------------------------------------------------------
+class PlatformTag(Base):
+    __tablename__ = "platform_tags"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    type: Mapped[str] = mapped_column(String(50), nullable=False)
+    value: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    __table_args__ = (
+        UniqueConstraint("type", "value", name="uq_platform_tag_type_value"),
+        CheckConstraint("type IN ('specialisation','certification')", name="ck_platform_tag_type"),
+        Index("ix_platform_tags_type", "type", "is_active"),
+    )

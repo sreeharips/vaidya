@@ -412,6 +412,49 @@ export function inviteClinicAdmin(clinicId: string, data: InviteAdminInput) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Platform tag management (super admin)                              */
+/* ------------------------------------------------------------------ */
+
+export function getPlatformTags(type?: string) {
+  const qs = type ? `?type=${type}` : "";
+  return adminFetch<PlatformTagItem[]>(`/api/admin/platform/tags${qs}`);
+}
+
+export function createPlatformTag(data: { type: string; value: string }) {
+  return adminFetch<PlatformTagItem>("/api/admin/platform/tags", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updatePlatformTag(id: string, data: { value?: string; is_active?: boolean }) {
+  return adminFetch<PlatformTagItem>(`/api/admin/platform/tags/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deletePlatformTag(id: string) {
+  return adminFetch<void>(`/api/admin/platform/tags/${id}`, { method: "DELETE" });
+}
+
+export function reorderPlatformTags(ids: string[]) {
+  return adminFetch<void>("/api/admin/platform/tags/reorder", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+}
+
+/* Public-facing tag lists (used by clinic admin pickers) */
+export function getSpecialisations() {
+  return adminFetch<{ slug: string; name_en: string }[]>("/api/admin/tags/specialisations");
+}
+
+export function getCertifications() {
+  return adminFetch<{ value: string }[]>("/api/admin/tags/certifications");
+}
+
+/* ------------------------------------------------------------------ */
 /*  Type definitions                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -680,6 +723,14 @@ export interface InviteAdminInput {
   email: string;
   full_name: string;
   password: string;
+}
+
+export interface PlatformTagItem {
+  id: string;
+  type: string;
+  value: string;
+  is_active: boolean;
+  sort_order: number;
 }
 
 export interface ManagedUser {

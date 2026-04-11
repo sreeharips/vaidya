@@ -62,6 +62,11 @@ const ICONS: Record<string, JSX.Element> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
+  tag: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
+    </svg>
+  ),
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -108,12 +113,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!user) return null;
 
-  const navItems = [
-    ...NAV_ITEMS,
-    ...(user.role === "platform_admin"
-      ? [{ label: "Platform", href: "/admin/platform", icon: "platform" }]
-      : []),
-  ];
+  const isSuperAdmin = user.role === "platform_admin";
+
+  const navItems = isSuperAdmin
+    ? [
+        { label: "Dashboard",    href: "/admin/platform",      icon: "platform" },
+        { label: "All Clinics",  href: "/admin/platform",      icon: "building" },
+        { label: "Tags",         href: "/admin/platform/tags", icon: "tag" },
+        { label: "Users",        href: "/admin/users",         icon: "userCog" },
+      ]
+    : NAV_ITEMS;
+
+  // Clinic admin: forest green sidebar  |  Super admin: deep indigo sidebar
+  const sidebarBg    = isSuperAdmin ? "#1e1b4b" : undefined;
+  const accentColor  = isSuperAdmin ? "#a5b4fc" : undefined; // indigo-300
+  const activeBg     = isSuperAdmin ? "rgba(165,180,252,0.15)" : undefined;
+  const hoverBg      = isSuperAdmin ? "rgba(255,255,255,0.07)" : undefined;
 
   const handleLogout = () => {
     localStorage.removeItem("admin_token");
@@ -123,7 +138,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <DisplayCurrencyProvider initialCurrency="INR" locale="en" forceInr>
-    <div className="flex min-h-screen bg-cream">
+    <div className={`flex min-h-screen ${isSuperAdmin ? "" : "bg-cream"}`}
+      style={isSuperAdmin ? { background: "#f5f4ff" } : undefined}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -134,18 +150,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-forest text-white flex flex-col transform transition-transform duration-200 ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 text-white flex flex-col transform transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        } ${isSuperAdmin ? "" : "bg-forest"}`}
+        style={sidebarBg ? { background: sidebarBg } : undefined}
       >
         {/* Logo */}
         <div className="px-6 py-5 border-b border-white/10">
           <div className="flex items-baseline gap-2">
-            <span className="font-serif text-2xl text-gold">AyuRetreats</span>
-            <span className="text-xs font-sans uppercase tracking-widest text-white/60">
-              Admin
+            <span className="font-serif text-2xl" style={accentColor ? { color: accentColor } : undefined}>
+              {isSuperAdmin ? "Vaidya" : "AyuRetreats"}
+            </span>
+            <span
+              className="text-xs font-sans uppercase tracking-widest"
+              style={{ color: isSuperAdmin ? "rgba(165,180,252,0.7)" : "rgba(255,255,255,0.6)" }}
+            >
+              {isSuperAdmin ? "Super Admin" : "Admin"}
             </span>
           </div>
+          {isSuperAdmin && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-sans font-medium"
+              style={{ background: "rgba(165,180,252,0.2)", color: "#a5b4fc" }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 animate-pulse inline-block" />
+              Platform Admin
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -158,18 +187,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             return (
               <a
-                key={item.href}
+                key={item.href + item.label}
                 href={item.href}
                 onClick={(e) => {
                   e.preventDefault();
                   router.push(item.href);
                   setSidebarOpen(false);
                 }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-sans transition-colors ${
-                  isActive
-                    ? "bg-white/15 text-gold"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                }`}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-sans transition-colors"
+                style={isActive
+                  ? { background: activeBg ?? "rgba(255,255,255,0.15)", color: accentColor ?? "#B8862C" }
+                  : { color: "rgba(255,255,255,0.7)" }
+                }
+                onMouseEnter={e => {
+                  if (!isActive) (e.currentTarget as HTMLElement).style.background = hoverBg ?? "rgba(255,255,255,0.1)";
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
               >
                 {ICONS[item.icon]}
                 {item.label}
@@ -180,6 +215,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* User / Logout */}
         <div className="px-4 py-4 border-t border-white/10">
+          <div className="text-xs font-sans font-medium uppercase tracking-wide mb-1"
+            style={{ color: isSuperAdmin ? "rgba(165,180,252,0.6)" : "rgba(255,255,255,0.4)" }}>
+            {isSuperAdmin ? "Super Admin" : "Clinic Admin"}
+          </div>
           <div className="text-sm text-white/60 font-sans truncate mb-2">
             {user.name || user.email}
           </div>
@@ -203,7 +242,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar (mobile) */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-cream2">
+        <header className={`lg:hidden flex items-center justify-between px-4 py-3 border-b ${isSuperAdmin ? "border-indigo-200" : "border-cream2 bg-white"}`}
+          style={isSuperAdmin ? { background: "#f0f0ff" } : undefined}>
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 text-forest hover:bg-forest-lt rounded-md"
