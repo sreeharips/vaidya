@@ -367,10 +367,47 @@ export function getPlatformStats() {
   return adminFetch<PlatformStats>("/api/admin/platform/stats");
 }
 
+export function getPlatformClinic(id: string) {
+  return adminFetch<PlatformClinicDetail>(`/api/admin/platform/clinics/${id}`);
+}
+
+export function createPlatformClinic(data: ClinicCreateInput) {
+  return adminFetch<PlatformClinicDetail>("/api/admin/platform/clinics", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updatePlatformClinic(id: string, data: Partial<ClinicCreateInput>) {
+  return adminFetch<PlatformClinicDetail>(`/api/admin/platform/clinics/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 export function upgradeClinicTier(clinicId: string, tier: number) {
   return adminFetch<void>(`/api/admin/platform/clinics/${clinicId}/tier`, {
-    method: "POST",
+    method: "PATCH",
     body: JSON.stringify({ tier }),
+  });
+}
+
+export function activatePlatformClinic(clinicId: string) {
+  return adminFetch<void>(`/api/admin/platform/clinics/${clinicId}/activate`, {
+    method: "PATCH",
+  });
+}
+
+export function deactivatePlatformClinic(clinicId: string) {
+  return adminFetch<void>(`/api/admin/platform/clinics/${clinicId}/deactivate`, {
+    method: "PATCH",
+  });
+}
+
+export function inviteClinicAdmin(clinicId: string, data: InviteAdminInput) {
+  return adminFetch<{ id: string; email: string; full_name: string | null; role: string }>(`/api/admin/platform/clinics/${clinicId}/invite`, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 
@@ -561,12 +598,88 @@ export interface BookingStats {
 export interface PlatformClinic {
   id: string;
   name: string;
-  district: string;
+  slug: string;
+  district: string | null;
   tier: number;
+  is_active: boolean;
+  team_count: number;
   retreats_count: number;
+  images_count: number;
   bookings_count: number;
   revenue: number;
+  has_admin: boolean;
+  onboarding_pct: number;
+  created_at: string;
+}
+
+export interface OnboardingStep {
+  key: string;
+  label: string;
+  done: boolean;
+}
+
+export interface AdminUserInfo {
+  id: string;
+  email: string;
+  full_name: string | null;
+  last_login_at: string | null;
+}
+
+export interface PlatformClinicDetail {
+  id: string;
+  name: string;
+  slug: string;
+  district: string | null;
+  description: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  tier: number;
   is_active: boolean;
+  phone: string | null;
+  email: string | null;
+  website_url: string | null;
+  specialisations: string[];
+  atmosphere: string[];
+  certifications: string[];
+  languages: string[];
+  established_year: number | null;
+  pricing_min: number | null;
+  pricing_max: number | null;
+  team_count: number;
+  retreats_count: number;
+  images_count: number;
+  bookings_count: number;
+  revenue: number;
+  admin_user: AdminUserInfo | null;
+  onboarding: OnboardingStep[];
+  created_at: string;
+}
+
+export interface ClinicCreateInput {
+  name: string;
+  slug?: string;
+  district: string;
+  description?: string;
+  tier: number;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  phone?: string;
+  email?: string;
+  website_url?: string;
+  specialisations: string[];
+  atmosphere: string[];
+  certifications: string[];
+  languages: string[];
+  pricing_min?: number;
+  pricing_max?: number;
+}
+
+export interface InviteAdminInput {
+  email: string;
+  full_name: string;
+  password: string;
 }
 
 export interface ManagedUser {
@@ -588,7 +701,10 @@ export interface PlatformStats {
   total_clinics: number;
   tier1_clinics: number;
   tier2_clinics: number;
+  active_clinics: number;
   total_bookings: number;
+  total_gmv: number;
   total_revenue: number;
   active_retreats: number;
+  total_team_members: number;
 }

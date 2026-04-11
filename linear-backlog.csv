@@ -1,0 +1,55 @@
+Title,Description,Priority,Label
+Register company (UAE free zone or India LLP/Pvt Ltd — decide jurisdiction),,Urgent,Business & Legal
+Open business bank account (Emirates NBD / HDFC current account),,Urgent,Business & Legal
+Get trade license / GST registration if billing from India,,High,Business & Legal
+Draft Terms of Service and Privacy Policy (GDPR-compliant — EU + Gulf users),,Urgent,Business & Legal
+Cancellation & refund policy document (also needed in booking flow UI),,High,Business & Legal
+Clinic partner agreement / marketplace T&Cs template,,High,Business & Legal
+Point ayuretreats.com DNS to production server,,Urgent,Domain & Hosting
+SSL certificate (Let's Encrypt or Cloudflare),,Urgent,Domain & Hosting
+Set up AWS production environments (Mumbai Frankfurt Bahrain),,High,Domain & Hosting
+Configure Nginx for production,,High,Domain & Hosting
+Set up staging environment separate from production,,Medium,Domain & Hosting
+Set up @ayuretreats.com Google Workspace or Zoho Mail (team emails),,High,Email
+Integrate transactional email provider — SendGrid or Resend,,Urgent,Email
+Create email templates: booking confirmation / booking request to clinic / decline & cancellation / welcome email,,Urgent,Email
+Set up noreply@ayuretreats.com sender identity + DKIM/SPF/DMARC records,,High,Email
+Set up clinics@ayuretreats.com for clinic onboarding inquiries,,Medium,Email
+Create Stripe Connect account (international patients — USD/EUR/AED),,Urgent,Payments
+Create Razorpay account (India INR bookings),,High,Payments
+Wire real Stripe session creation in backend booking API (currently returns MOCK refs),,Urgent,Payments
+Implement Stripe webhook handler with signature verification,,Urgent,Payments
+Wire Razorpay order creation + webhook,,High,Payments
+Test end-to-end payment flow in Stripe test mode,,Urgent,Payments
+Configure Stripe Connect for clinic payouts (marketplace split),,High,Payments
+Set commission % in pricing config and confirm with first clinic,,High,Payments
+Create AWS S3 bucket for production (separate from dev bucket),,High,Image & Media
+Set S3 bucket policy + CloudFront CDN in front of it,,High,Image & Media
+Configure storage module with production S3 credentials,,High,Image & Media
+Set image size limits and compression (no oversized uploads),,Medium,Image & Media
+Test clinic image upload flow end-to-end (admin → clinic images),,High,Image & Media
+Add default fallback images for clinics/retreats with no photos,,Medium,Image & Media
+Rotate all dev secrets — new JWT_SECRET / DB password / Redis password for production,,Urgent,Infrastructure & Security
+Move all secrets to AWS Secrets Manager or environment-specific .env.production,,Urgent,Infrastructure & Security
+Enable PostgreSQL SSL in production,,High,Infrastructure & Security
+Set up automated daily DB backups (RDS snapshots or pg_dump to S3),,High,Infrastructure & Security
+Configure Redis with password auth in production,,High,Infrastructure & Security
+Set up rate limiting on auth endpoints (/api/auth/login),,High,Infrastructure & Security
+Enable CORS to production domain only (remove localhost from allowed origins),,High,Infrastructure & Security
+Set up error monitoring — Sentry (backend + frontend),,High,Infrastructure & Security
+Set up uptime monitoring — Better Uptime or UptimeRobot,,Medium,Infrastructure & Security
+Add Google Analytics 4 or Plausible to frontend,,Medium,Analytics & Tracking
+Add cookie consent banner (required for GDPR — EU users),,High,Analytics & Tracking
+Verify outcomes_log is writing events on booking confirmed,,High,Analytics & Tracking
+Wire real payment integration (blocks first real booking),,Urgent,Product
+Booking confirmation email to guest (currently missing),,Urgent,Product
+Booking alert email to clinic on new request (currently missing),,Urgent,Product
+Fix NEXT_PUBLIC_APP_URL in .env.production (metadataBase warning in logs),,Medium,Product
+Populate config/conditions.yaml with at least 10 conditions (search depends on it),,High,Product
+Test full booking flow on mobile,,High,Product
+Create clinic admin user via platform admin portal,,High,First Clinic Onboarding
+Walk clinic through profile setup — description / photos / team / certifications,,High,First Clinic Onboarding
+Create at least 2 retreat packages with pricing and availability,,High,First Clinic Onboarding
+Verify clinic appears in search results,,High,First Clinic Onboarding
+Do a test booking end-to-end as a patient,,Urgent,First Clinic Onboarding
+Confirm clinic receives booking notification,,Urgent,First Clinic Onboarding
