@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { AdminUser } from "@/lib/admin-api";
+import { clearClinicOverride, getClinicOverride } from "@/lib/admin-api";
 import { DisplayCurrencyProvider } from "@/contexts/DisplayCurrencyContext";
 
 const NAV_ITEMS = [
@@ -75,6 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [clinicOverride, setClinicOverrideState] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token");
@@ -95,6 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       localStorage.removeItem("admin_user");
       router.replace("/admin/login");
     }
+    setClinicOverrideState(getClinicOverride());
     setLoading(false);
   }, [pathname, router]);
 
@@ -255,6 +258,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="font-serif text-lg text-forest">AyuRetreats</span>
           <div className="w-10" />
         </header>
+
+        {/* Platform-admin acting on behalf of clinic — banner */}
+        {clinicOverride && (
+          <div className="flex items-center justify-between px-4 py-2.5 text-sm font-sans"
+            style={{ background: "#1e1b4b", color: "#c7d2fe" }}>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              <span>Managing as platform admin: <strong className="text-white">{clinicOverride.name}</strong></span>
+            </div>
+            <button
+              onClick={() => {
+                clearClinicOverride();
+                setClinicOverrideState(null);
+                router.push(`/admin/platform`);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              style={{ background: "rgba(165,180,252,0.2)", color: "#a5b4fc" }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Stop managing
+            </button>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">{children}</main>

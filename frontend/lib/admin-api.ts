@@ -1,6 +1,29 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /* ------------------------------------------------------------------ */
+/*  Platform-admin clinic override helpers                             */
+/* ------------------------------------------------------------------ */
+
+export function setClinicOverride(clinicId: string, clinicName: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("admin_clinic_override", clinicId);
+  localStorage.setItem("admin_clinic_override_name", clinicName);
+}
+
+export function clearClinicOverride() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("admin_clinic_override");
+  localStorage.removeItem("admin_clinic_override_name");
+}
+
+export function getClinicOverride(): { id: string; name: string } | null {
+  if (typeof window === "undefined") return null;
+  const id   = localStorage.getItem("admin_clinic_override");
+  const name = localStorage.getItem("admin_clinic_override_name") ?? "";
+  return id ? { id, name } : null;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Generic fetch wrapper with Bearer-token auth                       */
 /* ------------------------------------------------------------------ */
 
@@ -18,6 +41,13 @@ export async function adminFetch<T = unknown>(
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  // Platform admin acting on behalf of a clinic
+  const clinicOverride =
+    typeof window !== "undefined" ? localStorage.getItem("admin_clinic_override") : null;
+  if (clinicOverride) {
+    headers["X-Platform-Clinic"] = clinicOverride;
   }
 
   let res: Response;

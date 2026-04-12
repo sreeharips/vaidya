@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatMoney } from "@/lib/currency";
 import {
   getPlatformClinic,
   inviteClinicAdmin,
   activatePlatformClinic,
   deactivatePlatformClinic,
   upgradeClinicTier,
+  setClinicOverride,
   type PlatformClinicDetail,
   type OnboardingStep,
 } from "@/lib/admin-api";
@@ -24,9 +24,37 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function StepRow({ step, index }: { step: OnboardingStep; index: number }) {
+// Map each step key to where it can be completed
+const STEP_ACTIONS: Record<string, { label: string; href: string }> = {
+  description:     { label: "Edit profile",    href: "/admin/clinic" },
+  photos:          { label: "Upload photos",   href: "/admin/clinic/images" },
+  team:            { label: "Add team",        href: "/admin/team" },
+  retreats:        { label: "Add retreats",    href: "/admin/retreats" },
+  activated:       { label: "Set live",        href: "" }, // handled inline
+};
+
+function StepRow({
+  step, index, clinicId, clinicName, onActivate,
+}: {
+  step: OnboardingStep;
+  index: number;
+  clinicId: string;
+  clinicName: string;
+  onActivate?: () => void;
+}) {
+  const router = useRouter();
+  const action = STEP_ACTIONS[step.key];
+
+  const handleAction = () => {
+    if (step.key === "activated") { onActivate?.(); return; }
+    if (action?.href) {
+      setClinicOverride(clinicId, clinicName);
+      router.push(action.href);
+    }
+  };
+
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-cream2 last:border-0">
+    <div className="flex items-center gap-3 py-3 border-b border-cream2 last:border-0">
       <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-sans font-medium ${
         step.done ? "bg-forest text-white" : "bg-cream2 text-muted"
       }`}>
@@ -34,16 +62,26 @@ function StepRow({ step, index }: { step: OnboardingStep; index: number }) {
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
-        ) : (
-          index + 1
-        )}
+        ) : index + 1}
       </div>
-      <span className={`text-sm font-sans ${step.done ? "text-slate" : "text-muted"}`}>
+
+      <span className={`flex-1 text-sm font-sans ${step.done ? "text-slate" : "text-muted"}`}>
         {step.label}
       </span>
-      {step.done && (
-        <span className="ml-auto text-xs text-forest font-sans">Done</span>
-      )}
+
+      {step.done ? (
+        <span className="text-xs text-forest font-sans">Done</span>
+      ) : action ? (
+        <button
+          onClick={handleAction}
+          className="text-xs font-sans font-medium px-3 py-1 rounded-lg border transition-colors"
+          style={{ borderColor: "#a5b4fc", color: "#6366f1" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#eef2ff"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        >
+          {action.label} →
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -230,7 +268,14 @@ export default function ClinicDetailPage({ params }: { params: { id: string } })
         {/* Steps */}
         <div>
           {clinic.onboarding.map((step, i) => (
-            <StepRow key={step.key} step={step} index={i} />
+            <StepRow
+              key={step.key}
+              step={step}
+              index={i}
+              clinicId={clinic.id}
+              clinicName={clinic.name}
+              onActivate={handleToggleActive}
+            />
           ))}
         </div>
 
