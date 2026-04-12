@@ -9,6 +9,18 @@ export const revalidate = 3600
 
 const API_BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
+async function fetchClinicPreview(slug: string, lang: string): Promise<ClinicDetail | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/clinics/${slug}?lang=${lang}&preview=true`, {
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface Retreat {
@@ -86,6 +98,7 @@ interface ClinicDetail {
   retreats: Retreat[]
   team: TeamMember[]
   reviews: Review[]
+  is_active: boolean
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -134,11 +147,16 @@ export async function generateMetadata({
 
 export default async function ClinicPage({
   params,
+  searchParams,
 }: {
   params: { lang: string; slug: string }
+  searchParams: { preview?: string }
 }) {
   setRequestLocale(params.lang)
-  const clinic = await fetchClinic(params.slug, params.lang)
+  const isPreview = searchParams?.preview === '1'
+  const clinic = isPreview
+    ? await fetchClinicPreview(params.slug, params.lang)
+    : await fetchClinic(params.slug, params.lang)
   if (!clinic) notFound()
 
   const tierLabel    = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
@@ -166,6 +184,50 @@ export default async function ClinicPage({
 
   return (
     <>
+      {/* ── Preview banner — shown when super admin previews an inactive clinic ── */}
+      {isPreview && !clinic.is_active && (
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          background: '#dc2626',
+          color: '#fff',
+          padding: '10px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          fontFamily: 'var(--sans)',
+          fontSize: '14px',
+          fontWeight: 500,
+          boxShadow: '0 2px 8px rgba(220,38,38,0.4)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg style={{ width: 18, height: 18, flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>
+              <strong>Preview mode</strong> — This clinic is not yet live to the public.
+              Patients cannot find or book this clinic.
+            </span>
+          </div>
+          <a
+            href="/admin/platform"
+            style={{
+              color: '#fff',
+              textDecoration: 'none',
+              fontSize: '13px',
+              padding: '4px 12px',
+              border: '1px solid rgba(255,255,255,0.5)',
+              borderRadius: 20,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ← Back to admin
+          </a>
+        </div>
+      )}
+
       {/* JSON-LD */}
       <script
         type="application/ld+json"

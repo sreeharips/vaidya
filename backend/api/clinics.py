@@ -122,6 +122,7 @@ class ClinicDetail(BaseModel):
     team: list[TeamMemberOut]
     retreats: list[RetreatInline]
     reviews: list[ReviewOut]
+    is_active: bool = True
 
 class ClinicListResponse(BaseModel):
     items: list[ClinicSummary]
@@ -267,16 +268,22 @@ async def search_clinics(
 async def get_clinic(
     slug: str,
     lang: str = Query(default="en"),
+    preview: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ):
+    # Only use cache for live (non-preview) requests
     cache_key = f"clinic:{slug}:{lang}"
-    cached = await cache_get(cache_key)
-    if cached is not None:
-        return ClinicDetail.model_validate(cached)
+    if not preview:
+        cached = await cache_get(cache_key)
+        if cached is not None:
+            return ClinicDetail.model_validate(cached)
 
-    clinic = (await db.execute(
-        select(ClinicFeatureStore).where(ClinicFeatureStore.slug == slug, ClinicFeatureStore.is_active.is_(True))
-    )).scalar_one_or_none()
+    # Preview bypasses is_active filter so super admin can see draft clinics
+    clinic_q = select(ClinicFeatureStore).where(ClinicFeatureStore.slug == slug)
+    if not preview:
+        clinic_q = clinic_q.where(ClinicFeatureStore.is_active.is_(True))
+
+    clinic = (await db.execute(clinic_q)).scalar_one_or_none()
 
     if clinic is None:
         raise HTTPException(status_code=404, detail=f"Clinic '{slug}' not found.")
@@ -365,7 +372,9 @@ async def get_clinic(
         nearest_railway=clinic.nearest_railway,
         patient_capacity=clinic.patient_capacity,
         team=team, retreats=retreats, reviews=reviews,
+        is_active=clinic.is_active,
     )
 
-    await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)
+    if not preview:
+        await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)
     return result
