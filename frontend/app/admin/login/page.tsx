@@ -17,19 +17,14 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      console.log("Starting login for:", email);
       const { token, user } = await login(email, password);
-      console.log("Login successful, token:", token.substring(0, 20) + "...");
-      console.log("User:", user);
 
       localStorage.setItem("admin_token", token);
       localStorage.setItem("admin_user", JSON.stringify(user));
-      console.log("localStorage updated, redirecting...");
 
       // Small delay to ensure localStorage is updated before redirect
       await new Promise(resolve => setTimeout(resolve, 100));
-      console.log("Calling router.replace('/admin')");
-      router.replace("/admin");
+      router.replace(user.role === "platform_admin" ? "/admin/platform" : "/admin");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       console.error("Login error:", message);

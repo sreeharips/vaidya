@@ -34,6 +34,16 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
+    const stored = localStorage.getItem("admin_user");
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        if (u.role === "platform_admin") {
+          router.replace("/admin/platform");
+          return;
+        }
+      } catch { /* ignore */ }
+    }
     load();
   }, []);
 
