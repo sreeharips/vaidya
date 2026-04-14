@@ -485,6 +485,83 @@ export function getCertifications() {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Clinic admin experiences (paid add-ons)                           */
+/* ------------------------------------------------------------------ */
+
+export function getClinicExperiences() {
+  return adminFetch<ClinicExperience[]>('/api/admin/experiences')
+}
+
+export function createClinicExperience(data: Partial<ClinicExperience>) {
+  return adminFetch<ClinicExperience>('/api/admin/experiences', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateClinicExperience(id: string, data: Partial<ClinicExperience>) {
+  return adminFetch<ClinicExperience>(`/api/admin/experiences/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteClinicExperience(id: string) {
+  return adminFetch<void>(`/api/admin/experiences/${id}`, { method: 'DELETE' })
+}
+
+export function reorderClinicExperiences(ids: string[]) {
+  return adminFetch<void>('/api/admin/experiences/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}
+
+/* ------------------------------------------------------------------ */
+/*  Platform admin experiences (curated)                              */
+/* ------------------------------------------------------------------ */
+
+export function getPlatformExperiences() {
+  return adminFetch<PlatformExperience[]>('/api/admin/platform/experiences')
+}
+
+export function createPlatformExperience(data: Partial<PlatformExperience>) {
+  return adminFetch<PlatformExperience>('/api/admin/platform/experiences', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updatePlatformExperience(id: string, data: Partial<PlatformExperience>) {
+  return adminFetch<PlatformExperience>(`/api/admin/platform/experiences/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deletePlatformExperience(id: string) {
+  return adminFetch<void>(`/api/admin/platform/experiences/${id}`, { method: 'DELETE' })
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public — retreat experiences                                       */
+/* ------------------------------------------------------------------ */
+
+export async function fetchRetreatExperiences(retreatId: string): Promise<RetreatExperiences> {
+  // Use API_URL (Docker internal) for server-side fetches; fall back to NEXT_PUBLIC_API_URL for browser
+  const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  try {
+    const res = await fetch(`${API_BASE}/api/retreats/${retreatId}/experiences`, {
+      next: { revalidate: 1800 },
+    })
+    if (!res.ok) return { platform_experiences: [], clinic_add_ons: [] }
+    return res.json()
+  } catch {
+    return { platform_experiences: [], clinic_add_ons: [] }
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Type definitions                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -788,4 +865,91 @@ export interface PlatformStats {
   total_revenue: number;
   active_retreats: number;
   total_team_members: number;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Experiences — types                                                 */
+/* ------------------------------------------------------------------ */
+
+export type ExperienceCategory = 'sightseeing' | 'adventure' | 'cultural' | 'nature' | 'wellness'
+
+export interface ClinicExperience {
+  id: string
+  name_en: string
+  name_ar: string | null
+  name_ml: string | null
+  description_en: string | null
+  description_ar: string | null
+  description_ml: string | null
+  category: ExperienceCategory
+  price_inr: number
+  photos: string[]
+  max_per_booking: number
+  is_active: boolean
+  display_order: number
+}
+
+export interface PlatformExperience {
+  id: string
+  name_en: string
+  name_ar: string | null
+  name_ml: string | null
+  description_en: string | null
+  description_ar: string | null
+  description_ml: string | null
+  category: ExperienceCategory
+  lat: number | null
+  lng: number | null
+  district: string | null
+  region_label: string | null
+  typical_duration_hours: number | null
+  price_inr: number
+  is_free: boolean
+  photos: string[]
+  external_url: string | null
+  is_active: boolean
+}
+
+export interface PlatformExperienceOut {
+  id: string
+  name_en: string
+  name_ar: string | null
+  name_ml: string | null
+  description_en: string | null
+  category: string
+  region_label: string | null
+  typical_duration_hours: number | null
+  price_inr: number
+  is_free: boolean
+  photos: string[]
+  external_url: string | null
+  distance_km: number | null
+}
+
+export interface ClinicAddOnOut {
+  id: string
+  name_en: string
+  name_ar: string | null
+  name_ml: string | null
+  description_en: string | null
+  category: string
+  price_inr: number
+  photos: string[]
+  max_per_booking: number
+  display_order: number
+}
+
+export interface RetreatExperiences {
+  platform_experiences: PlatformExperienceOut[]
+  clinic_add_ons: ClinicAddOnOut[]
+}
+
+export interface BookingAddOnOut {
+  id: string
+  add_on_type: string
+  experience_id: string
+  name_snapshot: string
+  price_inr_snapshot: number
+  quantity: number
+  line_total_inr: number
 }

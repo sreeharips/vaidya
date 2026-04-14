@@ -10,6 +10,7 @@ from api.auth import router as auth_router
 from api.waitlist import router as waitlist_router
 from api.booking import router as booking_router
 from api.clinics import router as clinics_router
+from api.experiences import router as experiences_router
 from api.retreats import router as retreats_router
 from api.search import router as search_router
 from api.users import router as users_router
@@ -102,6 +103,7 @@ app.include_router(users_router)
 app.include_router(booking_router)
 app.include_router(clinics_router)
 app.include_router(retreats_router)
+app.include_router(experiences_router)
 app.include_router(search_router)
 
 

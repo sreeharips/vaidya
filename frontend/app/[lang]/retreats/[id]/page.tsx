@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { formatInrForVisitor } from '@/lib/currency/server'
+import { fetchRetreatExperiences, type ClinicAddOnOut, type PlatformExperienceOut } from '@/lib/admin-api'
 import { setRequestLocale } from 'next-intl/server'
 
 export const revalidate = 3600
@@ -187,7 +188,10 @@ export default async function RetreatPage({
   params: { lang: string; id: string }
 }) {
   setRequestLocale(params.lang)
-  const retreat = await fetchRetreat(params.id)
+  const [retreat, experiences] = await Promise.all([
+    fetchRetreat(params.id),
+    fetchRetreatExperiences(params.id),
+  ])
   if (!retreat) notFound()
 
   const { lang } = params
@@ -695,6 +699,182 @@ export default async function RetreatPage({
                     </div>
                   )
                 })}
+              </div>
+            </section>
+          )}
+
+          {/* ── Nearby Experiences (platform-curated) ───────────────────────── */}
+          {experiences.platform_experiences.length > 0 && (
+            <section style={{ marginBottom: 48 }}>
+              <h2
+                style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 400, color: 'var(--forest)', marginBottom: 6 }}
+              >
+                Nearby Experiences
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+                Things to do near {retreat.clinic.district ?? 'the retreat'} during your stay.
+              </p>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                  gap: 16,
+                }}
+              >
+                {experiences.platform_experiences.map((exp: PlatformExperienceOut) => (
+                  <div
+                    key={exp.id}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--r-md)',
+                      overflow: 'hidden',
+                      background: '#fff',
+                    }}
+                  >
+                    {exp.photos?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={exp.photos[0]}
+                        alt={exp.name_en}
+                        style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
+                      />
+                    ) : (
+                      <div
+                        style={{ width: '100%', height: 120, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <span style={{ fontSize: 32, opacity: 0.2 }}>🌿</span>
+                      </div>
+                    )}
+                    <div style={{ padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            color: 'var(--forest)',
+                            background: 'var(--forest-lt)',
+                            padding: '2px 8px',
+                            borderRadius: 99,
+                          }}
+                        >
+                          {exp.category}
+                        </span>
+                        {exp.distance_km != null && (
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{exp.distance_km} km</span>
+                        )}
+                      </div>
+                      <div
+                        style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)', marginBottom: 4, lineHeight: 1.3 }}
+                      >
+                        {exp.name_en}
+                      </div>
+                      {exp.region_label && (
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{exp.region_label}</div>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--forest)' }}>
+                          {exp.is_free ? 'Free' : formatInrForVisitor(Math.round(exp.price_inr), lang)}
+                        </span>
+                        {exp.typical_duration_hours != null && (
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>~{exp.typical_duration_hours}h</span>
+                        )}
+                      </div>
+                      {exp.external_url && (
+                        <a
+                          href={exp.external_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: 'var(--forest)', textDecoration: 'underline', display: 'block', marginTop: 8 }}
+                        >
+                          View details →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Enhance Your Stay (clinic add-ons) ──────────────────────────── */}
+          {experiences.clinic_add_ons.length > 0 && (
+            <section style={{ marginBottom: 48 }}>
+              <h2
+                style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 400, color: 'var(--forest)', marginBottom: 6 }}
+              >
+                Enhance Your Stay
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+                Optional experiences arranged by {retreat.clinic.name}, bookable as add-ons.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {experiences.clinic_add_ons.map((addon: ClinicAddOnOut) => (
+                  <div
+                    key={addon.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--r-md)',
+                      padding: '16px 20px',
+                      background: '#fff',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.06em',
+                            color: 'var(--bark, #6b5a2e)',
+                            background: 'rgba(184,134,44,0.1)',
+                            padding: '2px 8px',
+                            borderRadius: 99,
+                          }}
+                        >
+                          {addon.category}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--slate)', marginBottom: 2 }}>
+                        {addon.name_en}
+                      </div>
+                      {addon.description_en && (
+                        <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+                          {addon.description_en.slice(0, 100)}{addon.description_en.length > 100 ? '…' : ''}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div
+                        style={{ fontFamily: 'var(--serif)', fontSize: 18, fontWeight: 600, color: 'var(--forest)', marginBottom: 8 }}
+                      >
+                        {formatInrForVisitor(Math.round(addon.price_inr), lang)}
+                      </div>
+                      <Link
+                        href={`/${lang}/booking?clinic=${retreat.clinic.slug}&retreat=${retreat.id}&addons=${addon.id}`}
+                        style={{
+                          display: 'inline-block',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: '#fff',
+                          background: 'var(--forest)',
+                          padding: '7px 16px',
+                          borderRadius: 'var(--r-xl)',
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Add to booking
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           )}

@@ -4,6 +4,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useDisplayCurrency } from '@/contexts/DisplayCurrencyContext'
+import type { ClinicAddOnOut } from '@/lib/admin-api'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -34,6 +35,7 @@ interface BookingResult {
   booking_id: string
   status: string
   total_amount: number
+  add_ons_total_inr: number
   currency: string
   nights: number
   clinic_name: string
@@ -41,6 +43,7 @@ interface BookingResult {
   start_date: string
   end_date: string
   guest_count: number
+  add_ons: Array<{ name_snapshot: string; price_inr_snapshot: number; quantity: number; line_total_inr: number }>
 }
 
 function BookingForm() {
@@ -53,10 +56,16 @@ function BookingForm() {
 
   const clinicSlug = searchParams.get('clinic') || ''
   const retreatId = searchParams.get('retreat') || ''
+  const preselectedAddons = searchParams.get('addons') || ''
 
   const [clinic, setClinic] = useState<ClinicData | null>(null)
   const [pkg, setPkg] = useState<PackageData | null>(null)
   const [loadError, setLoadError] = useState('')
+
+  // Add-ons state
+  const [availableAddOns, setAvailableAddOns] = useState<ClinicAddOnOut[]>([])
+  const [selectedAddOns, setSelectedAddOns] = useState<Map<string, number>>(new Map())
+  const [step, setStep] = useState<'details' | 'addons' | 'confirm'>('details')
 
   // Form state — pre-fill from logged-in user if available
   const [guestName, setGuestName] = useState(user?.full_name ?? '')
@@ -106,7 +115,6 @@ function BookingForm() {
           ...data,
           price_inr: typeof data.price_inr === 'number' ? data.price_inr : 0,
         })
-        // Set initial duration to package minimum
         if (data.duration_min_days) {
           setDuration(data.duration_min_days)
         }
@@ -114,6 +122,28 @@ function BookingForm() {
       .catch(() => {
         // Package load failed — user can still submit without package details
       })
+  }, [retreatId])
+
+  // Load clinic add-ons
+  useEffect(() => {
+    if (!retreatId) return
+    fetch(`${API_BASE}/api/retreats/${retreatId}/experiences`)
+      .then((r) => r.ok ? r.json() : { clinic_add_ons: [] })
+      .then((data: { clinic_add_ons: ClinicAddOnOut[] }) => {
+        setAvailableAddOns(data.clinic_add_ons ?? [])
+        // Pre-select from ?addons= query param
+        if (preselectedAddons) {
+          const ids = preselectedAddons.split(',').filter(Boolean)
+          const preselect = new Map<string, number>()
+          for (const id of ids) {
+            const addon = data.clinic_add_ons?.find((a: ClinicAddOnOut) => a.id === id)
+            if (addon) preselect.set(id, 1)
+          }
+          if (preselect.size > 0) setSelectedAddOns(preselect)
+        }
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retreatId])
 
   // Derived
@@ -129,7 +159,12 @@ function BookingForm() {
     pkg && pkgInr > 0 && pkg.duration_min_days
       ? Math.round(pkgInr / pkg.duration_min_days)
       : 0
-  const estimatedTotalInr = Math.round(pricePerNightInr * duration * guestCount)
+  const baseTotal = Math.round(pricePerNightInr * duration * guestCount)
+  const addOnsTotal = Array.from(selectedAddOns.entries()).reduce((sum, [id, qty]) => {
+    const addon = availableAddOns.find((a) => a.id === id)
+    return sum + (addon ? Math.round(addon.price_inr * qty) : 0)
+  }, 0)
+  const estimatedTotalInr = baseTotal + addOnsTotal
 
   const minDuration = pkg?.duration_min_days ?? 7
   const maxDuration = pkg?.duration_max_days ?? 28
@@ -139,11 +174,24 @@ function BookingForm() {
 
   const canSubmit = email.includes('@') && guestName && startDate && !submitting
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleDetailsNext(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit || !clinic) return
+    if (!canSubmit) return
+    if (availableAddOns.length > 0) {
+      setStep('addons')
+    } else {
+      void handleBookingSubmit()
+    }
+  }
+
+  async function handleBookingSubmit() {
+    if (!clinic) return
     setSubmitting(true)
     setSubmitError('')
+
+    const addOnsPayload = Array.from(selectedAddOns.entries())
+      .filter(([, qty]) => qty > 0)
+      .map(([id, quantity]) => ({ experience_id: id, add_on_type: 'clinic', quantity }))
 
     try {
       const token = getAccessToken()
@@ -162,6 +210,7 @@ function BookingForm() {
           guest_name: guestName,
           guest_count: guestCount,
           lang,
+          add_ons: addOnsPayload,
         }),
       })
 
@@ -219,6 +268,7 @@ function BookingForm() {
                 ['Dates', `${result.start_date} → ${result.end_date}`],
                 ['Duration', `${result.nights} nights`],
                 ['Guests', `${result.guest_count}`],
+                ...(result.add_ons?.length > 0 ? result.add_ons.map((ao) => [ao.name_snapshot, formatFromInr(Math.round(ao.line_total_inr))]) : []),
                 ['Estimated total', formatFromInr(Math.round(result.total_amount))],
                 ['Status', 'Pending clinic confirmation'],
               ].map(([label, value]) => (
@@ -296,7 +346,7 @@ function BookingForm() {
       </section>
 
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '2rem 1.5rem' }}>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleDetailsNext}>
           <div style={{
             background: '#fff',
             border: '1px solid var(--border)',
@@ -437,14 +487,14 @@ function BookingForm() {
               </div>
             )}
 
-            {/* Submit */}
+            {/* Submit / Next */}
             <button
               type="submit"
               className="btn-book"
               style={{ marginTop: 8, opacity: canSubmit ? 1 : 0.5, cursor: canSubmit ? 'pointer' : 'not-allowed' }}
               disabled={!canSubmit}
             >
-              {submitting ? 'Sending request…' : 'Request booking'}
+              {availableAddOns.length > 0 ? 'Continue →' : (submitting ? 'Sending request…' : 'Request booking')}
             </button>
 
             <p className="booking-note">
@@ -452,6 +502,113 @@ function BookingForm() {
             </p>
           </div>
         </form>
+
+        {/* ── Add-ons step ──────────────────────────────────────────────── */}
+        {step === 'addons' && availableAddOns.length > 0 && (
+          <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 28, marginTop: 24, boxShadow: 'var(--shadow)' }}>
+            <h2 style={{ fontFamily: 'var(--serif)', fontSize: '1.3rem', color: 'var(--forest)', marginBottom: 6 }}>
+              Enhance Your Stay
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+              Optional experiences arranged by {clinic?.name}. Select to add to your booking.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {availableAddOns.map((addon) => {
+                const qty = selectedAddOns.get(addon.id) ?? 0
+                return (
+                  <div
+                    key={addon.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      border: `1px solid ${qty > 0 ? 'var(--forest)' : 'var(--border)'}`,
+                      borderRadius: 'var(--r-md)',
+                      padding: '14px 16px',
+                      background: qty > 0 ? 'rgba(30,61,47,0.03)' : '#fff',
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)', marginBottom: 2 }}>{addon.name_en}</div>
+                      {addon.description_en && (
+                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          {addon.description_en.slice(0, 80)}{addon.description_en.length > 80 ? '…' : ''}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--forest)', marginTop: 4 }}>
+                        {formatFromInr(Math.round(addon.price_inr))}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddOns((prev) => {
+                            const next = new Map(prev)
+                            const cur = next.get(addon.id) ?? 0
+                            if (cur <= 1) next.delete(addon.id)
+                            else next.set(addon.id, cur - 1)
+                            return next
+                          })
+                        }}
+                        style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid var(--border)', background: '#fff', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+                        disabled={qty === 0}
+                      >−</button>
+                      <span style={{ minWidth: 20, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAddOns((prev) => {
+                            const next = new Map(prev)
+                            const cur = next.get(addon.id) ?? 0
+                            if (cur < addon.max_per_booking) next.set(addon.id, cur + 1)
+                            return next
+                          })
+                        }}
+                        style={{ width: 28, height: 28, borderRadius: '50%', border: '1px solid var(--forest)', background: qty >= addon.max_per_booking ? 'var(--forest-lt)' : 'var(--forest)', color: qty >= addon.max_per_booking ? 'var(--forest)' : '#fff', cursor: qty >= addon.max_per_booking ? 'not-allowed' : 'pointer', fontSize: 16, lineHeight: 1 }}
+                        disabled={qty >= addon.max_per_booking}
+                      >+</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Running total */}
+            {addOnsTotal > 0 && (
+              <div style={{ background: 'var(--cream)', borderRadius: 'var(--r-md)', padding: '10px 16px', fontSize: 13, color: 'var(--slate)', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+                <span>Add-ons total</span>
+                <span style={{ fontWeight: 600, color: 'var(--forest)' }}>{formatFromInr(addOnsTotal)}</span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => setStep('details')}
+                style={{ flex: 1, padding: '11px 0', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', background: '#fff', fontSize: 14, cursor: 'pointer', color: 'var(--slate)' }}
+              >
+                ← Back
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleBookingSubmit()}
+                disabled={submitting}
+                style={{ flex: 2, padding: '11px 0', background: 'var(--forest)', color: '#fff', border: 'none', borderRadius: 'var(--r-xl)', fontSize: 14, fontWeight: 600, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1 }}
+              >
+                {submitting ? 'Sending request…' : 'Confirm booking'}
+              </button>
+            </div>
+
+            {submitError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: '#dc2626', marginTop: 12 }}>
+                {submitError}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </main>
   )

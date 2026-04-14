@@ -112,6 +112,7 @@ class ClinicFeatureStore(Base):
     reviews: Mapped[list["Review"]] = relationship(back_populates="clinic")
     blocked_dates: Mapped[list["ClinicBlockedDate"]] = relationship(back_populates="clinic")
     images: Mapped[list["ClinicImage"]] = relationship(back_populates="clinic")
+    clinic_experiences: Mapped[list["ClinicExperience"]] = relationship(back_populates="clinic")
 
     __table_args__ = (
         CheckConstraint("tier IN (1, 2)", name="ck_clinic_tier"),
@@ -437,6 +438,7 @@ class Booking(Base):
     clinic: Mapped["ClinicFeatureStore"] = relationship()
     retreat: Mapped["Retreat"] = relationship(back_populates="bookings")
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
+    add_ons: Mapped[list["BookingAddOn"]] = relationship(back_populates="booking")
 
 
 # ---------------------------------------------------------------------------
@@ -508,6 +510,108 @@ class ClinicImage(Base):
             "image_type IN ('clinic_hero','clinic_gallery','clinic_logo','room','treatment','team_photo')",
             name="ck_clinic_image_type",
         ),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Experiences (platform-curated — auto-matched by proximity)
+# ---------------------------------------------------------------------------
+class Experience(Base):
+    __tablename__ = "experiences"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name_en: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_ar: Mapped[str | None] = mapped_column(String(255))
+    name_ml: Mapped[str | None] = mapped_column(String(255))
+    description_en: Mapped[str | None] = mapped_column(Text)
+    description_ar: Mapped[str | None] = mapped_column(Text)
+    description_ml: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
+    lat: Mapped[float | None] = mapped_column(Float)
+    lng: Mapped[float | None] = mapped_column(Float)
+    district: Mapped[str | None] = mapped_column(String(255))
+    region_label: Mapped[str | None] = mapped_column(String(255))
+    typical_duration_hours: Mapped[float | None] = mapped_column(Float)
+    price_inr: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
+    is_free: Mapped[bool] = mapped_column(Boolean, default=True)
+    photos = mapped_column(ARRAY(String), default=list)
+    external_url: Mapped[str | None] = mapped_column(String(512))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('sightseeing','adventure','cultural','nature','wellness')",
+            name="ck_experiences_category",
+        ),
+        Index("ix_experiences_category", "category", "is_active"),
+        Index("ix_experiences_district", "district", postgresql_where=text("district IS NOT NULL")),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Clinic Experiences (clinic-owned paid add-ons)
+# ---------------------------------------------------------------------------
+class ClinicExperience(Base):
+    __tablename__ = "clinic_experiences"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name_en: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_ar: Mapped[str | None] = mapped_column(String(255))
+    name_ml: Mapped[str | None] = mapped_column(String(255))
+    description_en: Mapped[str | None] = mapped_column(Text)
+    description_ar: Mapped[str | None] = mapped_column(Text)
+    description_ml: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str] = mapped_column(String(50), nullable=False)
+    price_inr: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    photos = mapped_column(ARRAY(String), default=list)
+    max_per_booking: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="clinic_experiences")
+
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('sightseeing','adventure','cultural','nature','wellness')",
+            name="ck_clinic_exp_category",
+        ),
+        CheckConstraint("price_inr > 0", name="ck_clinic_exp_price_nonzero"),
+        Index("ix_clinic_experiences_clinic", "clinic_id", "is_active", "display_order"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Booking Add-Ons
+# APPEND-ONLY — never UPDATE or DELETE any row.
+# ---------------------------------------------------------------------------
+class BookingAddOn(Base):
+    """APPEND-ONLY — never UPDATE or DELETE any row."""
+
+    __tablename__ = "booking_add_ons"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    booking_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    add_on_type: Mapped[str] = mapped_column(String(10), nullable=False)   # 'platform' | 'clinic'
+    experience_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)  # polymorphic ref
+    name_snapshot: Mapped[str] = mapped_column(String(255), nullable=False)
+    price_inr_snapshot: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+
+    booking: Mapped["Booking"] = relationship(back_populates="add_ons")
+
+    __table_args__ = (
+        CheckConstraint("add_on_type IN ('platform','clinic')", name="ck_booking_add_on_type"),
+        CheckConstraint("quantity >= 1", name="ck_booking_add_on_qty"),
     )
 
 

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.pricing import retreat_effective_inr
 from db.database import get_db
-from db.models import Booking, ClinicFeatureStore, Retreat, RetreatAvailability, PatientProfile
+from db.models import Booking, BookingAddOn, ClinicExperience, ClinicFeatureStore, Experience, Retreat, RetreatAvailability, PatientProfile
 from db.outcomes import append_outcome
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,22 @@ _COMMISSION_INTERNATIONAL = 0.13
 _COMMISSION_DOMESTIC = 0.07
 
 
+class AddOnRequest(BaseModel):
+    experience_id: str
+    add_on_type: str = Field(pattern="^(platform|clinic)$")
+    quantity: int = Field(default=1, ge=1)
+
+
+class BookingAddOnOut(BaseModel):
+    id: str
+    add_on_type: str
+    experience_id: str
+    name_snapshot: str
+    price_inr_snapshot: float
+    quantity: int
+    line_total_inr: float
+
+
 class BookingRequest(BaseModel):
     retreat_id: str
     clinic_id: str
@@ -35,6 +51,7 @@ class BookingRequest(BaseModel):
     guest_name: str | None = None
     guest_email: str | None = None
     lang: str = Field(default="en", pattern="^(en|ar|de|fr|ml|hi)$")
+    add_ons: list[AddOnRequest] = []
 
     @model_validator(mode="after")
     def validate_dates(self) -> "BookingRequest":
@@ -54,6 +71,8 @@ class BookingRequestResponse(BaseModel):
     retreat_name: str
     start_date: date
     end_date: date
+    add_ons: list[BookingAddOnOut] = []
+    add_ons_total_inr: float = 0.0
 
 
 class PaymentResponse(BaseModel):
@@ -187,6 +206,67 @@ async def request_booking(
         cancellation_policy="Free cancellation up to 14 days before arrival. 50% charge within 14-7 days. No refund within 7 days.",
     )
     db.add(booking)
+    await db.flush()  # flush to get booking.id before add-ons
+
+    # ── Process add-ons ───────────────────────────────────────────────────────
+    add_ons_total_inr = 0.0
+    add_on_rows: list[BookingAddOn] = []
+
+    for ao in body.add_ons:
+        try:
+            exp_uuid = uuid.UUID(ao.experience_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid experience_id: {ao.experience_id}")
+
+        if ao.add_on_type == "clinic":
+            exp_obj = (await db.execute(
+                select(ClinicExperience).where(
+                    ClinicExperience.id == exp_uuid,
+                    ClinicExperience.clinic_id == clinic_uuid,
+                    ClinicExperience.is_active.is_(True),
+                )
+            )).scalar_one_or_none()
+            if exp_obj is None:
+                raise HTTPException(status_code=422, detail=f"Clinic experience '{ao.experience_id}' not found.")
+            if ao.quantity > exp_obj.max_per_booking:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Max quantity for '{exp_obj.name_en}' is {exp_obj.max_per_booking}.",
+                )
+            name_snap = exp_obj.name_en
+            price_snap = float(exp_obj.price_inr)
+        else:  # platform
+            exp_obj = (await db.execute(
+                select(Experience).where(
+                    Experience.id == exp_uuid,
+                    Experience.is_active.is_(True),
+                )
+            )).scalar_one_or_none()
+            if exp_obj is None:
+                raise HTTPException(status_code=422, detail=f"Platform experience '{ao.experience_id}' not found.")
+            name_snap = exp_obj.name_en
+            price_snap = float(exp_obj.price_inr)
+
+        line_total = round(price_snap * ao.quantity, 2)
+        add_ons_total_inr += line_total
+
+        addon_row = BookingAddOn(
+            booking_id=booking.id,
+            add_on_type=ao.add_on_type,
+            experience_id=exp_uuid,
+            name_snapshot=name_snap,
+            price_inr_snapshot=price_snap,
+            quantity=ao.quantity,
+        )
+        db.add(addon_row)
+        add_on_rows.append(addon_row)
+
+    if add_ons_total_inr > 0:
+        add_ons_total_inr = round(add_ons_total_inr, 2)
+        total_amount = round(total_amount + add_ons_total_inr, 2)
+        commission_amount = round(total_amount * rate, 2)
+        booking.total_amount = total_amount
+        booking.commission_amount = commission_amount
 
     # Decrement availability
     if avail:
@@ -194,11 +274,37 @@ async def request_booking(
 
     await db.flush()
 
+    if add_ons_total_inr > 0:
+        await append_outcome(
+            db,
+            event_type="add_on_selected",
+            clinic_id=clinic_uuid,
+            scores={
+                "add_on_count": len(add_on_rows),
+                "add_ons_total_inr": add_ons_total_inr,
+            },
+            booking_status="pending",
+        )
+
+    add_on_out = [
+        BookingAddOnOut(
+            id=str(r.id),
+            add_on_type=r.add_on_type,
+            experience_id=str(r.experience_id),
+            name_snapshot=r.name_snapshot,
+            price_inr_snapshot=float(r.price_inr_snapshot),
+            quantity=r.quantity,
+            line_total_inr=round(float(r.price_inr_snapshot) * r.quantity, 2),
+        )
+        for r in add_on_rows
+    ]
+
     return BookingRequestResponse(
         booking_id=str(booking.id), status=booking.status,
         total_amount=total_amount, commission_amount=commission_amount,
         currency="INR", nights=nights, clinic_name=clinic.name,
         retreat_name=package.name, start_date=body.start_date, end_date=end_date,
+        add_ons=add_on_out, add_ons_total_inr=add_ons_total_inr,
     )
 
 
