@@ -722,77 +722,76 @@ export default async function RetreatPage({
                 }}
               >
                 {experiences.platform_experiences.map((exp: PlatformExperienceOut) => (
-                  <div
+                  <Link
                     key={exp.id}
-                    style={{
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--r-md)',
-                      overflow: 'hidden',
-                      background: '#fff',
-                    }}
+                    href={`/${lang}/experiences/${exp.id}`}
+                    style={{ textDecoration: 'none', color: 'inherit' }}
                   >
-                    {exp.photos?.[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={exp.photos[0]}
-                        alt={exp.name_en}
-                        style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
-                      />
-                    ) : (
-                      <div
-                        style={{ width: '100%', height: 120, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <span style={{ fontSize: 32, opacity: 0.2 }}>🌿</span>
-                      </div>
-                    )}
-                    <div style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.06em',
-                            color: 'var(--forest)',
-                            background: 'var(--forest-lt)',
-                            padding: '2px 8px',
-                            borderRadius: 99,
-                          }}
+                    <div
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--r-md)',
+                        overflow: 'hidden',
+                        background: '#fff',
+                        height: '100%',
+                      }}
+                    >
+                      {exp.photos?.[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={exp.photos[0]}
+                          alt={exp.name_en}
+                          style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
+                        />
+                      ) : (
+                        <div
+                          style={{ width: '100%', height: 120, background: 'var(--cream)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                          {exp.category}
-                        </span>
-                        {exp.distance_km != null && (
-                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{exp.distance_km} km</span>
-                        )}
-                      </div>
-                      <div
-                        style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)', marginBottom: 4, lineHeight: 1.3 }}
-                      >
-                        {exp.name_en}
-                      </div>
-                      {exp.region_label && (
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{exp.region_label}</div>
+                          <span style={{ fontSize: 32, opacity: 0.2 }}>🌿</span>
+                        </div>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--forest)' }}>
-                          {exp.is_free ? 'Free' : formatInrForVisitor(Math.round(exp.price_inr), lang)}
-                        </span>
-                        {exp.typical_duration_hours != null && (
-                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>~{exp.typical_duration_hours}h</span>
-                        )}
-                      </div>
-                      {exp.external_url && (
-                        <a
-                          href={exp.external_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 12, color: 'var(--forest)', textDecoration: 'underline', display: 'block', marginTop: 8 }}
+                      <div style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.06em',
+                              color: 'var(--forest)',
+                              background: 'var(--forest-lt)',
+                              padding: '2px 8px',
+                              borderRadius: 99,
+                            }}
+                          >
+                            {exp.category}
+                          </span>
+                          {exp.distance_km != null && (
+                            <span style={{ fontSize: 11, color: 'var(--muted)' }}>{exp.distance_km} km</span>
+                          )}
+                        </div>
+                        <div
+                          style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)', marginBottom: 4, lineHeight: 1.3 }}
                         >
-                          View details →
-                        </a>
-                      )}
+                          {exp.name_en}
+                        </div>
+                        {exp.region_label && (
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>{exp.region_label}</div>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--forest)' }}>
+                            {exp.is_free ? 'Free' : formatInrForVisitor(Math.round(exp.price_inr), lang)}
+                          </span>
+                          {exp.typical_duration_hours != null && (
+                            <span style={{ fontSize: 11, color: 'var(--muted)' }}>~{exp.typical_duration_hours}h</span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600, display: 'block', marginTop: 8 }}>
+                          Learn more →
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>

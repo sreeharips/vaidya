@@ -561,6 +561,74 @@ export async function fetchRetreatExperiences(retreatId: string): Promise<Retrea
   }
 }
 
+export interface NearbyRetreat {
+  id: string
+  name: string
+  clinic_name: string
+  clinic_slug: string
+  district: string | null
+  rating: number | null
+  review_count: number
+  price_usd: number
+  price_inr: number | null
+  duration_min_days: number
+  duration_max_days: number
+  photos: string[]
+  distance_km: number | null
+}
+
+export interface ExperienceDetail {
+  id: string
+  name_en: string
+  name_ar: string | null
+  name_ml: string | null
+  description_en: string | null
+  description_ar: string | null
+  description_ml: string | null
+  category: string
+  lat: number | null
+  lng: number | null
+  district: string | null
+  region_label: string | null
+  typical_duration_hours: number | null
+  price_inr: number
+  is_free: boolean
+  photos: string[]
+  external_url: string | null
+  nearby_experiences: PlatformExperienceOut[]
+  nearby_retreats: NearbyRetreat[]
+}
+
+export async function fetchExperiences(opts: {
+  lat?: number; lng?: number; district?: string; category?: string; limit?: number
+} = {}): Promise<PlatformExperienceOut[]> {
+  const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  const params = new URLSearchParams()
+  if (opts.lat != null) params.set('lat', String(opts.lat))
+  if (opts.lng != null) params.set('lng', String(opts.lng))
+  if (opts.district) params.set('district', opts.district)
+  if (opts.category) params.set('category', opts.category)
+  if (opts.limit) params.set('limit', String(opts.limit))
+  try {
+    const res = await fetch(`${API_BASE}/api/experiences?${params}`, { next: { revalidate: 3600 } })
+    if (!res.ok) return []
+    return res.json()
+  } catch { return [] }
+}
+
+export async function fetchExperienceDetail(id: string): Promise<ExperienceDetail | null> {
+  const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  try {
+    const res = await fetch(`${API_BASE}/api/experiences/${id}`, {
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /*  Type definitions                                                   */
 /* ------------------------------------------------------------------ */

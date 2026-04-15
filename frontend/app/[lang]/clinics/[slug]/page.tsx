@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { setRequestLocale } from 'next-intl/server'
 import AvailabilityStrip from '@/components/clinics/AvailabilityStrip'
 import { formatInrForVisitor } from '@/lib/currency/server'
+import { fetchExperiences, type PlatformExperienceOut } from '@/lib/admin-api'
 
 export const revalidate = 3600
 
@@ -158,6 +159,13 @@ export default async function ClinicPage({
     ? await fetchClinicPreview(params.slug, params.lang)
     : await fetchClinic(params.slug, params.lang)
   if (!clinic) notFound()
+
+  const nearbyExperiences = await fetchExperiences({
+    lat: clinic.lat ?? undefined,
+    lng: clinic.lng ?? undefined,
+    district: (!clinic.lat && clinic.district) ? clinic.district : undefined,
+    limit: 6,
+  })
 
   const tierLabel    = clinic.tier === 2 ? 'Certified Authentic' : 'Verified'
   const tierColor    = clinic.tier === 2 ? 'var(--gold)' : 'var(--forest2)'
@@ -793,6 +801,56 @@ export default async function ClinicPage({
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {/* ── Nearby Experiences ───────────────────────────────────────────── */}
+        {nearbyExperiences.length > 0 && (
+          <section style={{ marginBottom: 56 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--gold)', marginBottom: 3 }}>
+                  Things to do nearby
+                </p>
+                <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(18px, 2.5vw, 24px)', fontWeight: 400, color: 'var(--forest)' }}>
+                  Explore {clinic.district ?? 'the area'}
+                </h2>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+              {nearbyExperiences.map((exp: PlatformExperienceOut) => (
+                <Link key={exp.id} href={`/${lang}/experiences/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: '#fff', height: '100%' }}>
+                    {exp.photos?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={exp.photos[0]} alt={exp.name_en} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <div style={{ height: 130, background: 'var(--cream)' }} />
+                    )}
+                    <div style={{ padding: '10px 12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', background: 'var(--forest-lt)', color: 'var(--forest)', padding: '2px 7px', borderRadius: 99 }}>
+                          {exp.category}
+                        </span>
+                        {exp.distance_km != null && (
+                          <span style={{ fontSize: 10, color: 'var(--muted)' }}>{exp.distance_km} km</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--slate)', lineHeight: 1.3, marginBottom: 3 }}>{exp.name_en}</div>
+                      {exp.region_label && <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>{exp.region_label}</div>}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>
+                          {exp.is_free ? 'Free' : formatInrForVisitor(Math.round(exp.price_inr), lang)}
+                        </span>
+                        {exp.typical_duration_hours != null && (
+                          <span style={{ fontSize: 10, color: 'var(--muted)' }}>~{exp.typical_duration_hours}h</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </section>
         )}
 

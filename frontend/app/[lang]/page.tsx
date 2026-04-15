@@ -5,6 +5,7 @@ import HeroSearch from '@/components/search/HeroSearch'
 import HomeClinicCard, { type ClinicSummary } from '@/components/cards/HomeClinicCard'
 import RetreatCard, { type RetreatSummary } from '@/components/cards/RetreatCard'
 import WellnessGoalGrid from '@/components/home/WellnessGoalGrid'
+import { fetchExperiences, type PlatformExperienceOut } from '@/lib/admin-api'
 
 export const revalidate = 300
 
@@ -119,11 +120,12 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
   setRequestLocale(lang)
   const t = await getTranslations({ locale: lang, namespace: 'home' })
   const isRtl = lang === 'ar'
-  const [featuredRetreats, popularRetreats, popularClinics, newListings] = await Promise.all([
+  const [featuredRetreats, popularRetreats, popularClinics, newListings, featuredExperiences] = await Promise.all([
     fetchRetreats('limit=4'),
     fetchRetreats('limit=8'),
     fetchClinics('tier=1&limit=6'),
     fetchClinics('limit=6'),
+    fetchExperiences({ limit: 8 }),
   ])
 
   return (
@@ -243,6 +245,42 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           </div>
         )}
       </section>
+
+      {/* ── Explore Kerala Experiences ───────────────────────────────────────── */}
+      {featuredExperiences.length > 0 && (
+        <section style={{ padding: '28px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+          <SectionHeader compact label="Sightseeing · Adventure · Culture · Nature" title="Explore Kerala" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
+            {featuredExperiences.map((exp: PlatformExperienceOut) => (
+              <Link key={exp.id} href={`/${lang}/experiences/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: '#fff', height: '100%' }}>
+                  {exp.photos?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={exp.photos[0]} alt={exp.name_en} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ height: 130, background: 'var(--cream)' }} />
+                  )}
+                  <div style={{ padding: '10px 12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', background: 'var(--forest-lt)', color: 'var(--forest)', padding: '2px 7px', borderRadius: 99 }}>
+                        {exp.category}
+                      </span>
+                      {exp.typical_duration_hours != null && (
+                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>~{exp.typical_duration_hours}h</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--slate)', lineHeight: 1.3, marginBottom: 3 }}>{exp.name_en}</div>
+                    {exp.region_label && <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>{exp.region_label}</div>}
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>
+                      {exp.is_free ? 'Free' : `₹${Math.round(exp.price_inr).toLocaleString('en-IN')}`}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Popular Clinics (Tier 1 Verified — day clinics & outpatient) ─────── */}
       <section style={{ padding: '28px clamp(16px, 4vw, 40px) 40px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
