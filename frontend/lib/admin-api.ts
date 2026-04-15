@@ -985,6 +985,9 @@ export interface PlatformExperienceOut {
   name_ml: string | null
   description_en: string | null
   category: string
+  lat: number | null
+  lng: number | null
+  district: string | null
   region_label: string | null
   typical_duration_hours: number | null
   price_inr: number

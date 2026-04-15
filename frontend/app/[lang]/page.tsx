@@ -24,7 +24,6 @@ async function fetchRetreats(params = ''): Promise<RetreatSummary[]> {
     const res = await fetch(`${API_BASE}/api/retreats?${params}`, { next: { revalidate: 300 } })
     if (!res.ok) return []
     const data = await res.json()
-    // Map RetreatCard shape from API response
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (data.items ?? []).map((r: any): RetreatSummary => ({
       id: r.id,
@@ -97,6 +96,14 @@ const CONDITIONS = [
   { label: 'Migraines',           href: '/search?condition=migraine' },
 ]
 
+const EXP_CATEGORIES = [
+  { value: 'sightseeing', label: 'Sightseeing', icon: '🏛' },
+  { value: 'adventure',   label: 'Adventure',   icon: '🏄' },
+  { value: 'cultural',    label: 'Cultural',    icon: '🎭' },
+  { value: 'nature',      label: 'Nature',      icon: '🌿' },
+  { value: 'wellness',    label: 'Wellness',    icon: '🧘' },
+]
+
 export async function generateMetadata({ params: { lang } }: { params: { lang: string } }): Promise<Metadata> {
   setRequestLocale(lang)
   const t = await getTranslations({ locale: lang, namespace: 'home.meta' })
@@ -125,28 +132,20 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
     fetchRetreats('limit=8'),
     fetchClinics('tier=1&limit=6'),
     fetchClinics('limit=6'),
-    fetchExperiences({ limit: 8 }),
+    fetchExperiences({ limit: 10 }),
   ])
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }} dir={isRtl ? 'rtl' : 'ltr'}>
 
-      {/* ── Hero (continues from dark navbar) — styles in globals.css (.home-hero) ─ */}
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section
         className="home-hero"
-        style={{
-          padding: 'clamp(10px, 2.5vw, 16px) clamp(14px, 4vw, 36px) clamp(12px, 2vw, 18px)',
-        }}
+        style={{ padding: 'clamp(10px, 2.5vw, 16px) clamp(14px, 4vw, 36px) clamp(12px, 2vw, 18px)' }}
       >
         <div
           className="home-hero-inner"
-          style={{
-            maxWidth: 620,
-            margin: '0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
+          style={{ maxWidth: 620, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}
         >
           <header style={{ textAlign: isRtl ? 'right' : 'left' }}>
             <h1
@@ -166,24 +165,15 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
               </em>{' '}
               <span style={{ fontWeight: 300 }}>{t('hero.h1Part2')}</span>
             </h1>
-            <p
-              style={{
-                fontSize: '11px',
-                color: 'rgba(253,250,246,0.5)',
-                lineHeight: 1.4,
-                margin: '4px 0 0',
-                maxWidth: 420,
-              }}
-            >
+            <p style={{ fontSize: '11px', color: 'rgba(253,250,246,0.5)', lineHeight: 1.4, margin: '4px 0 0', maxWidth: 420 }}>
               {t('hero.subtitle')}
             </p>
           </header>
-
           <HeroSearch lang={lang} placeholder={t('hero.searchPlaceholder')} buttonLabel={t('hero.searchButton')} compact />
         </div>
       </section>
 
-      {/* ── Wellness Goals (tight spacing so Featured fits in first screen) ─── */}
+      {/* ── Wellness Goals ────────────────────────────────────────────────────── */}
       <section style={{ padding: '14px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
         <SectionHeader compact label="Find your treatment" title="Browse by Wellness Goal" cta={{ label: 'All clinics', href: `/${lang}/clinics` }} />
         <WellnessGoalGrid goals={WELLNESS_GOALS} lang={lang} compact />
@@ -218,8 +208,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
         </div>
       </section>
 
-      {/* ── Featured Retreats ────────────────────────────────────────────────── */}
-      <section style={{ padding: '14px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+      {/* ── Featured Retreats ─────────────────────────────────────────────────── */}
+      <section style={{ padding: '28px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
         <SectionHeader compact label="Certified Authentic" title="Featured Retreats" cta={{ label: 'View all', href: `/${lang}/clinics` }} />
         {featuredRetreats.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
@@ -232,8 +222,196 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
         )}
       </section>
 
+      {/* ── Explore Kerala — immersive dark section ─────────────────────────── */}
+      {featuredExperiences.length > 0 && (
+        <section style={{ background: 'var(--forest)', marginTop: 36 }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px clamp(16px, 4vw, 40px) 48px' }}>
+
+            {/* Section header */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'var(--gold)', marginBottom: 4 }}>
+                  Beyond the clinic
+                </p>
+                <h2 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(22px, 2.5vw, 30px)', fontWeight: 400, color: '#fdfaf6', lineHeight: 1.1, margin: 0 }}>
+                  Explore Kerala
+                </h2>
+                <p style={{ fontSize: 12, color: 'rgba(253,250,246,0.45)', margin: '5px 0 0', lineHeight: 1.5 }}>
+                  Sightseeing · Adventure · Cultural · Nature · Wellness
+                </p>
+              </div>
+              <Link
+                href={`/${lang}/experiences`}
+                style={{ fontSize: 12, fontWeight: 500, color: 'var(--gold)', textDecoration: 'none', borderBottom: '1px solid var(--gold)', paddingBottom: 1, flexShrink: 0 }}
+              >
+                All experiences →
+              </Link>
+            </div>
+
+            {/* Category pills */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+              {EXP_CATEGORIES.map(cat => (
+                <Link
+                  key={cat.value}
+                  href={`/${lang}/experiences?category=${cat.value}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '5px 14px', borderRadius: 99, whiteSpace: 'nowrap',
+                    border: '1px solid rgba(253,250,246,0.15)',
+                    background: 'rgba(253,250,246,0.07)',
+                    fontSize: 11, fontWeight: 600, color: 'rgba(253,250,246,0.75)',
+                    textDecoration: 'none', flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 13 }}>{cat.icon}</span> {cat.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Two large featured cards */}
+            <div
+              className="exp-featured-grid"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 12 }}
+            >
+              {featuredExperiences.slice(0, 2).map((exp: PlatformExperienceOut) => (
+                <Link key={exp.id} href={`/${lang}/experiences/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      height: 260,
+                      borderRadius: 'var(--r-md)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    {exp.photos?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={exp.photos[0]}
+                        alt={exp.name_en}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s' }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.06)' }} />
+                    )}
+                    <div
+                      style={{
+                        position: 'absolute', inset: 0,
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.65) 100%)',
+                      }}
+                    />
+                    {/* Category badge */}
+                    <div style={{ position: 'absolute', top: 14, left: 14 }}>
+                      <span
+                        style={{
+                          fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
+                          background: 'rgba(255,255,255,0.18)', color: '#fff',
+                          padding: '3px 10px', borderRadius: 99, backdropFilter: 'blur(6px)',
+                        }}
+                      >
+                        {exp.category}
+                      </span>
+                    </div>
+                    {/* Bottom info */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px' }}>
+                      <div
+                        style={{
+                          fontFamily: 'var(--serif)', fontSize: 'clamp(15px, 1.4vw, 18px)',
+                          fontWeight: 400, color: '#fff', marginBottom: 6, lineHeight: 1.3,
+                          textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                        }}
+                      >
+                        {exp.name_en}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
+                          {exp.region_label ?? exp.district ?? ''}
+                          {exp.typical_duration_hours != null ? ` · ~${exp.typical_duration_hours}h` : ''}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 13, fontWeight: 700, color: 'var(--gold)',
+                            background: 'rgba(0,0,0,0.3)', padding: '2px 10px', borderRadius: 99, backdropFilter: 'blur(4px)',
+                          }}
+                        >
+                          {exp.is_free ? 'Free' : `₹${Math.round(exp.price_inr).toLocaleString('en-IN')}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Smaller card grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10 }}>
+              {featuredExperiences.slice(2, 10).map((exp: PlatformExperienceOut) => (
+                <Link key={exp.id} href={`/${lang}/experiences/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      height: 160,
+                      borderRadius: 'var(--r-sm)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    {exp.photos?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={exp.photos[0]}
+                        alt={exp.name_en}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.06)' }} />
+                    )}
+                    <div
+                      style={{
+                        position: 'absolute', inset: 0,
+                        background: 'linear-gradient(to bottom, transparent 25%, rgba(0,0,0,0.72) 100%)',
+                      }}
+                    />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px' }}>
+                      <div
+                        style={{
+                          fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
+                          color: 'rgba(255,255,255,0.55)', marginBottom: 4,
+                        }}
+                      >
+                        {exp.category}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 13, fontWeight: 600, color: '#fff',
+                          lineHeight: 1.3, marginBottom: 5,
+                          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}
+                      >
+                        {exp.name_en}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                          {exp.typical_duration_hours != null ? `~${exp.typical_duration_hours}h` : exp.district ?? ''}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)' }}>
+                          {exp.is_free ? 'Free' : `₹${Math.round(exp.price_inr).toLocaleString('en-IN')}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+          </div>
+        </section>
+      )}
+
       {/* ── Popular Retreats ─────────────────────────────────────────────────── */}
-      <section style={{ padding: '28px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+      <section style={{ padding: '36px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
         <SectionHeader compact label="Browse programmes" title="Popular Retreats" cta={{ label: 'All retreats', href: `/${lang}/clinics` }} />
         {popularRetreats.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
@@ -246,44 +424,8 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
         )}
       </section>
 
-      {/* ── Explore Kerala Experiences ───────────────────────────────────────── */}
-      {featuredExperiences.length > 0 && (
-        <section style={{ padding: '28px clamp(16px, 4vw, 40px) 0', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
-          <SectionHeader compact label="Sightseeing · Adventure · Culture · Nature" title="Explore Kerala" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
-            {featuredExperiences.map((exp: PlatformExperienceOut) => (
-              <Link key={exp.id} href={`/${lang}/experiences/${exp.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', background: '#fff', height: '100%' }}>
-                  {exp.photos?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={exp.photos[0]} alt={exp.name_en} style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
-                  ) : (
-                    <div style={{ height: 130, background: 'var(--cream)' }} />
-                  )}
-                  <div style={{ padding: '10px 12px 14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', background: 'var(--forest-lt)', color: 'var(--forest)', padding: '2px 7px', borderRadius: 99 }}>
-                        {exp.category}
-                      </span>
-                      {exp.typical_duration_hours != null && (
-                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>~{exp.typical_duration_hours}h</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--slate)', lineHeight: 1.3, marginBottom: 3 }}>{exp.name_en}</div>
-                    {exp.region_label && <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 5 }}>{exp.region_label}</div>}
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--forest)' }}>
-                      {exp.is_free ? 'Free' : `₹${Math.round(exp.price_inr).toLocaleString('en-IN')}`}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Popular Clinics (Tier 1 Verified — day clinics & outpatient) ─────── */}
-      <section style={{ padding: '28px clamp(16px, 4vw, 40px) 40px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+      {/* ── Popular Clinics (Tier 1 Verified) ────────────────────────────────── */}
+      <section style={{ padding: '36px clamp(16px, 4vw, 40px) 40px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>
         <SectionHeader compact label="Verified clinics" title="Popular Clinics" cta={{ label: 'Browse clinics', href: `/${lang}/clinics?tier=1` }} />
         {popularClinics.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
@@ -312,7 +454,6 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       <section className="home-section-full-pad" style={{ background: '#fff', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '48px' }}>
         <div className="home-two-col" style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px' }}>
 
-          {/* Conditions */}
           <div>
             <SectionHeader label="Search by condition" title="Conditions We Treat" cta={{ label: 'Search', href: `/${lang}/search` }} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -330,7 +471,6 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
             </div>
           </div>
 
-          {/* Districts */}
           <div>
             <SectionHeader label="Kerala, India" title="Browse by District" cta={{ label: 'View all', href: `/${lang}/clinics` }} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -355,7 +495,6 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       {/* ── How it works + CTA (side by side) ───────────────────────────────── */}
       <section className="home-section-full-pad home-two-col" style={{ padding: '48px', maxWidth: 1200, margin: '0 auto', width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'start' }}>
 
-        {/* How it works */}
         <div>
           <SectionHeader label="Simple process" title="How AyuRetreats Works" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -378,7 +517,6 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
           </div>
         </div>
 
-        {/* CTA cards stacked */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ background: 'var(--gold-lt)', border: '1px solid rgba(184,134,44,0.2)', borderRadius: 'var(--r-md)', padding: '28px 28px' }}>
             <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--bark)', marginBottom: '8px' }}>For patients</p>
@@ -434,14 +572,6 @@ function SectionHeader({
           {cta.label} →
         </Link>
       )}
-    </div>
-  )
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div style={{ padding: '40px 24px', textAlign: 'center', border: '1px dashed var(--border2)', borderRadius: 'var(--r-md)', color: 'var(--muted)', fontSize: '13px' }}>
-      {message}
     </div>
   )
 }
