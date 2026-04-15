@@ -153,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <DisplayCurrencyProvider initialCurrency="INR" locale="en" forceInr>
-    <div className={`flex min-h-screen ${isSuperAdmin ? "" : "bg-cream"}`}
+    <div className={`flex h-screen overflow-hidden ${isSuperAdmin ? "" : "bg-cream"}`}
       style={isSuperAdmin ? { background: "#f5f4ff" } : undefined}>
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -165,7 +165,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 text-white flex flex-col transform transition-transform duration-200 ${
+        className={`fixed lg:sticky lg:top-0 inset-y-0 left-0 z-40 w-64 h-screen text-white flex flex-col transform transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         } ${isSuperAdmin ? "" : "bg-forest"}`}
         style={sidebarBg ? { background: sidebarBg } : undefined}
@@ -255,7 +255,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar (mobile) */}
         <header className={`lg:hidden flex items-center justify-between px-4 py-3 border-b ${isSuperAdmin ? "border-indigo-200" : "border-cream2 bg-white"}`}
           style={isSuperAdmin ? { background: "#f0f0ff" } : undefined}>
