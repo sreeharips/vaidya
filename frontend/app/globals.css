@@ -120,6 +120,162 @@ body {
   opacity: 0.5;
 }
 
+/* ─── HERO SEARCH FORM — responsive segmented pill ──────── */
+
+/* Desktop: single horizontal pill */
+.hsf {
+  display: flex;
+  align-items: stretch;
+  background: var(--white);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow2), 0 0 0 1px var(--border);
+  overflow: hidden;
+  width: 100%;
+}
+
+.hsf-what {
+  flex: 1 1 170px;
+  min-width: 0;
+  padding: 5px 10px 5px 14px;
+  cursor: text;
+}
+
+/* On desktop, secondary group disappears — children act as direct flex items */
+.hsf-secondary {
+  display: contents;
+}
+
+.hsf-checkin,
+.hsf-checkout {
+  flex: 0 0 96px;
+  padding: 5px 10px;
+}
+
+.hsf-guests-btn {
+  flex: 0 0 80px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition);
+}
+.hsf-guests-btn:hover { background: var(--cream); }
+.hsf-guests-btn.active { background: var(--cream); }
+
+.hsf-div {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(107,79,58,0.13);
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
+/* Dividers inside the secondary group (between date fields) */
+.hsf-div-inner {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(107,79,58,0.13);
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
+.hsf-actions {
+  padding: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.hsf-submit {
+  background: var(--forest);
+  color: var(--white);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: calc(var(--r-xl) - 4px);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.01em;
+  transition: background var(--transition);
+}
+.hsf-submit:hover { background: var(--forest2); }
+
+/* ── Mobile: stacked card layout ── */
+@media (max-width: 599px) {
+  .hsf {
+    flex-direction: column;
+    border-radius: var(--r-xl);
+  }
+
+  .hsf-what {
+    flex: none;
+    width: 100%;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid rgba(107,79,58,0.13);
+    /* Remove the right-side clipping so input is fully reachable */
+    box-sizing: border-box;
+  }
+
+  /* Secondary becomes a real flex row */
+  .hsf-secondary {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid rgba(107,79,58,0.13);
+    overflow: hidden;
+  }
+
+  .hsf-checkin {
+    flex: 1;
+    padding: 10px 12px;
+  }
+
+  .hsf-checkout {
+    flex: 1;
+    padding: 10px 12px;
+    border-left: 1px solid rgba(107,79,58,0.13);
+  }
+
+  .hsf-guests-btn {
+    flex: 0 0 auto;
+    padding: 10px 12px;
+    border-left: 1px solid rgba(107,79,58,0.13) !important;
+  }
+
+  /* Hide the major between-section dividers — borders on children replace them */
+  .hsf-div { display: none; }
+
+  /* Hide the inner dividers too — border-left on siblings handles it */
+  .hsf-div-inner { display: none; }
+
+  .hsf-actions {
+    padding: 8px;
+  }
+
+  .hsf-submit {
+    width: 100%;
+    justify-content: center;
+    font-size: 13px;
+    padding: 12px 16px;
+    border-radius: calc(var(--r-xl) - 6px);
+  }
+
+  /* Larger touch targets on mobile */
+  .hsf-what input {
+    font-size: 15px !important;
+  }
+
+  .hsf-checkin input[type="date"],
+  .hsf-checkout input[type="date"] {
+    font-size: 13px !important;
+  }
+}
+
 /* ─── QUICK-TAG HOVER ────────────────────────────────────── */
 .search-tag-pill {
   font-size: 12px;

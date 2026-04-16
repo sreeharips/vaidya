@@ -91,7 +91,7 @@ interface HeroSearchProps {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export default function HeroSearch({ lang, placeholder, buttonLabel, compact }: HeroSearchProps) {
+export default function HeroSearch({ lang, placeholder, buttonLabel }: HeroSearchProps) {
   const router = useRouter()
 
   // ── Form state ────────────────────────────────────────────────────────────
@@ -227,41 +227,28 @@ export default function HeroSearch({ lang, placeholder, buttonLabel, compact }: 
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0]
-  const divider = (
-    <div aria-hidden style={{
-      width: 1, alignSelf: 'stretch',
-      background: 'rgba(107,79,58,0.13)',
-      margin: '6px 0', flexShrink: 0,
-    }} />
+
+  const fieldLabel = (text: string) => (
+    <p style={{
+      fontSize: 8, fontWeight: 700, letterSpacing: '0.12em',
+      textTransform: 'uppercase', color: 'var(--forest)',
+      margin: '0 0 2px', lineHeight: 1,
+    }}>{text}</p>
   )
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
 
-      {/* ── Main pill ── */}
-      <form
-        onSubmit={onSubmit}
-        style={{
-          width: '100%',
-          background: 'var(--white)',
-          borderRadius: 'var(--r-xl)',
-          boxShadow: 'var(--shadow2), 0 0 0 1px var(--border)',
-          display: 'flex',
-          alignItems: 'stretch',
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
+      {/* ── Main pill — uses .hsf CSS class for responsive layout ── */}
+      <form onSubmit={onSubmit} className="hsf">
 
         {/* — What (combobox) — */}
         <div
-          style={{ flex: '1 1 180px', minWidth: 0, padding: '5px 10px 5px 14px', cursor: 'text' }}
+          className="hsf-what"
           onClick={() => { setShowSuggestions(true); inputRef.current?.focus() }}
         >
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--forest)', margin: '0 0 2px', lineHeight: 1 }}>
-            What
-          </p>
+          {fieldLabel('What')}
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: 'var(--muted)', flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -292,98 +279,74 @@ export default function HeroSearch({ lang, placeholder, buttonLabel, compact }: 
           </div>
         </div>
 
-        {divider}
+        {/* Major divider — hidden on mobile via CSS */}
+        <div aria-hidden className="hsf-div" />
 
-        {/* — Check-in — */}
-        <div style={{ flex: '0 0 100px', padding: '5px 10px' }}>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--forest)', margin: '0 0 2px', lineHeight: 1 }}>
-            Check-in
-          </p>
-          <input
-            type="date"
-            value={checkIn}
-            onChange={e => { setCheckIn(e.target.value); if (checkOut && e.target.value > checkOut) setCheckOut('') }}
-            min={today}
-            style={{
-              border: 'none', outline: 'none', background: 'transparent',
-              fontFamily: 'var(--sans)', fontSize: 11, lineHeight: 1.35,
-              color: checkIn ? 'var(--slate)' : 'var(--muted)',
-              width: '100%', cursor: 'pointer', padding: 0,
-            }}
-          />
-        </div>
+        {/* — Secondary group: dates + guests (display:contents on desktop, flex row on mobile) — */}
+        <div className="hsf-secondary">
 
-        {divider}
-
-        {/* — Check-out — */}
-        <div style={{ flex: '0 0 100px', padding: '5px 10px' }}>
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--forest)', margin: '0 0 2px', lineHeight: 1 }}>
-            Check-out
-          </p>
-          <input
-            type="date"
-            value={checkOut}
-            onChange={e => setCheckOut(e.target.value)}
-            min={checkIn || today}
-            style={{
-              border: 'none', outline: 'none', background: 'transparent',
-              fontFamily: 'var(--sans)', fontSize: 11, lineHeight: 1.35,
-              color: checkOut ? 'var(--slate)' : 'var(--muted)',
-              width: '100%', cursor: 'pointer', padding: 0,
-            }}
-          />
-        </div>
-
-        {divider}
-
-        {/* — Guests — */}
-        <button
-          type="button"
-          onClick={() => { setShowGuests(g => !g); setShowSuggestions(false) }}
-          style={{
-            flex: '0 0 80px', padding: '5px 10px', border: 'none',
-            background: showGuests ? 'var(--cream)' : 'transparent',
-            cursor: 'pointer', textAlign: 'left',
-            transition: 'background var(--transition)',
-          }}
-        >
-          <p style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--forest)', margin: '0 0 2px', lineHeight: 1 }}>
-            Guests
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: 'var(--muted)', flexShrink: 0 }}>
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-            </svg>
-            <span style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--slate)', lineHeight: 1.35 }}>
-              {guests} {guests === 1 ? 'guest' : 'guests'}
-            </span>
+          {/* Check-in */}
+          <div className="hsf-checkin">
+            {fieldLabel('Check-in')}
+            <input
+              type="date"
+              value={checkIn}
+              onChange={e => { setCheckIn(e.target.value); if (checkOut && e.target.value > checkOut) setCheckOut('') }}
+              min={today}
+              style={{
+                border: 'none', outline: 'none', background: 'transparent',
+                fontFamily: 'var(--sans)', fontSize: 11, lineHeight: 1.35,
+                color: checkIn ? 'var(--slate)' : 'var(--muted)',
+                width: '100%', cursor: 'pointer', padding: 0,
+              }}
+            />
           </div>
-        </button>
+
+          <div aria-hidden className="hsf-div-inner" />
+
+          {/* Check-out */}
+          <div className="hsf-checkout">
+            {fieldLabel('Check-out')}
+            <input
+              type="date"
+              value={checkOut}
+              onChange={e => setCheckOut(e.target.value)}
+              min={checkIn || today}
+              style={{
+                border: 'none', outline: 'none', background: 'transparent',
+                fontFamily: 'var(--sans)', fontSize: 11, lineHeight: 1.35,
+                color: checkOut ? 'var(--slate)' : 'var(--muted)',
+                width: '100%', cursor: 'pointer', padding: 0,
+              }}
+            />
+          </div>
+
+          <div aria-hidden className="hsf-div-inner" />
+
+          {/* Guests */}
+          <button
+            type="button"
+            className={`hsf-guests-btn${showGuests ? ' active' : ''}`}
+            onClick={() => { setShowGuests(g => !g); setShowSuggestions(false) }}
+          >
+            {fieldLabel('Guests')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ color: 'var(--muted)', flexShrink: 0 }}>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+              </svg>
+              <span style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--slate)', lineHeight: 1.35 }}>
+                {guests} {guests === 1 ? 'guest' : 'guests'}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* Major divider — hidden on mobile via CSS */}
+        <div aria-hidden className="hsf-div" />
 
         {/* — Search button — */}
-        <div style={{ padding: '3px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
-          <button
-            type="submit"
-            style={{
-              background: 'var(--forest)',
-              color: 'var(--white)',
-              fontFamily: 'var(--sans)',
-              fontSize: compact ? 11 : 12,
-              fontWeight: 600,
-              padding: compact ? '8px 14px' : '10px 18px',
-              borderRadius: 'calc(var(--r-xl) - 4px)',
-              border: 'none',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              letterSpacing: '0.01em',
-              transition: 'background var(--transition), transform var(--transition)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--forest2)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--forest)')}
-          >
+        <div className="hsf-actions">
+          <button type="submit" className="hsf-submit">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>

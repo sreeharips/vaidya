@@ -146,12 +146,16 @@ export default function SearchPage() {
     }
     setFilters(init)
     setRefineQuery(init.q)
+    // Fetch immediately with the correct initial filters to avoid a race
+    // condition where the filter-change effect fires first with DEFAULT_FILTERS
+    fetchResults(init, 0, false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Fetch data when filters change ──────────────────────────────────────────
+  // ── Fetch data when filters change (skip mount — init effect handles that) ──
+  const isFirstFilterEffect = useRef(true)
   useEffect(() => {
-    if (!initialized.current) return
+    if (isFirstFilterEffect.current) { isFirstFilterEffect.current = false; return }
     fetchResults(filters, 0, false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
