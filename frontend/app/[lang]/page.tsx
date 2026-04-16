@@ -145,7 +145,7 @@ export default async function HomePage({ params: { lang } }: { params: { lang: s
       >
         <div
           className="home-hero-inner"
-          style={{ maxWidth: 620, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}
+          style={{ maxWidth: 720, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}
         >
           <header style={{ textAlign: isRtl ? 'right' : 'left' }}>
             <h1

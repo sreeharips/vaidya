@@ -119,28 +119,49 @@ async def autocomplete_suggestions(
     db: AsyncSession = Depends(get_db),
 ):
     q = q.strip()
-    prefix = f"{q}%"
+    pattern = f"%{q}%"
 
+    # Clinic name / district / description match
     clinic_rows = (await db.execute(
         select(ClinicFeatureStore).where(
             ClinicFeatureStore.is_active.is_(True),
-            ClinicFeatureStore.name.ilike(prefix)
-        ).limit(4)
+            ClinicFeatureStore.name.ilike(pattern) |
+            ClinicFeatureStore.district.ilike(pattern) |
+            ClinicFeatureStore.description_en.ilike(pattern),
+        )
+        .order_by(ClinicFeatureStore.tier.desc(), ClinicFeatureStore.rating.desc().nulls_last())
+        .limit(4)
     )).scalars().all()
 
+    # Retreat name / description / wellness_categories match
     pkg_rows = (await db.execute(
-        select(Retreat).where(
+        select(Retreat)
+        .join(ClinicFeatureStore, Retreat.clinic_id == ClinicFeatureStore.id)
+        .where(
             Retreat.is_active.is_(True),
-            Retreat.name.ilike(prefix)
-        ).limit(4)
+            ClinicFeatureStore.is_active.is_(True),
+            Retreat.name.ilike(pattern) |
+            Retreat.description_en.ilike(pattern),
+        )
+        .order_by(Retreat.price_usd.asc().nulls_last())
+        .limit(4)
     )).scalars().all()
 
-    results = [
-        SuggestionItem(id=str(c.id), type="clinic", name=c.name, subtitle=c.district)
+    results: list[SuggestionItem] = [
+        SuggestionItem(
+            id=str(c.id),
+            type="clinic",
+            name=c.name,
+            subtitle=c.district or "Kerala",
+        )
         for c in clinic_rows
     ] + [
-        SuggestionItem(id=str(p.id), type="package", name=p.name,
-                       subtitle=f"${float(p.price_usd):.0f}")
+        SuggestionItem(
+            id=str(p.id),
+            type="package",
+            name=p.name,
+            subtitle=f"from ${float(p.price_usd):.0f}" if p.price_usd else None,
+        )
         for p in pkg_rows
     ]
 

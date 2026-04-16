@@ -23,6 +23,7 @@ export interface SearchFilters {
   checkIn: string   // YYYY-MM-DD
   checkOut: string  // YYYY-MM-DD
   atmosphere: string
+  guests: number
 }
 
 const DEFAULT_FILTERS: SearchFilters = {
@@ -38,6 +39,7 @@ const DEFAULT_FILTERS: SearchFilters = {
   checkIn: '',
   checkOut: '',
   atmosphere: '',
+  guests: 1,
 }
 
 // ── API config ────────────────────────────────────────────────────────────────
@@ -140,6 +142,7 @@ export default function SearchPage() {
       checkIn:      sp.get('check_in') ?? '',
       checkOut:     sp.get('check_out') ?? '',
       atmosphere:   sp.get('atmosphere') ?? '',
+      guests:       sp.get('guests') ? Number(sp.get('guests')) : 1,
     }
     setFilters(init)
     setRefineQuery(init.q)
