@@ -136,8 +136,11 @@ body {
 .hsf-what {
   flex: 1 1 170px;
   min-width: 0;
-  padding: 5px 10px 5px 14px;
+  padding: 6px 10px 6px 14px;
   cursor: text;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* On desktop, secondary group disappears — children act as direct flex items */
@@ -148,20 +151,36 @@ body {
 .hsf-checkin,
 .hsf-checkout {
   flex: 0 0 96px;
-  padding: 5px 10px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .hsf-guests-btn {
   flex: 0 0 80px;
-  padding: 5px 10px;
+  padding: 6px 10px;
   border: none;
   background: transparent;
   cursor: pointer;
   text-align: left;
   transition: background var(--transition);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .hsf-guests-btn:hover { background: var(--cream); }
 .hsf-guests-btn.active { background: var(--cream); }
+
+/* Normalize date inputs across browsers so they don't add unexpected height */
+.hsf-checkin input[type="date"],
+.hsf-checkout input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1.35;
+}
 
 .hsf-div {
   width: 1px;
