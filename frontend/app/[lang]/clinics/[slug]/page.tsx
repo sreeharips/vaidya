@@ -56,6 +56,8 @@ interface Review {
   review_text: string | null
   reviewer_location: string | null
   treatment_slug: string | null
+  retreat_id: string | null
+  retreat_name: string | null
   verified: boolean
   created_at: string
 }
@@ -726,30 +728,57 @@ export default async function ClinicPage({
         {/* ── Reviews ──────────────────────────────────────────────────────── */}
         {clinic.reviews.length > 0 && (
           <section style={{ marginBottom: 56 }}>
-            <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', marginBottom: 20 }}>
-              Guest Reviews
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+              <h2 style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 400, color: 'var(--forest)', margin: 0 }}>
+                Guest Reviews
+              </h2>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                {clinic.reviews.length} review{clinic.reviews.length !== 1 ? 's' : ''} across all retreats
+              </span>
+            </div>
+            {/* Rating summary bar */}
+            {clinic.rating && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, background: 'var(--cream)', padding: '12px 16px', borderRadius: 'var(--r-md)' }}>
+                <span style={{ fontFamily: 'var(--serif)', fontSize: 32, fontWeight: 400, color: 'var(--forest)', lineHeight: 1 }}>{clinic.rating.toFixed(1)}</span>
+                <div>
+                  <div style={{ display: 'flex', gap: 2, marginBottom: 3 }}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <span key={i} style={{ color: i < Math.round(clinic.rating!) ? 'var(--gold)' : 'var(--border2)', fontSize: 16 }}>★</span>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{clinic.review_count} verified reviews</div>
+                </div>
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {clinic.reviews.map((r) => (
                 <div key={r.id} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '18px 20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <span key={i} style={{ color: i < r.rating ? 'var(--gold)' : 'var(--border2)', fontSize: 14 }}>★</span>
-                      ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 12 }}>
+                    <div>
+                      <div style={{ display: 'flex', gap: 2, marginBottom: 4 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} style={{ color: i < r.rating ? 'var(--gold)' : 'var(--border2)', fontSize: 14 }}>★</span>
+                        ))}
+                      </div>
+                      {/* Retreat name badge */}
+                      {r.retreat_name && (
+                        <span style={{
+                          display: 'inline-block', fontSize: 10, fontWeight: 600,
+                          background: 'var(--forest-lt)', color: 'var(--forest)',
+                          padding: '2px 8px', borderRadius: 99,
+                          textTransform: 'uppercase', letterSpacing: '0.06em',
+                        }}>
+                          {r.retreat_name}
+                        </span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                      {r.reviewer_location && `${r.reviewer_location} · `}
-                      {new Date(r.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                    <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', flexShrink: 0 }}>
+                      {r.reviewer_location && <div>{r.reviewer_location}</div>}
+                      <div>{new Date(r.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</div>
                     </div>
                   </div>
                   {r.review_text && (
                     <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.65, margin: 0 }}>{r.review_text}</p>
-                  )}
-                  {r.treatment_slug && (
-                    <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
-                      Package: {capitalize(r.treatment_slug)}
-                    </div>
                   )}
                 </div>
               ))}

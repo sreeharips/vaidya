@@ -451,6 +451,7 @@ class Review(Base):
     patient_pseudo_id: Mapped[str] = mapped_column(String(64), index=True)
     clinic_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clinic_feature_store.id"), index=True)
     booking_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("bookings.id"), unique=True, index=True)
+    retreat_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("retreats.id", ondelete="SET NULL"), nullable=True, index=True)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     review_text: Mapped[str | None] = mapped_column(Text)
     treatment_slug: Mapped[str | None] = mapped_column(String(255))
@@ -460,6 +461,7 @@ class Review(Base):
 
     clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="reviews")
     booking: Mapped["Booking"] = relationship(back_populates="review")
+    retreat: Mapped["Retreat | None"] = relationship(foreign_keys=[retreat_id])
 
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating"),

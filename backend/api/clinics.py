@@ -20,6 +20,7 @@ from db.cache import cache_get, cache_set
 from db.database import get_db
 from db.models import ClinicFeatureStore, ClinicTeam, Retreat, RetreatAvailability, Review
 
+
 router = APIRouter(prefix="/api/clinics", tags=["clinics"])
 
 _CACHE_TTL = 60
@@ -57,6 +58,8 @@ class ReviewOut(BaseModel):
     review_text: str | None
     reviewer_location: str | None
     treatment_slug: str | None
+    retreat_id: str | None
+    retreat_name: str | None
     verified: bool
     created_at: datetime
 
@@ -325,19 +328,24 @@ async def get_clinic(
         for r in retreat_rows
     ]
 
-    # Reviews
+    # Reviews — all verified, joined with retreat for name
     review_rows = (await db.execute(
-        select(Review).where(Review.clinic_id == clinic.id, Review.verified.is_(True))
-        .order_by(Review.created_at.desc()).limit(5)
-    )).scalars().all()
+        select(Review, Retreat)
+        .outerjoin(Retreat, Review.retreat_id == Retreat.id)
+        .where(Review.clinic_id == clinic.id, Review.verified.is_(True))
+        .order_by(Review.created_at.desc())
+        .limit(50)
+    )).all()
 
     reviews = [
         ReviewOut(
             id=str(r.id), rating=r.rating, review_text=r.review_text,
             reviewer_location=r.reviewer_location, treatment_slug=r.treatment_slug,
+            retreat_id=str(r.retreat_id) if r.retreat_id else None,
+            retreat_name=(rt.name_display_en or rt.name) if rt else None,
             verified=r.verified, created_at=r.created_at,
         )
-        for r in review_rows
+        for r, rt in review_rows
     ]
 
     description = clinic.description_ml if lang == "ml" else clinic.description_en

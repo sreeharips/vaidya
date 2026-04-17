@@ -694,6 +694,8 @@ export interface ClinicReview {
   review_text: string | null;
   reviewer_location: string | null;
   treatment_slug: string | null;
+  retreat_id: string | null;
+  retreat_name: string | null;
   verified: boolean;
   created_at: string;
 }
@@ -702,6 +704,24 @@ export interface ClinicReviews {
   total: number;
   avg_rating: number | null;
   reviews: ClinicReview[];
+}
+
+export async function fetchClinicReviews(slug: string): Promise<ClinicReviews> {
+  const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  try {
+    const res = await fetch(`${API_BASE}/api/clinics/${slug}/reviews`, { next: { revalidate: 120 } })
+    if (!res.ok) return { total: 0, avg_rating: null, reviews: [] }
+    return await res.json()
+  } catch { return { total: 0, avg_rating: null, reviews: [] } }
+}
+
+export async function fetchRetreatReviews(retreatId: string): Promise<ClinicReviews> {
+  const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  try {
+    const res = await fetch(`${API_BASE}/api/retreats/${retreatId}/reviews`, { next: { revalidate: 120 } })
+    if (!res.ok) return { total: 0, avg_rating: null, reviews: [] }
+    return await res.json()
+  } catch { return { total: 0, avg_rating: null, reviews: [] } }
 }
 
 export interface ClinicImage {

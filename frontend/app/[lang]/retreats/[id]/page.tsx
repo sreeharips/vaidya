@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { formatInrForVisitor } from '@/lib/currency/server'
-import { fetchRetreatExperiences, type ClinicAddOnOut, type PlatformExperienceOut } from '@/lib/admin-api'
+import { fetchRetreatExperiences, fetchRetreatReviews, type ClinicAddOnOut, type PlatformExperienceOut, type ClinicReview } from '@/lib/admin-api'
+import RetreatReviewForm from '@/components/reviews/RetreatReviewForm'
 import { setRequestLocale } from 'next-intl/server'
 
 export const revalidate = 3600
@@ -188,9 +189,10 @@ export default async function RetreatPage({
   params: { lang: string; id: string }
 }) {
   setRequestLocale(params.lang)
-  const [retreat, experiences] = await Promise.all([
+  const [retreat, experiences, reviewData] = await Promise.all([
     fetchRetreat(params.id),
     fetchRetreatExperiences(params.id),
+    fetchRetreatReviews(params.id),
   ])
   if (!retreat) notFound()
 
@@ -877,6 +879,57 @@ export default async function RetreatPage({
               </div>
             </section>
           )}
+          {/* ── Reviews for this retreat ─────────────────────────────────── */}
+          <section style={{ marginBottom: 48 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <h2 style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 400, color: 'var(--forest)', margin: '0 0 4px' }}>
+                  Guest Reviews
+                </h2>
+                {reviewData.total > 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} style={{ color: i < Math.round(reviewData.avg_rating ?? 0) ? 'var(--gold)' : 'var(--border2)', fontSize: 14 }}>★</span>
+                      ))}
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--forest)' }}>{reviewData.avg_rating?.toFixed(1)}</span>
+                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>({reviewData.total} review{reviewData.total !== 1 ? 's' : ''})</span>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0 }}>No reviews yet — be the first.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Review cards */}
+            {reviewData.reviews.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+                {reviewData.reviews.map((r: ClinicReview) => (
+                  <div key={r.id} style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '18px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 12 }}>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} style={{ color: i < r.rating ? 'var(--gold)' : 'var(--border2)', fontSize: 14 }}>★</span>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'right', flexShrink: 0 }}>
+                        {r.reviewer_location && <div>{r.reviewer_location}</div>}
+                        <div>{new Date(r.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</div>
+                      </div>
+                    </div>
+                    {r.review_text && (
+                      <p style={{ fontSize: 14, color: 'var(--slate)', lineHeight: 1.65, margin: 0 }}>{r.review_text}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Submit form */}
+            <RetreatReviewForm retreatName={retreat.name_display_en ?? retreat.name} />
+          </section>
+
         </div>
 
         {/* ── Right column — booking card ──────────────────────────────────── */}
