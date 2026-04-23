@@ -1,0 +1,13 @@
+# Beta — no crawling until public launch
+# When going live: replace with the SEO-friendly version below
+User-agent: *
+Disallow: /
+
+# --- PRODUCTION VERSION (uncomment when launching) ---
+# User-agent: *
+# Allow: /
+# Disallow: /admin/
+# Disallow: /api/
+# Disallow: /beta
+#
+# Sitemap: https://ayuretreats.com/sitemap.xml
