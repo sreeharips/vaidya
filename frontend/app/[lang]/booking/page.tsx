@@ -32,6 +32,18 @@ interface ClinicData {
   district?: string | null
 }
 
+interface RoomData {
+  id: string
+  name: string
+  category: string
+  description: string | null
+  price_per_night_inr: number
+  amenities: string[]
+  photos: string[]
+  max_occupancy: number
+  display_order: number
+}
+
 interface BookingResult {
   booking_id: string
   status: string
@@ -45,9 +57,25 @@ interface BookingResult {
   end_date: string
   guest_count: number
   add_ons: Array<{ name_snapshot: string; price_inr_snapshot: number; quantity: number; line_total_inr: number }>
+  room_name_snapshot: string | null
+  room_price_inr_snapshot: number | null
 }
 
-type Step = 'details' | 'addons' | 'confirm'
+type Step = 'details' | 'room' | 'addons' | 'confirm'
+
+const ROOM_CATEGORY_LABELS: Record<string, string> = {
+  non_ac: 'Non-AC Standard',
+  ac_standard: 'AC Standard',
+  deluxe: 'Deluxe AC',
+  suite: 'Suite',
+}
+
+const ROOM_CATEGORY_COLORS: Record<string, string> = {
+  non_ac: '#6b7280',
+  ac_standard: '#0ea5e9',
+  deluxe: '#8b5cf6',
+  suite: '#b8862c',
+}
 
 // ── Step progress indicator ────────────────────────────────────────────────
 
@@ -169,6 +197,8 @@ function BookingForm() {
   const [loadError, setLoadError] = useState('')
   const [availableAddOns, setAvailableAddOns] = useState<ClinicAddOnOut[]>([])
   const [selectedAddOns, setSelectedAddOns] = useState<Map<string, number>>(new Map())
+  const [availableRooms, setAvailableRooms] = useState<RoomData[]>([])
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('details')
 
   const [guestName, setGuestName] = useState(user?.full_name ?? '')
@@ -194,6 +224,14 @@ function BookingForm() {
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(setClinic)
       .catch(() => setLoadError('Could not load clinic details. Please try again.'))
+  }, [clinicSlug])
+
+  useEffect(() => {
+    if (!clinicSlug) return
+    fetch(`${API_BASE}/api/clinics/${clinicSlug}/rooms`)
+      .then(r => r.ok ? r.json() : [])
+      .then((data: RoomData[]) => setAvailableRooms(data))
+      .catch(() => {})
   }, [clinicSlug])
 
   useEffect(() => {
@@ -244,11 +282,13 @@ function BookingForm() {
   const pricePerNightInr = pkg && pkgInr > 0 && pkg.duration_min_days
     ? Math.round(pkgInr / pkg.duration_min_days) : 0
   const baseTotal = Math.round(pricePerNightInr * duration * guestCount)
+  const selectedRoom = availableRooms.find(r => r.id === selectedRoomId) ?? null
+  const roomTotalInr = selectedRoom ? Math.round(selectedRoom.price_per_night_inr * duration) : 0
   const addOnsTotal = Array.from(selectedAddOns.entries()).reduce((sum, [id, qty]) => {
     const addon = availableAddOns.find(a => a.id === id)
     return sum + (addon ? Math.round(addon.price_inr * qty) : 0)
   }, 0)
-  const estimatedTotalInr = baseTotal + addOnsTotal
+  const estimatedTotalInr = baseTotal + roomTotalInr + addOnsTotal
 
   const minDuration = pkg?.duration_min_days ?? 7
   const maxDuration = pkg?.duration_max_days ?? 28
@@ -256,14 +296,19 @@ function BookingForm() {
   const today = new Date().toISOString().split('T')[0]
   const canContinue = email.includes('@') && guestName.trim() !== '' && startDate !== ''
 
-  const steps: { id: Step; label: string }[] = availableAddOns.length > 0
-    ? [{ id: 'details', label: 'Your details' }, { id: 'addons', label: 'Enhance stay' }, { id: 'confirm', label: 'Confirm' }]
-    : [{ id: 'details', label: 'Your details' }, { id: 'confirm', label: 'Confirm' }]
+  const steps: { id: Step; label: string }[] = [
+    { id: 'details', label: 'Your details' },
+    ...(availableRooms.length > 0 ? [{ id: 'room' as Step, label: 'Room' }] : []),
+    ...(availableAddOns.length > 0 ? [{ id: 'addons' as Step, label: 'Enhance stay' }] : []),
+    { id: 'confirm', label: 'Confirm' },
+  ]
 
   function handleDetailsNext(e: React.FormEvent) {
     e.preventDefault()
     if (!canContinue) return
-    goToStep(availableAddOns.length > 0 ? 'addons' : 'confirm')
+    if (availableRooms.length > 0) goToStep('room')
+    else if (availableAddOns.length > 0) goToStep('addons')
+    else goToStep('confirm')
   }
 
   async function handleBookingSubmit() {
@@ -291,6 +336,7 @@ function BookingForm() {
           guest_count: guestCount,
           lang,
           add_ons: addOnsPayload,
+          room_id: selectedRoomId || undefined,
         }),
       })
       const data = await res.json()
@@ -333,6 +379,7 @@ function BookingForm() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 24 }}>
                 {[
                   ['Retreat', result.retreat_name],
+                  ...(result.room_name_snapshot ? [['Room', `${result.room_name_snapshot} · ${formatFromInr(Math.round(result.room_price_inr_snapshot! * result.nights))}`]] : []),
                   ['Check-in', new Date(result.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })],
                   ['Check-out', new Date(result.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })],
                   ['Duration', `${result.nights} nights`],
@@ -557,7 +604,178 @@ function BookingForm() {
             </form>
           )}
 
-          {/* ── STEP 2: Add-ons ─────────────────────────────────────────── */}
+          {/* ── STEP 2: Room selection ──────────────────────────────────── */}
+          {step === 'room' && (
+            <div>
+              <div style={{ marginBottom: 20 }}>
+                <h2 style={{ fontFamily: 'var(--serif)', fontSize: '1.25rem', fontWeight: 400, color: 'var(--forest)', margin: '0 0 4px' }}>
+                  Choose Your Room
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+                  Room cost is added to the retreat package price.
+                  {duration > 0 && ` ${duration} nights total.`}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                {availableRooms.map(room => {
+                  const selected = selectedRoomId === room.id
+                  const catColor = ROOM_CATEGORY_COLORS[room.category] ?? '#6b7280'
+                  const catLabel = ROOM_CATEGORY_LABELS[room.category] ?? room.category
+                  const roomTotal = Math.round(room.price_per_night_inr * duration)
+                  return (
+                    <button
+                      key={room.id}
+                      type="button"
+                      onClick={() => setSelectedRoomId(selected ? null : room.id)}
+                      style={{
+                        all: 'unset',
+                        cursor: 'pointer',
+                        display: 'block',
+                        border: `2px solid ${selected ? 'var(--forest)' : 'var(--border)'}`,
+                        borderRadius: 'var(--r-md)',
+                        background: selected ? 'rgba(30,61,47,0.03)' : '#fff',
+                        transition: 'border-color 0.2s, background 0.2s',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Photo */}
+                      {room.photos?.[0] ? (
+                        <img
+                          src={room.photos[0]}
+                          alt={room.name}
+                          style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '100%', height: 80,
+                          background: `linear-gradient(135deg, ${catColor}18, ${catColor}08)`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 28,
+                        }}>🛏</div>
+                      )}
+                      <div style={{ padding: '12px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--slate)', marginBottom: 4 }}>{room.name}</div>
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: 99,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              background: catColor + '22',
+                              color: catColor,
+                              border: `1px solid ${catColor}44`,
+                            }}>
+                              {catLabel}
+                            </span>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--forest)' }}>
+                              {formatFromInr(Math.round(room.price_per_night_inr))}
+                            </div>
+                            <div style={{ fontSize: 10, color: 'var(--muted)' }}>per night</div>
+                            {duration > 0 && (
+                              <div style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 600, marginTop: 2 }}>
+                                {formatFromInr(roomTotal)} total
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {room.description && (
+                          <p style={{ fontSize: 12, color: 'var(--muted)', margin: '6px 0', lineHeight: 1.5 }}>
+                            {room.description.slice(0, 100)}{room.description.length > 100 ? '…' : ''}
+                          </p>
+                        )}
+                        {room.amenities?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                            {room.amenities.slice(0, 6).map(a => (
+                              <span key={a} style={{
+                                fontSize: 10, padding: '2px 7px', borderRadius: 99,
+                                background: 'var(--cream)', color: 'var(--muted)',
+                                border: '1px solid var(--border)',
+                              }}>
+                                {a}
+                              </span>
+                            ))}
+                            {room.amenities.length > 6 && (
+                              <span style={{ fontSize: 10, color: 'var(--muted)', padding: '2px 4px' }}>
+                                +{room.amenities.length - 6} more
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {/* Selection indicator */}
+                        <div style={{
+                          marginTop: 10,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontSize: 12, fontWeight: 600,
+                          color: selected ? 'var(--forest)' : 'var(--muted)',
+                        }}>
+                          <div style={{
+                            width: 16, height: 16, borderRadius: '50%',
+                            border: `2px solid ${selected ? 'var(--forest)' : 'var(--border)'}`,
+                            background: selected ? 'var(--forest)' : '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            {selected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
+                          </div>
+                          {selected ? 'Selected' : 'Select this room'}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Price summary if room selected */}
+              {selectedRoom && duration > 0 && (
+                <div style={{
+                  background: 'var(--forest-lt)', border: '1px solid rgba(30,61,47,0.12)',
+                  borderRadius: 'var(--r-md)', padding: '10px 16px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  fontSize: 13, marginBottom: 20,
+                }}>
+                  <span style={{ color: 'var(--muted)' }}>Room ({duration} nights)</span>
+                  <span style={{ fontWeight: 700, color: 'var(--forest)' }}>{formatFromInr(roomTotalInr)}</span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => goToStep('details')}
+                  style={{
+                    flex: 1, padding: '12px 0',
+                    border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',
+                    background: '#fff', fontSize: 13, cursor: 'pointer', color: 'var(--slate)', fontWeight: 500,
+                  }}
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToStep(availableAddOns.length > 0 ? 'addons' : 'confirm')}
+                  style={{
+                    flex: 2, padding: '12px 0',
+                    background: 'var(--forest)', color: '#fff',
+                    border: 'none', borderRadius: 'var(--r-xl)',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}
+                >
+                  {selectedRoomId ? 'Continue' : 'Skip — no room'}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 3: Add-ons ─────────────────────────────────────────── */}
           {step === 'addons' && (
             <div>
               <div style={{ marginBottom: 20 }}>
@@ -656,7 +874,7 @@ function BookingForm() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   type="button"
-                  onClick={() => goToStep('details')}
+                  onClick={() => goToStep(availableRooms.length > 0 ? 'room' : 'details')}
                   style={{
                     flex: 1, padding: '12px 0',
                     border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',
@@ -685,7 +903,7 @@ function BookingForm() {
             </div>
           )}
 
-          {/* ── STEP 3: Confirm ─────────────────────────────────────────── */}
+          {/* ── STEP 4: Confirm ─────────────────────────────────────────── */}
           {step === 'confirm' && (
             <div>
               <div style={{ marginBottom: 20 }}>
@@ -702,6 +920,7 @@ function BookingForm() {
                 {[
                   { label: 'Retreat', value: pkg?.name ?? '—' },
                   { label: 'Clinic', value: clinic.name },
+                  ...(selectedRoom ? [{ label: 'Room', value: selectedRoom.name }] : []),
                   { label: 'Guest name', value: guestName },
                   { label: 'Email', value: email },
                   { label: 'Check-in', value: startDate ? new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
@@ -714,6 +933,14 @@ function BookingForm() {
                     <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--slate)', textAlign: 'right', maxWidth: '60%' }}>{row.value}</span>
                   </div>
                 ))}
+
+                {/* Room */}
+                {selectedRoom && roomTotalInr > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>Room ({duration} nights)</span>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--forest)' }}>{formatFromInr(roomTotalInr)}</span>
+                  </div>
+                )}
 
                 {/* Add-ons */}
                 {Array.from(selectedAddOns.entries()).filter(([, q]) => q > 0).map(([id, qty]) => {
@@ -745,7 +972,11 @@ function BookingForm() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   type="button"
-                  onClick={() => goToStep(availableAddOns.length > 0 ? 'addons' : 'details')}
+                  onClick={() => goToStep(
+                    availableAddOns.length > 0 ? 'addons'
+                    : availableRooms.length > 0 ? 'room'
+                    : 'details'
+                  )}
                   style={{
                     flex: 1, padding: '12px 0',
                     border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',

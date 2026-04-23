@@ -113,6 +113,7 @@ class ClinicFeatureStore(Base):
     blocked_dates: Mapped[list["ClinicBlockedDate"]] = relationship(back_populates="clinic")
     images: Mapped[list["ClinicImage"]] = relationship(back_populates="clinic")
     clinic_experiences: Mapped[list["ClinicExperience"]] = relationship(back_populates="clinic")
+    rooms: Mapped[list["Room"]] = relationship(back_populates="clinic")
 
     __table_args__ = (
         CheckConstraint("tier IN (1, 2)", name="ck_clinic_tier"),
@@ -434,9 +435,15 @@ class Booking(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
 
+    room_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("rooms.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    room_price_inr_snapshot: Mapped[float | None] = mapped_column(Numeric(10, 2))
+
     patient: Mapped["PatientProfile"] = relationship(back_populates="bookings", foreign_keys=[patient_pseudo_id])
     clinic: Mapped["ClinicFeatureStore"] = relationship()
     retreat: Mapped["Retreat"] = relationship(back_populates="bookings")
+    room: Mapped["Room | None"] = relationship(foreign_keys=[room_id])
     review: Mapped["Review | None"] = relationship(back_populates="booking", uselist=False)
     add_ons: Mapped[list["BookingAddOn"]] = relationship(back_populates="booking")
 
@@ -586,6 +593,40 @@ class ClinicExperience(Base):
         ),
         CheckConstraint("price_inr > 0", name="ck_clinic_exp_price_nonzero"),
         Index("ix_clinic_experiences_clinic", "clinic_id", "is_active", "display_order"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Rooms (child of ClinicFeatureStore)
+# ---------------------------------------------------------------------------
+class Room(Base):
+    __tablename__ = "rooms"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    clinic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("clinic_feature_store.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    category: Mapped[str] = mapped_column(String(30), nullable=False)  # non_ac | ac_standard | deluxe | suite
+    description: Mapped[str | None] = mapped_column(Text)
+    price_per_night_inr: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    amenities = mapped_column(ARRAY(String), default=list)
+    photos = mapped_column(ARRAY(String), default=list)
+    max_occupancy: Mapped[int] = mapped_column(Integer, default=2)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"), onupdate=datetime.utcnow)
+
+    clinic: Mapped["ClinicFeatureStore"] = relationship(back_populates="rooms")
+
+    __table_args__ = (
+        CheckConstraint(
+            "category IN ('non_ac','ac_standard','deluxe','suite')",
+            name="ck_room_category",
+        ),
+        CheckConstraint("price_per_night_inr > 0", name="ck_room_price_nonzero"),
+        Index("ix_rooms_clinic", "clinic_id", "is_active", "display_order"),
     )
 
 

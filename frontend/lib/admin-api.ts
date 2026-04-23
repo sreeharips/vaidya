@@ -518,6 +518,54 @@ export function reorderClinicExperiences(ids: string[]) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Clinic admin rooms                                                 */
+/* ------------------------------------------------------------------ */
+
+export type RoomCategory = 'non_ac' | 'ac_standard' | 'deluxe' | 'suite'
+
+export interface Room {
+  id: string
+  name: string
+  category: RoomCategory
+  description: string | null
+  price_per_night_inr: number
+  amenities: string[]
+  photos: string[]
+  max_occupancy: number
+  is_active: boolean
+  display_order: number
+}
+
+export function getClinicRooms() {
+  return adminFetch<Room[]>('/api/admin/rooms')
+}
+
+export function createClinicRoom(data: Partial<Room>) {
+  return adminFetch<Room>('/api/admin/rooms', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateClinicRoom(id: string, data: Partial<Room>) {
+  return adminFetch<Room>(`/api/admin/rooms/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteClinicRoom(id: string) {
+  return adminFetch<void>(`/api/admin/rooms/${id}`, { method: 'DELETE' })
+}
+
+export function reorderClinicRooms(ids: string[]) {
+  return adminFetch<void>('/api/admin/rooms/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}
+
+/* ------------------------------------------------------------------ */
 /*  Platform admin experiences (curated)                              */
 /* ------------------------------------------------------------------ */
 

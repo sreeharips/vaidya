@@ -18,7 +18,7 @@ from sqlalchemy.types import Float
 from core.pricing import INR_PER_USD_FALLBACK, retreat_effective_inr
 from db.cache import cache_get, cache_set
 from db.database import get_db
-from db.models import ClinicFeatureStore, ClinicTeam, Retreat, RetreatAvailability, Review
+from db.models import ClinicFeatureStore, ClinicTeam, Retreat, RetreatAvailability, Review, Room
 
 
 router = APIRouter(prefix="/api/clinics", tags=["clinics"])
@@ -386,3 +386,52 @@ async def get_clinic(
     if not preview:
         await cache_set(cache_key, result.model_dump(mode="json"), ttl=_CACHE_TTL)
     return result
+
+
+class RoomPublicOut(BaseModel):
+    id: str
+    name: str
+    category: str
+    description: str | None
+    price_per_night_inr: float
+    amenities: list[str]
+    photos: list[str]
+    max_occupancy: int
+    display_order: int
+
+
+@router.get("/{slug}/rooms", response_model=list[RoomPublicOut])
+async def list_clinic_rooms(
+    slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Return active rooms for a clinic (used by the booking page)."""
+    clinic = (await db.execute(
+        select(ClinicFeatureStore).where(
+            ClinicFeatureStore.slug == slug,
+            ClinicFeatureStore.is_active.is_(True),
+        )
+    )).scalar_one_or_none()
+    if clinic is None:
+        raise HTTPException(status_code=404, detail=f"Clinic '{slug}' not found.")
+
+    rows = (await db.execute(
+        select(Room)
+        .where(Room.clinic_id == clinic.id, Room.is_active.is_(True))
+        .order_by(Room.display_order, Room.created_at)
+    )).scalars().all()
+
+    return [
+        RoomPublicOut(
+            id=str(r.id),
+            name=r.name,
+            category=r.category,
+            description=r.description,
+            price_per_night_inr=float(r.price_per_night_inr),
+            amenities=r.amenities or [],
+            photos=r.photos or [],
+            max_occupancy=r.max_occupancy,
+            display_order=r.display_order,
+        )
+        for r in rows
+    ]

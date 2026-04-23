@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.pricing import retreat_effective_inr
 from db.database import get_db
-from db.models import Booking, BookingAddOn, ClinicExperience, ClinicFeatureStore, Experience, Retreat, RetreatAvailability, PatientProfile
+from db.models import Booking, BookingAddOn, ClinicExperience, ClinicFeatureStore, Experience, Retreat, RetreatAvailability, PatientProfile, Room
 from db.outcomes import append_outcome
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ class BookingRequest(BaseModel):
     guest_email: str | None = None
     lang: str = Field(default="en", pattern="^(en|ar|de|fr|ml|hi)$")
     add_ons: list[AddOnRequest] = []
+    room_id: str | None = None
 
     @model_validator(mode="after")
     def validate_dates(self) -> "BookingRequest":
@@ -73,6 +74,8 @@ class BookingRequestResponse(BaseModel):
     end_date: date
     add_ons: list[BookingAddOnOut] = []
     add_ons_total_inr: float = 0.0
+    room_name_snapshot: str | None = None
+    room_price_inr_snapshot: float | None = None
 
 
 class PaymentResponse(BaseModel):
@@ -168,6 +171,25 @@ async def request_booking(
     if avail and avail.available_spots < body.guest_count:
         raise HTTPException(status_code=409, detail="Not enough spots available on the selected date.")
 
+    # ── Room (optional) ───────────────────────────────────────────────────────
+    room_obj: Room | None = None
+    room_price_inr_snap: float | None = None
+    if body.room_id:
+        try:
+            room_uuid = uuid.UUID(body.room_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="room_id must be a valid UUID.")
+        room_obj = (await db.execute(
+            select(Room).where(
+                Room.id == room_uuid,
+                Room.clinic_id == clinic_uuid,
+                Room.is_active.is_(True),
+            )
+        )).scalar_one_or_none()
+        if room_obj is None:
+            raise HTTPException(status_code=422, detail="Room not found or does not belong to this clinic.")
+        room_price_inr_snap = float(room_obj.price_per_night_inr)
+
     # Financials — canonical totals in INR (payment processor may settle in AED/USD later)
     nights = package.duration_min_days
     end_date = body.start_date + __import__('datetime').timedelta(days=nights)
@@ -175,7 +197,8 @@ async def request_booking(
         float(package.price_inr) if package.price_inr is not None else None,
         float(package.price_usd) if package.price_usd is not None else None,
     )
-    total_amount = round(price_inr * body.guest_count, 2)
+    room_total_inr = round(room_price_inr_snap * nights, 2) if room_price_inr_snap else 0.0
+    total_amount = round(price_inr * body.guest_count + room_total_inr, 2)
     rate = _commission_rate(body.lang)
     commission_amount = round(total_amount * rate, 2)
 
@@ -193,6 +216,8 @@ async def request_booking(
         patient_pseudo_id=pseudo_id,
         clinic_id=clinic_uuid,
         retreat_id=retreat_uuid,
+        room_id=room_obj.id if room_obj else None,
+        room_price_inr_snapshot=room_price_inr_snap,
         guest_name=body.guest_name,
         guest_email=body.guest_email,
         guest_count=body.guest_count,
@@ -305,6 +330,8 @@ async def request_booking(
         currency="INR", nights=nights, clinic_name=clinic.name,
         retreat_name=package.name, start_date=body.start_date, end_date=end_date,
         add_ons=add_on_out, add_ons_total_inr=add_ons_total_inr,
+        room_name_snapshot=room_obj.name if room_obj else None,
+        room_price_inr_snapshot=room_price_inr_snap,
     )
 
 
