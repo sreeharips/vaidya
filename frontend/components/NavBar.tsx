@@ -149,7 +149,7 @@ export default function NavBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const isHome = path === `/${lang}` || path === `/${lang}/`
-  const dark = isHome
+  const dark = true
 
   const links = [
     { href: `/${lang}/clinics`, label: 'Clinics'  },
@@ -173,9 +173,9 @@ export default function NavBar() {
         justifyContent: 'space-between',
         padding:        '0 clamp(16px, 4vw, 48px)',
         height:         '56px',
-        background:     dark ? '#0f2218' : 'rgba(247,243,237,0.92)',
+        background:     dark ? '#143d22' : 'rgba(209,238,220,0.95)',
         backdropFilter: dark ? 'none' : 'blur(12px)',
-        borderBottom:   dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid var(--border)',
+        borderBottom:   dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(30,61,47,0.14)',
         gap:            '12px',
       }}
     >

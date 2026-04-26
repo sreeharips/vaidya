@@ -242,7 +242,7 @@ export default function SearchPage() {
       <div
         className="search-nudge-bar"
         style={{
-          background: 'var(--forest)',
+          background: '#143d22',
           padding: '14px 40px',
           display: 'flex',
           alignItems: 'center',

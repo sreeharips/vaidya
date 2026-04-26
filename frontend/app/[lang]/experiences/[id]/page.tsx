@@ -67,7 +67,7 @@ export default async function ExperiencePage({
     <div style={{ background: '#faf9f7', minHeight: '100vh' }}>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <div style={{ position: 'relative', height: 420, background: '#1e3d2f', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', height: 420, background: '#143d22', overflow: 'hidden' }}>
         {heroPhoto && (
           // eslint-disable-next-line @next/next/no-img-element
           <img

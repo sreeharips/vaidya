@@ -118,7 +118,7 @@ export default function BookingsPage() {
       {/* Hero */}
       <section
         style={{
-          background: 'linear-gradient(135deg, #1a3c2e 0%, #2d5a3d 100%)',
+          background: 'linear-gradient(135deg, #143d22 0%, #1e4d2c 100%)',
           color: '#fff',
           padding: '2.5rem 1.5rem 2rem',
         }}

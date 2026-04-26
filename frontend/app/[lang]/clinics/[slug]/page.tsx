@@ -247,7 +247,7 @@ export default async function ClinicPage({
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
       <section
         style={{
-          background: 'linear-gradient(135deg, var(--forest) 0%, var(--forest2) 100%)',
+          background: 'linear-gradient(135deg, #143d22 0%, #1e4d2c 100%)',
           padding: '64px 24px 56px',
           position: 'relative',
           overflow: 'hidden',

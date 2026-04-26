@@ -65,7 +65,7 @@ export default async function ExperiencesListPage({
     <div style={{ background: '#faf9f7', minHeight: '100vh' }}>
 
       {/* ── Hero header ───────────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--forest)', padding: 'clamp(32px, 5vw, 60px) clamp(16px, 5vw, 48px) clamp(28px, 4vw, 48px)' }}>
+      <div style={{ background: '#143d22', padding: 'clamp(32px, 5vw, 60px) clamp(16px, 5vw, 48px) clamp(28px, 4vw, 48px)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <Link
             href={`/${lang}`}

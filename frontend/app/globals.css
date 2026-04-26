@@ -59,7 +59,7 @@ body {
 /* Homepage hero — single source for gradient + subtle gold wash (inline styles optional) */
 .home-hero {
   position: relative;
-  background: linear-gradient(165deg, #0f2218 0%, #1a3529 45%, #264a38 100%);
+  background: linear-gradient(165deg, #143d22 0%, #1e4d2c 45%, #2a5c38 100%);
   overflow: visible;
 }
 .home-hero::before {

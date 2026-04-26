@@ -440,7 +440,7 @@ function BookingForm() {
     <main style={{ background: 'var(--cream)', minHeight: '100vh' }}>
 
       {/* Header */}
-      <div style={{ background: 'var(--forest)', padding: '20px 24px 0' }}>
+      <div style={{ background: '#143d22', padding: '20px 24px 0' }}>
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <button
             onClick={() => router.back()}
